@@ -1,9 +1,9 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { fetchAdviceById } from '@/lib/api';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { Play, Share2, Square } from 'lucide-react-native';
+import { ArrowLeft, Play, Share2, Square } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
@@ -25,6 +25,7 @@ export default function AdviceDetailScreen() {
             if (id) {
                 const data = await fetchAdviceById(id as string);
                 setAdvice(data);
+                console.log(data);
                 setLoading(false);
             }
         }
@@ -33,7 +34,7 @@ export default function AdviceDetailScreen() {
 
     useEffect(() => {
         return () => {
-            Speech.stop();
+             Speech.stop();
         };
     }, []);
 
@@ -84,17 +85,18 @@ export default function AdviceDetailScreen() {
     }
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['bottom']}>
-            <Stack.Screen options={{ 
-                headerShown: true, 
-                title: "Guidance",
-                headerBackTitle: "Back",
-                headerRight: () => (
-                    <Pressable onPress={handleShare}>
-                        <Share2 size={24} color={theme.tint} />
-                    </Pressable>
-                )
-            }} />
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top', 'bottom']}>
+            
+            {/* Custom Header */}
+            <View className="flex-row items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-900" style={{ backgroundColor: theme.background }}>
+                <Pressable onPress={() => router.back()} className="p-2 -ml-2 rounded-full active:bg-gray-100 dark:active:bg-gray-800">
+                    <ArrowLeft size={24} color={theme.text} />
+                </Pressable>
+                <Text className="text-lg font-bold" style={{ color: theme.text }}>Guidance</Text>
+                <Pressable onPress={handleShare} className="p-2 -mr-2 rounded-full active:bg-gray-100 dark:active:bg-gray-800">
+                    <Share2 size={24} color={theme.tint} />
+                </Pressable>
+            </View>
             
             <ScrollView contentContainerStyle={{ padding: 20 }}>
                 {/* Situation Card */}
@@ -137,7 +139,7 @@ export default function AdviceDetailScreen() {
                             },
                         }}
                     >
-                        {advice.advice_text}
+                        {JSON.parse(advice.advice_points).map((point: string, index: number) => `${index + 1}. ${point}`).join('\n')}
                     </Markdown>
                 </View>
             </ScrollView>

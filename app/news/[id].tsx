@@ -1,9 +1,9 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { fetchNewsById } from '@/lib/api';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { Calendar, Play, Share2, Square } from 'lucide-react-native';
+import { ArrowLeft, Calendar, Play, Share2, Square } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
@@ -52,8 +52,8 @@ export default function NewsDetailScreen() {
             Speech.stop();
             setIsSpeaking(false);
         } else {
-            // Prefer news_content, then content, then summary
-            const content = news.news_content || news.content || news.summary || "";
+            // Prefer news_content, then md_content, then synopsis, then content, then summary
+            const content = news.news_content || news.md_content || news.synopsis || news.content || news.summary || "";
             const thingToSay = `${news.headline}. ${content.replace(/[#*`_]/g, '')}`; // Strip markdown
             
             Speech.speak(thingToSay, {
@@ -85,17 +85,16 @@ export default function NewsDetailScreen() {
     }
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['bottom']}>
-            <Stack.Screen options={{ 
-                headerShown: true, 
-                title: "Christian News",
-                headerBackTitle: "Back",
-                headerRight: () => (
-                    <Pressable onPress={handleShare}>
-                        <Share2 size={24} color={theme.tint} />
-                    </Pressable>
-                )
-            }} />
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top', 'bottom']}>
+            <View className="flex-row items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
+                <Pressable onPress={() => router.back()} className="p-2">
+                    <ArrowLeft size={24} color={theme.text} />
+                </Pressable>
+                <Text style={{ color: theme.text, fontWeight: 'bold' }}>Article</Text>
+                <Pressable onPress={handleShare} className="p-2">
+                    <Share2 size={24} color={theme.text} />
+                </Pressable>
+            </View>
             
             <ScrollView contentContainerStyle={{ padding: 20 }}>
                  <View className="mb-6">
@@ -141,7 +140,7 @@ export default function NewsDetailScreen() {
                             listItem: { color: theme.text, marginBottom: 5 },
                         }}
                     >
-                        {news.news_content || news.content || news.summary}
+                        {news.news_content || news.md_content || news.synopsis || news.content || news.summary}
                     </Markdown>
                 </View>
 

@@ -11,8 +11,8 @@ import { useColorScheme } from '@/components/useColorScheme';
 import { useAuth } from '@/context/AuthContext';
 
 export {
-    // Catch any errors thrown by the Layout component.
-    ErrorBoundary
+  // Catch any errors thrown by the Layout component.
+  ErrorBoundary
 } from 'expo-router';
 
 export const unstable_settings = {
@@ -85,6 +85,14 @@ function RootLayoutNav() {
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="login" options={{ headerShown: false, animation: 'fade' }} />
         <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
+        <Stack.Screen name="onboarding" options={{ headerShown: false }} />
+        <Stack.Screen name="paywall" options={{ presentation: 'modal', headerShown: false }} />
+        
+        {/* Detail Screens */}
+        <Stack.Screen name="news/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="devotional/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="prayer/[id]" options={{ headerShown: false }} />
+        <Stack.Screen name="advice/[id]" options={{ headerShown: false }} />
       </Stack>
     </ThemeProvider>
   );

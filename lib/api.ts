@@ -239,6 +239,16 @@ export const fetchCategories = async () => {
     }
 };
 
+export const fetchUserFollowedCategories = async (userId: string) => {
+    try {
+      const response = await apiClient.get('/user-followed-categories/' + userId);
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching followed categories:', error);
+      return [];
+    }
+};
+
 export const updateUserProfile = async (userId: string, updates: any) => {
     try {
       const response = await apiClient.post('/user-profile/' + userId, updates);        
@@ -339,14 +349,80 @@ export const fetchDevotionalById = async (id: string) => {
                 created_at: data.created_at,
                 type: 'general',
             };
+        } else {
+            const { data, error } = await supabase
+                .from('generated_devotionals')
+                .select('*')
+                .eq('id', id)
+                .single();
+            
+            if (error) throw error;
+            return data;
         }
-        return null;
     } catch (error) {
         console.error('Error fetching devotional by id:', error);
         return null;
     }
 };
 
+export const fetchPrayerById = async (id: string) => {
+    try {
+        if (id.startsWith('general-')) {
+            const realId = id.replace('general-', '');
+            const { data, error } = await supabase
+                .from('general_devotionals')
+                .select('*')
+                .eq('id', realId)
+                .single();
+            
+            if (error) throw error;
+            return {
+                prayer_id: `general-${data.id}`,
+                content: data.prayer,
+                title: "Daily Prayer",
+                created_at: data.created_at,
+                type: 'general',
+            };
+        } else {
+             const { data, error } = await supabase
+                .from('generated_prayers')
+                .select('*')
+                .eq('id', id)
+                .single();
+             
+             if (error) throw error;
+             return data;
+        }
+    } catch (error) {
+        console.error('Error fetching prayer by id:', error);
+        return null;
+    }
+};
+
+export const fetchNewsArticles = async (params: {
+    page?: number;
+    limit?: number;
+    topic_id?: string;
+    category_id?: string;
+    category_ids?: string; 
+    q?: string;
+  }) => {
+    try {
+      if (params.q) {
+        const response = await apiClient.get('/search', {
+          params: { q: params.q, limit: params.limit || 20 }
+        });
+        return response.data.results || [];
+      }
+      const response = await apiClient.get('/scriptural-outlooks', {
+        params: params
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching news articles:', error);
+      return [];
+    }
+};
 export const fetchNewsList = async () => {
     try {
       const response = await apiClient.get('/daily-news-synopses', {
@@ -362,7 +438,7 @@ export const fetchNewsList = async () => {
 export const fetchNewsById = async (id: string) => {
     try {
         const { data, error } = await supabase
-            .from('daily_news_synopses')
+            .from('scriptural_outlooks')
             .select('*')
             .eq('id', id)
             .single();
@@ -375,3 +451,50 @@ export const fetchNewsById = async (id: string) => {
     }
 };
 
+
+
+export const fetchFavorites = async (userId: string) => {
+    try {
+        const { data, error } = await supabase
+            .from('favorites')
+            .select('*')
+            .eq('user_id', userId)
+            .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        return data || [];
+    } catch (error) {
+        console.error('Error fetching favorites:', error);
+        return [];
+    }
+};
+
+export const fetchRandomCommunityPrayer = async () => {
+  try {
+    const response = await apiClient.get('/community/pray-for-others');
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching random prayer:", error);
+    return null;
+  }
+};
+
+export const markPrayerAsPrayed = async (prayerId: string) => {
+  try {
+    const response = await apiClient.post(`/community/pray/${prayerId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error marking prayer:", error);
+    return null;
+  }
+};
+
+export const submitPrayerRequest = async (userId: string, content: string) => {
+  try {
+    const response = await apiClient.post('/community/request', { userId, content });
+    return response.data;
+  } catch (error) {
+    console.error("Error submitting prayer:", error);
+    throw error;
+  }
+};

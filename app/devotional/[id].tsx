@@ -1,9 +1,9 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { fetchDevotionalById } from '@/lib/api';
-import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { BookOpen, Play, Share2, Square } from 'lucide-react-native';
+import { ArrowLeft, BookOpen, Play, Share2, Square } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Share, Text, View } from 'react-native';
 import Markdown from 'react-native-markdown-display';
@@ -82,17 +82,16 @@ export default function DevotionalDetailScreen() {
     }
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['bottom']}>
-            <Stack.Screen options={{ 
-                headerShown: true, 
-                title: "Daily Devotional",
-                headerBackTitle: "Back",
-                headerRight: () => (
-                    <Pressable onPress={handleShare}>
-                        <Share2 size={24} color={theme.tint} />
-                    </Pressable>
-                )
-            }} />
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top', 'bottom']}>
+            <View className="flex-row items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
+                <Pressable onPress={() => router.back()} className="p-2">
+                    <ArrowLeft size={24} color={theme.text} />
+                </Pressable>
+                <Text style={{ color: theme.text, fontWeight: 'bold' }}>Devotional</Text>
+                <Pressable onPress={handleShare} className="p-2">
+                    <Share2 size={24} color={theme.text} />
+                </Pressable>
+            </View>
             
             <ScrollView contentContainerStyle={{ padding: 20 }}>
                  <View className="items-center mb-8">
