@@ -153,13 +153,11 @@ export default function HomeScreen() {
                     >
                          <View className="flex-row items-center gap-2 mb-3">
                             <Newspaper size={16} color="#475569" /> 
-                            <Text className="text-xs uppercase font-bold text-slate-600 tracking-wider">Christian News</Text>
+                            <Text className="text-xs uppercase font-bold text-slate-600 tracking-wider">News for {new Date().toLocaleDateString()}</Text>
                         </View>
-                        <Text className="text-lg font-bold text-slate-900 dark:text-white mb-2">
-                            {news.headline}
-                        </Text>
+                        
                        <Text className="text-slate-600 dark:text-slate-400 text-sm">
-                            {news.summary?.substring(0, 100)}...
+                            {news.synopsis?.substring(0, 100)}...
                        </Text>
                     </TouchableOpacity>
                 )}

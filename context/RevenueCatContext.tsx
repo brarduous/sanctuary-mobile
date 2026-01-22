@@ -15,10 +15,18 @@ interface RevenueCatContextType {
 const RevenueCatContext = createContext<RevenueCatContextType | undefined>(undefined);
 
 export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
-  const { user } = useAuth(); // We might need user ID to identify in RC
+  const { user, profile } = useAuth(); // We might need user ID to identify in RC
   const [isPro, setIsPro] = useState(false);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
+
+  useEffect(() => {
+    // Check if user is Pro based on RevenueCat OR Profile (Database)
+    const isRevenueCatPro = customerInfo?.entitlements.active['pro_access'] !== undefined;
+    const isProfilePro = profile?.subscription_tier === 'pro' || profile?.subscription_tier === 'admin';
+    
+    setIsPro(isRevenueCatPro || isProfilePro);
+  }, [customerInfo, profile]);
 
   useEffect(() => {
     const init = async () => {
@@ -35,7 +43,7 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
 
         const info = await Purchases.getCustomerInfo();
         setCustomerInfo(info);
-        checkEntitlements(info);
+        // checkEntitlements is now handled by the useEffect above
 
         loadOfferings();
       } catch (e) {
@@ -45,13 +53,9 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
     init();
   }, [user]);
 
-  const checkEntitlements = (info: CustomerInfo) => {
-    if (info.entitlements.active['pro_access']) { // Replace 'pro_access' with your actual entitlement ID
-      setIsPro(true);
-    } else {
-      setIsPro(false);
-    }
-  };
+  // Helper to re-evaluate locally if needed (conceptually, but state drives it now)
+  // const checkEntitlements = (info: CustomerInfo) => {
+  // };
 
   const loadOfferings = async () => {
     try {
@@ -68,7 +72,6 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { customerInfo } = await Purchases.purchasePackage(pack);
       setCustomerInfo(customerInfo);
-      checkEntitlements(customerInfo);
     } catch (e: any) {
       if (!e.userCancelled) {
         console.error("Purchase error", e);
@@ -81,7 +84,6 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
     try {
       const info = await Purchases.restorePurchases();
       setCustomerInfo(info);
-      checkEntitlements(info);
     } catch (e) {
         console.error("Restore error", e);
     }

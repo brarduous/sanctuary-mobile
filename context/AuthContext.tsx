@@ -87,6 +87,32 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
+  // Listen for realtime profile updates (for webhook changes)
+  useEffect(() => {
+    if (!user) return;
+
+    console.log(`[Auth] Subscribing to profile changes for ${user.id}`);
+    const channel = supabase.channel(`public:user_profiles:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'user_profiles',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          console.log('[Auth] Profile updated via realtime:', payload.new);
+          setProfile((prev: any) => ({ ...prev, ...payload.new }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const refreshProfile = async () => {
     if (user) {
       const profileData = await fetchUserProfile(user.id);
