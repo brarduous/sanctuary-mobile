@@ -15,15 +15,17 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.sanctuary.mobile"
+      "bundleIdentifier": "us.sanctuaryapp.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "permissions": ["com.android.vending.BILLING"],
-      "package": "com.sanctuary.mobile"
+      "permissions": [
+        "com.android.vending.BILLING"
+      ],
+      "package": "us.sanctuaryapp.app"
     },
     "web": {
       "bundler": "metro",
@@ -32,7 +34,12 @@
     },
     "plugins": [
       "expo-router",
-      "@react-native-google-signin/google-signin"
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.227530603982-uj62ko7k4bqai0a42irca49umb9sgopg"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
