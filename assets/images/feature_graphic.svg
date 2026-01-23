@@ -1,0 +1,56 @@
+<svg width="1024" height="500" viewBox="0 0 1024 500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A" /> <stop offset="100%" stop-color="#1E293B" /> </linearGradient>
+    
+    <linearGradient id="doorGradient" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#D4A373" /> <stop offset="100%" stop-color="#F3E5D6" /> </linearGradient>
+    
+    <linearGradient id="shadowGradient" x1="100%" y1="50%" x2="0%" y2="50%">
+      <stop offset="0%" stop-color="#0F172A" /> <stop offset="100%" stop-color="#334155" /> </linearGradient>
+  </defs>
+
+  <rect width="1024" height="500" fill="url(#bgGradient)" />
+  
+  <!-- Decorative waves -->
+  <path d="M-50 380 Q 256 280 512 420 T 1074 380" stroke="#334155" stroke-width="2" fill="none" opacity="0.15"/>
+  <path d="M-50 430 Q 256 330 512 470 T 1074 430" stroke="#334155" stroke-width="2" fill="none" opacity="0.1"/>
+
+  <!-- Logo - centered left -->
+  <g transform="translate(120, 110) scale(0.38)"> 
+    <rect x="32" y="32" width="448" height="448" rx="128" fill="#334155" />
+    <path d="M256 128C266.667 202.667 288 234.667 384 256C288 277.333 266.667 309.333 256 384C245.333 309.333 224 277.333 128 256C224 234.667 245.333 202.667 256 128Z" fill="#FDFBF7"/>
+  </g>
+
+  <!-- Main Title -->
+  <text 
+    x="700" 
+    y="240" 
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" 
+    font-size="68" 
+    font-weight="700" 
+    fill="#FDFBF7" 
+    text-anchor="middle" 
+    letter-spacing="3"
+  >
+    SANCTUARY
+  </text>
+
+  <!-- Accent line -->
+  <line x1="660" y1="260" x2="740" y2="260" stroke="#D4A373" stroke-width="3" stroke-linecap="round" />
+
+  <!-- Tagline -->
+  <text 
+    x="700" 
+    y="310" 
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif" 
+    font-size="18" 
+    font-weight="400" 
+    fill="#94A3B8" 
+    text-anchor="middle" 
+    letter-spacing="1"
+  >
+    Peace in the Noise
+  </text>
+
+</svg>
