@@ -37,7 +37,7 @@ export default function PrayerDetailScreen() {
 
     const handleShare = async () => {
         if (!prayer) return;
-        const content = prayer.content || prayer.prayer_text || "";
+        const content = prayer.content || prayer.generated_prayer || "";
         try {
             await Share.share({
                 message: `${prayer.title || "Daily Prayer"}\n\n${content}\n\nShared via Sanctuary App`,
@@ -52,7 +52,7 @@ export default function PrayerDetailScreen() {
             Speech.stop();
             setIsSpeaking(false);
         } else {
-            const content = prayer.content || prayer.prayer_text || "";
+            const content = prayer.content || prayer.generated_prayer || "";
             const thingToSay = `Prayer. ${content}`; 
             
             Speech.speak(thingToSay, {
@@ -83,7 +83,7 @@ export default function PrayerDetailScreen() {
         );
     }
 
-    const prayerContent = prayer.content || prayer.prayer_text || "";
+    const prayerContent = prayer.content || prayer.generated_prayer || "";
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: '#FDFBF7' }} edges={['top', 'bottom']}>

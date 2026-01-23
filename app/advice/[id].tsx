@@ -38,11 +38,28 @@ export default function AdviceDetailScreen() {
         };
     }, []);
 
+    const getAdviceText = () => {
+        if (!advice || !advice.advice_points) return "";
+        let points = advice.advice_points;
+        if (typeof points === 'string') {
+            try {
+                points = JSON.parse(points);
+            } catch (e) {
+                return points;
+            }
+        }
+        if (Array.isArray(points)) {
+             return points.map((point: string, index: number) => `${index + 1}. ${point}`).join('\n\n');
+        }
+        return "";
+    };
+
     const handleShare = async () => {
         if (!advice) return;
+        const adviceText = getAdviceText();
         try {
             await Share.share({
-                message: `Situation: ${advice.situation}\n\nGuidance:\n${advice.advice_text}\n\nShared via Sanctuary App`,
+                message: `Situation: ${advice.situation}\n\nGuidance:\n${adviceText}\n\nShared via Sanctuary App`,
             });
         } catch (error) {
             console.error(error);
@@ -55,7 +72,8 @@ export default function AdviceDetailScreen() {
             setIsSpeaking(false);
             setIsPaused(false);
         } else {
-            const thingToSay = advice?.advice_text?.replace(/[#*`_]/g, '') || "";
+            const adviceText = getAdviceText();
+            const thingToSay = adviceText.replace(/[#*`_]/g, '') || "";
             Speech.speak(thingToSay, {
                 onDone: () => setIsSpeaking(false),
                 onStopped: () => setIsSpeaking(false),
@@ -114,8 +132,11 @@ export default function AdviceDetailScreen() {
                         className="flex-row items-center px-6 py-3 rounded-full"
                         style={{ backgroundColor: isSpeaking ? Colors.gray : theme.tint }}
                    >
-                        {isSpeaking ? <Square size={18} color="white" fill="white" /> : <Play size={18} color="white" fill="white" />}
-                        <Text className="text-white font-bold ml-2">
+                        {isSpeaking ? 
+                            <Square size={18} color={theme.background} fill={theme.background} /> : 
+                            <Play size={18} color={theme.background} fill={theme.background} />
+                        }
+                        <Text className="font-bold ml-2" style={{ color: theme.background }}>
                             {isSpeaking ? "Stop Reading" : "Listen to Guidance"}
                         </Text>
                    </Pressable>
@@ -139,7 +160,7 @@ export default function AdviceDetailScreen() {
                             },
                         }}
                     >
-                        {JSON.parse(advice.advice_points).map((point: string, index: number) => `${index + 1}. ${point}`).join('\n')}
+                        {getAdviceText()}
                     </Markdown>
                 </View>
             </ScrollView>

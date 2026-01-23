@@ -3,6 +3,8 @@ import GeneratingState from '@/components/GeneratingState';
 import { useAuth } from '@/context/AuthContext';
 import {
     checkAdviceLimit,
+    deleteDevotional,
+    deletePrayer,
     fetchCommunityStats,
     fetchDailyDevotionals,
     fetchDailyNewsSynopsis,
@@ -12,7 +14,7 @@ import {
     fetchUserStreak,
     generateContent,
     markPrayerAsPrayed,
-    submitPrayerRequest
+    submitPrayerRequest,
 } from '@/lib/api';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -76,6 +78,17 @@ export default function HomeScreen() {
   const [requestText, setRequestText] = useState('');
   const [requestStatus, setRequestStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
 
+
+  //polling ref state
+  const pollingRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Clean up polling on unmount
+  useEffect(() => {
+    return () => {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+    };
+  }, []);
+
   // --- DATA LOADING ---
   const loadData = useCallback(async (forceRefresh = false) => {
     if (!user) return;
@@ -106,47 +119,91 @@ export default function HomeScreen() {
         } else {
             console.warn("No general content.");
         }
-    } else {
-        // Pro Tier: Personalized Content
-        // (Simplified logic to match Web App flow)
-        if (!todaysDevotional || forceRefresh) {
-            setIsGenerating(true);
-            try {
-                // Check existing
-                const [devos, prayers] = await Promise.all([
-                    fetchDailyDevotionals(user.id),
-                    fetchDailyPrayers(user.id)
-                ]);
-                
-                // Sort by date desc
-                const todayDevo = devos?.[0]; // Assuming API returns sorted
-                const todayPrayer = prayers?.[0];
-                
-                // Only generate if today's is missing or we are forcing
-                const needsGen = !todayDevo || new Date(todayDevo.created_at).getDate() !== new Date().getDate();
+        return;
+    } 
+    // PRO TIER: Personalized Content Logic (Updated to match Web)
+    const now = new Date();
+    const isToday = (dateString: string) => {
+      if (!dateString) return false;
+      const date = new Date(dateString);
+      return date.getFullYear() === now.getFullYear() &&
+             date.getMonth() === now.getMonth() &&
+             date.getDate() === now.getDate();
+    };
 
-                if (needsGen) {
-                     await generateContent('/generate-devotional', {
-                        userId: user.id,
-                        focusAreas: profile?.user_preferences?.focusAreas || [],
-                    });
-                     // Re-fetch after gen
-                     const [newDevos, newPrayers] = await Promise.all([
-                        fetchDailyDevotionals(user.id),
-                        fetchDailyPrayers(user.id)
-                    ]);
-                    setTodaysDevotional(newDevos?.[0]);
-                    setTodaysPrayer(newPrayers?.[0]);
-                } else {
-                    setTodaysDevotional(todayDevo);
-                    setTodaysPrayer(todayPrayer);
-                }
-            } catch (e) {
-                console.error("Content flow error", e);
-            } finally {
-                setIsGenerating(false);
-            }
+    // A. Fetch existing
+    const [allDevotionals, allPrayers] = await Promise.all([
+        fetchDailyDevotionals(user.id),
+        fetchDailyPrayers(user.id)
+    ]);
+
+    let todayDevo = allDevotionals.find((d: any) => isToday(d.created_at));
+    let todayPrayer = allPrayers.find((p: any) => isToday(p.created_at));
+
+    // B. Cleanup Failed Generations (Retry Logic)
+    if (todayDevo?.status === 'failed') {
+        console.log("Cleaning up failed devotional...");
+        await deleteDevotional(todayDevo.devotional_id || todayDevo.id);
+        todayDevo = null;
+    }
+    if (todayPrayer?.status === 'failed') {
+         console.log("Cleaning up failed prayer...");
+        await deletePrayer(todayPrayer.prayer_id || todayPrayer.id);
+        todayPrayer = null;
+    }
+
+    // C. Check Completion
+    if (todayDevo?.status === 'completed' && todayPrayer?.status === 'completed') {
+        setTodaysDevotional(todayDevo);
+        setTodaysPrayer(todayPrayer);
+        setIsGenerating(false);
+        // Stop any existing polling
+        if (pollingRef.current) {
+            clearInterval(pollingRef.current);
+            pollingRef.current = null;
         }
+        return;
+    }
+
+    // D. Trigger Generation if Missing
+    if (!todayDevo) {
+        console.log("No personal content found. Triggering AI...");
+        setIsGenerating(true); 
+        try {
+            await generateContent('/generate-devotional', {
+                userId: user.id,
+                focusAreas: profile?.user_preferences?.focusAreas || [],
+                improvementAreas: profile?.user_preferences?.improvementAreas || [],
+                recentDevotionals: allDevotionals.slice(0, 10),
+            });
+        } catch (err) {
+            console.error("Generation trigger failed", err);
+        }
+    } else {
+        // Content exists but is 'pending'
+        setIsGenerating(true);
+    }
+
+    // E. Start Polling (if not already polling)
+    if (!pollingRef.current) {
+        console.log("Starting polling for content...");
+        pollingRef.current = setInterval(async () => {
+            const updatedDevos = await fetchDailyDevotionals(user.id);
+            const updatedPrayers = await fetchDailyPrayers(user.id);
+            
+            const newDevo = updatedDevos.find((d: any) => isToday(d.created_at));
+            const newPrayer = updatedPrayers.find((p: any) => isToday(p.created_at));
+
+            if (newDevo?.status === 'completed' && newPrayer?.status === 'completed') {
+                setTodaysDevotional(newDevo);
+                setTodaysPrayer(newPrayer);
+                setIsGenerating(false);
+                if (pollingRef.current) {
+                    clearInterval(pollingRef.current);
+                    pollingRef.current = null;
+                }
+            }
+        }, 3000); // Check every 3 seconds
     }
 
   }, [user, profile]);
@@ -273,7 +330,7 @@ export default function HomeScreen() {
         {isGenerating ? (
             <GeneratingState />
         ) : todaysDevotional ? (
-            <Link href={`/devotional/${todaysDevotional.devotional_id || todaysDevotional.id}`} asChild>
+            <Link href={`/devotional/${todaysDevotional.devotional_id}`} asChild>
                 <Pressable className="bg-white rounded-[24px] border border-slate-100 shadow-sm mb-8 overflow-hidden active:scale-[0.99] transition-transform">
                     <View className="p-6">
                         <Text className="text-xl font-serif text-slate-900 mb-3 leading-tight font-medium" numberOfLines={2}>
@@ -281,7 +338,7 @@ export default function HomeScreen() {
                         </Text>
                         
                         <Text className="text-slate-500 leading-relaxed text-sm mb-4" numberOfLines={3}>
-                            {todaysDevotional.content?.replace(/<[^>]*>?/gm, '').replace(/[#*`]/g, '').trim()} 
+                            {todaysDevotional.content?.replace(/<[^>]*>?/gm, '').replace(/[#*`]/g, '').replace(/\\n/g, ' ').trim()} 
                         </Text>
 
                         <View className="flex-row items-center">
@@ -332,7 +389,7 @@ export default function HomeScreen() {
 
         {/* --- 3. COMMUNITY STATS (New) --- */}
         {communityStats.totalPrayedForYou > 0 && (
-            <View className="bg-[#D4A373]/5 border border-[#D4A373]/20 rounded-xl p-4 flex-row items-center gap-3 mb-8">
+            <View className="bg-[#D4A373]/5 border border-[#D4A373]/20 rounded-xl p-4 flex-row items-center gap-3 mb-8 mt-8">
                 <View className="bg-[#D4A373]/10 p-2 rounded-full">
                     <Users size={18} color="#D4A373" />
                 </View>
@@ -343,7 +400,7 @@ export default function HomeScreen() {
         )}
 
         {/* --- 4. COMMUNITY --- */}
-         <View className="mb-4 flex-row items-center justify-between">
+         <View className="mb-4 flex-row items-center justify-between mt-4">
             <View className="flex-row items-center gap-2">
                 <Heart size={16} color="#94A3B8" />
                 <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Community</Text>
@@ -481,7 +538,7 @@ export default function HomeScreen() {
                 ) : (
                     <>
                         <Text className="text-slate-500 text-xs mb-4">
-                            Your request will be anonymized by AI before being shared with the community.
+                            Your request will be anonymized before being shared with the community. No personal details will be included.
                         </Text>
 
                         <TextInput

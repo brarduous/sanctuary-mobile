@@ -351,9 +351,9 @@ export const fetchDevotionalById = async (id: string) => {
             };
         } else {
             const { data, error } = await supabase
-                .from('generated_devotionals')
+                .from('daily_devotionals')
                 .select('*')
-                .eq('id', id)
+                .eq('devotional_id', id)
                 .single();
             
             if (error) throw error;
@@ -385,9 +385,9 @@ export const fetchPrayerById = async (id: string) => {
             };
         } else {
              const { data, error } = await supabase
-                .from('generated_prayers')
+                .from('daily_prayers')
                 .select('*')
-                .eq('id', id)
+                .eq('prayer_id', id)
                 .single();
              
              if (error) throw error;
@@ -436,18 +436,13 @@ export const fetchNewsList = async () => {
 };
 
 export const fetchNewsById = async (id: string) => {
+  console.log("[API] fetchNewsById called with id:", id);
     try {
-        const { data, error } = await supabase
-            .from('scriptural_outlooks')
-            .select('*')
-            .eq('id', id)
-            .single();
-
-        if (error) throw error;
-        return data;
+      const response = await apiClient.get(`/scriptural-outlooks/${id}`);
+      return response.data;
     } catch (error) {
-        console.error('Error fetching news by id:', error);
-        return null;
+      console.error('Error fetching article:', error);
+      return null;
     }
 };
 
@@ -497,4 +492,24 @@ export const submitPrayerRequest = async (userId: string, content: string) => {
     console.error("Error submitting prayer:", error);
     throw error;
   }
+};
+
+export const deleteDevotional = async (devotionalId: string) => {
+    try {
+        const response = await apiClient.delete(`/devotionals/${devotionalId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting devotional:', error);
+        return null;
+    }
+};
+
+export const deletePrayer = async (prayerId: string) => {
+    try {
+        const response = await apiClient.delete(`/prayers/${prayerId}`);
+        return response.data;
+    } catch (error) {
+        console.error('Error deleting prayer:', error);
+        return null;
+    }
 };

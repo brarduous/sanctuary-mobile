@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function DevotionalDetailScreen() {
     const { id } = useLocalSearchParams();
+    console.log("Devotional ID:", id);
     const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
@@ -23,6 +24,9 @@ export default function DevotionalDetailScreen() {
         async function load() {
             if (id) {
                 const data = await fetchDevotionalById(id as string);
+                console.log("Fetched Devotional Data:", data);
+                //data.content includes \n for new lines. Let's handle that here
+                data.content = data.content.replace(/\\n/g, '\n');
                 setDevotional(data);
                 setLoading(false);
             }
@@ -52,7 +56,7 @@ export default function DevotionalDetailScreen() {
             Speech.stop();
             setIsSpeaking(false);
         } else {
-            const thingToSay = `${devotional.title}. ${devotional.scripture}. ${devotional.content}`;
+            const thingToSay = `${devotional.title}. ${devotional.content}`;
             Speech.speak(thingToSay, {
                 onDone: () => setIsSpeaking(false),
                 onStopped: () => setIsSpeaking(false),
@@ -125,8 +129,11 @@ export default function DevotionalDetailScreen() {
                         className="flex-row items-center px-6 py-3 rounded-full"
                         style={{ backgroundColor: isSpeaking ? Colors.gray : theme.tint }}
                    >
-                        {isSpeaking ? <Square size={18} color="white" fill="white" /> : <Play size={18} color="white" fill="white" />}
-                        <Text className="text-white font-bold ml-2">
+                        {isSpeaking ? 
+                            <Square size={18} color={theme.background} fill={theme.background} /> : 
+                            <Play size={18} color={theme.background} fill={theme.background} />
+                        }
+                        <Text className="font-bold ml-2" style={{ color: theme.background }}>
                             {isSpeaking ? "Stop Reading" : "Listen to Devotional"}
                         </Text>
                    </Pressable>

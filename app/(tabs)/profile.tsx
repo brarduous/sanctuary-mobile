@@ -34,6 +34,7 @@ import {
     Pressable,
     ScrollView,
     Text,
+    TouchableOpacity,
     UIManager,
     View
 } from 'react-native';
@@ -45,14 +46,14 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function ProfileScreen() {
     const { user, profile: authProfile, signOut } = useAuth();
-    const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
     const hasTheme = colorScheme === 'dark'; // Simplified for now
+    const router = useRouter();
     
     // --- STATE ---
-    const [activeTab, setActiveTab] = useState<'library' | 'settings'>('library');
+    const [activeSection, setActiveSection] = useState<'library' | 'settings'>('settings');
     const [favorites, setFavorites] = useState<any[]>([]);
-    const [profile, setProfile] = useState<any>(authProfile);
+    const [profile, setProfile] = useState<any>(authProfile || null);
     
     // Options
     const [focusOptions, setFocusOptions] = useState<string[]>([]);
@@ -70,27 +71,43 @@ export default function ProfileScreen() {
     // Initial Load
     useEffect(() => {
         async function init() {
-            if (!user) return;
+            if (!user?.id) {
+                setLoading(false);
+                return;
+            }
             try {
                 const [userProfile, appOptions, cats, userCats] = await Promise.all([
-                    fetchUserProfile(user.id),
-                    fetchAppOptions(),
-                    fetchCategories(),
-                    fetchUserFollowedCategories(user.id)
+                    fetchUserProfile(user.id).catch(e => { console.error('Profile fetch error:', e); return null; }),
+                    fetchAppOptions().catch(e => { console.error('App options error:', e); return null; }),
+                    fetchCategories().catch(e => { console.error('Categories error:', e); return []; }),
+                    fetchUserFollowedCategories(user.id).catch(e => { console.error('User cats error:', e); return []; })
                 ]);
 
-                if (appOptions) {
-                    setFocusOptions(appOptions.find((o: any) => o.name === 'focus_areas')?.options?.map((x: any) => x.title) || []);
-                    setImproveOptions(appOptions.find((o: any) => o.name === 'improvement_areas')?.options?.map((x: any) => x.title) || []);
+                if (appOptions && Array.isArray(appOptions)) {
+                    const focusOpt = appOptions.find((o: any) => o.name === 'focus_areas');
+                    const improveOpt = appOptions.find((o: any) => o.name === 'improvement_areas');
+                    
+                    if (focusOpt?.options && Array.isArray(focusOpt.options)) {
+                        setFocusOptions(focusOpt.options.map((x: any) => x.title).filter(Boolean));
+                    }
+                    if (improveOpt?.options && Array.isArray(improveOpt.options)) {
+                        setImproveOptions(improveOpt.options.map((x: any) => x.title).filter(Boolean));
+                    }
                 }
-                if (cats) setCategoryOptions(cats);
-                if (userCats) setFollowedCategoryIds(userCats.map((uc: any) => Number(uc.id || uc))); // Handle if API returns objects or IDs
+                
+                if (cats && Array.isArray(cats)) {
+                    setCategoryOptions(cats);
+                }
+                
+                if (userCats && Array.isArray(userCats)) {
+                    setFollowedCategoryIds(userCats.map((uc: any) => Number(uc.id || uc)).filter(id => !isNaN(id)));
+                }
 
                 if (userProfile) {
                     setProfile(userProfile);
                     if (userProfile.user_preferences) {
-                        setFocusAreas(userProfile.user_preferences.focusAreas || []);
-                        setImprovementAreas(userProfile.user_preferences.improvementAreas || []);
+                        setFocusAreas(Array.isArray(userProfile.user_preferences.focusAreas) ? userProfile.user_preferences.focusAreas : []);
+                        setImprovementAreas(Array.isArray(userProfile.user_preferences.improvementAreas) ? userProfile.user_preferences.improvementAreas : []);
                     }
                 }
             } catch (error) {
@@ -104,17 +121,23 @@ export default function ProfileScreen() {
 
     // Fetch Favorites
     useEffect(() => {
-        if (activeTab === 'library' && user) {
-            fetchFavorites(user.id).then(setFavorites);
+        console.log('Active Tab:', activeSection);
+        if (activeSection === 'library' && user?.id) {
+            fetchFavorites(user.id).then(setFavorites).catch(err => {
+                console.error('Error fetching favorites:', err);
+                setFavorites([]);
+            });
         }
-    }, [activeTab, user]);
+    }, [activeSection, user]);
 
     // Handlers
     const toggleString = (list: string[], item: string, setFn: any) => {
+        if (!Array.isArray(list) || !item) return;
         setFn(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
     };
 
     const toggleId = (list: number[], item: number, setFn: any) => {
+        if (!Array.isArray(list) || typeof item !== 'number' || isNaN(item)) return;
         setFn(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
     };
 
@@ -144,27 +167,31 @@ export default function ProfileScreen() {
         Alert.alert("Sign Out", "Are you sure?", [
             { text: "Cancel", style: "cancel" },
             { text: "Sign Out", style: "destructive", onPress: () => {
-                signOut();
-                router.replace('/login');
+                try {
+                    // Trigger sign out; Root layout will handle redirect based on auth state
+                    signOut();
+                } catch (error) {
+                    console.error('Sign out error:', error);
+                }
             }}
         ]);
     };
 
     const handleItemPress = (item: any) => {
-        // Navigate based on item_type
-        // web: href={`/${fav.item_type}/${fav.item_id}`}
-        // mobile: needs adapting. item_type might be 'devotional', 'prayer'.
-        
-        let path = '';
-        if (item.item_type === 'devotional') path = `/devotional/${item.item_id}`;
-        else if (item.item_type === 'prayer') path = `/prayer/${item.item_id}`;
-        else if (item.item_type === 'advice') path = `/advice/${item.item_id}`;
-        else if (item.item_type === 'news') path = `/news/${item.item_id}`;
-        
-        if (path) {
-            router.push(path as any);
-        } else {
-             console.warn("Unknown type", item.item_type);
+        try {
+            let path = '';
+            if (item.item_type === 'devotional') path = `/devotional/${item.item_id}`;
+            else if (item.item_type === 'prayer') path = `/prayer/${item.item_id}`;
+            else if (item.item_type === 'advice') path = `/advice/${item.item_id}`;
+            else if (item.item_type === 'news') path = `/news/${item.item_id}`;
+            
+            if (path) {
+                router.push(path as any);
+            } else {
+                console.warn("Unknown type", item.item_type);
+            }
+        } catch (error) {
+            console.error('Navigation error:', error);
         }
     };
 
@@ -189,27 +216,27 @@ export default function ProfileScreen() {
 
                 {/* Tabs */}
                 <View className="flex-row p-1 bg-white border border-slate-200 rounded-xl mb-2">
-                    <Pressable 
-                        onPress={() => setActiveTab('library')}
-                        className={`flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-lg ${activeTab === 'library' ? 'bg-slate-900 shadow-sm' : ''}`}
+                    <TouchableOpacity 
+                        onPress={() => setTimeout(() => setActiveSection('library'), 0)}
+                        className={`flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-lg ${activeSection === 'library' ? 'bg-slate-900 shadow-sm' : ''}`}
                     >
-                        <BookMarked size={16} color={activeTab === 'library' ? 'white' : '#64748B'} />
-                        <Text className={`text-sm font-bold ${activeTab === 'library' ? 'text-white' : 'text-slate-500'}`}>Library</Text>
-                    </Pressable>
-                    <Pressable 
-                        onPress={() => setActiveTab('settings')}
-                        className={`flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-lg ${activeTab === 'settings' ? 'bg-slate-900 shadow-sm' : ''}`}
+                        <BookMarked size={16} color={activeSection === 'library' ? 'white' : '#64748B'} />
+                        <Text className={`text-sm font-bold ${activeSection === 'library' ? 'text-white' : 'text-slate-500'}`}>Library</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity 
+                        onPress={() => setTimeout(() => setActiveSection('settings'), 0)}
+                        className={`flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-lg ${activeSection === 'settings' ? 'bg-slate-900 shadow-sm' : ''}`}
                     >
-                        <Settings size={16} color={activeTab === 'settings' ? 'white' : '#64748B'} />
-                        <Text className={`text-sm font-bold ${activeTab === 'settings' ? 'text-white' : 'text-slate-500'}`}>Settings</Text>
-                    </Pressable>
+                        <Settings size={16} color={activeSection === 'settings' ? 'white' : '#64748B'} />
+                        <Text className={`text-sm font-bold ${activeSection === 'settings' ? 'text-white' : 'text-slate-500'}`}>Settings</Text>
+                    </TouchableOpacity>
                 </View>
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
                 
                 {/* --- LIBRARY TAB --- */}
-                {activeTab === 'library' && (
+                {activeSection === 'library' && (
                     <View className="gap-4">
                         {favorites.length === 0 ? (
                             <View className="py-20 items-center opacity-50">
@@ -245,7 +272,7 @@ export default function ProfileScreen() {
                 )}
 
                 {/* --- SETTINGS TAB --- */}
-                {activeTab === 'settings' && (
+                {activeSection === 'settings' &&  (
                     <View className="gap-8">
                         {/* User Info */}
                         <View className="flex-row items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
@@ -254,9 +281,9 @@ export default function ProfileScreen() {
                             </View>
                             <View>
                                 <Text className="font-serif font-bold text-slate-900 text-lg">
-                                    {profile?.first_name} {profile?.last_name || 'User'}
+                                    {profile?.first_name || 'User'} {profile?.last_name || ''}
                                 </Text>
-                                <Text className="text-xs text-slate-500">{user?.email}</Text>
+                                <Text className="text-xs text-slate-500">{user?.email || ''}</Text>
                             </View>
                         </View>
 
@@ -276,12 +303,21 @@ export default function ProfileScreen() {
                                 </View>
                             </View>
                             {profile?.subscription_tier !== 'pro' && (
-                                <Pressable 
-                                    onPress={() => router.push('/paywall')}
-                                    className="mt-4 w-full py-3 bg-[#D4A373] rounded-lg items-center shadow-sm active:opacity-90"
-                                >
-                                    <Text className="text-white font-bold">Upgrade for $4.99/mo</Text>
-                                </Pressable>
+                                <View>
+                                    <Pressable 
+                                        onPress={() => {
+                                            if (router && router.push) {
+                                                router.push('/paywall');
+                                            } else {
+                                                console.error("Router not available");
+                                                Alert.alert("Error", "Navigation not available");
+                                            }
+                                        }}
+                                        className="mt-4 w-full py-3 bg-[#D4A373] rounded-lg items-center shadow-sm active:opacity-90"
+                                    >
+                                        <Text className="text-white font-bold">Upgrade for $4.99/mo</Text>
+                                    </Pressable>
+                                </View>
                             )}
                         </View>
 
@@ -311,7 +347,7 @@ export default function ProfileScreen() {
                                 <Text className="text-sm font-bold uppercase tracking-widest text-slate-400">Spiritual Focus</Text>
                             </View>
                             <View className="flex-row flex-wrap gap-2">
-                                {focusOptions.map(opt => (
+                                {(focusOptions || []).map(opt => (
                                     <Pressable 
                                         key={opt}
                                         onPress={() => toggleString(focusAreas, opt, setFocusAreas)}
@@ -332,7 +368,7 @@ export default function ProfileScreen() {
                                 <Text className="text-sm font-bold uppercase tracking-widest text-slate-400">Areas for Growth</Text>
                             </View>
                             <View className="flex-row flex-wrap gap-2">
-                                {improveOptions.map(opt => (
+                                {(improveOptions || []).map(opt => (
                                     <Pressable 
                                         key={opt}
                                         onPress={() => toggleString(improvementAreas, opt, setImprovementAreas)}
@@ -353,7 +389,7 @@ export default function ProfileScreen() {
                                 <Text className="text-sm font-bold uppercase tracking-widest text-slate-400">News Interests</Text>
                             </View>
                             <View className="flex-row flex-wrap gap-2">
-                                {categoryOptions.map(cat => (
+                                {(categoryOptions || []).map(cat => (
                                     <Pressable 
                                         key={cat.id}
                                         onPress={() => toggleId(followedCategoryIds, cat.id, setFollowedCategoryIds)}
@@ -391,7 +427,7 @@ export default function ProfileScreen() {
             </ScrollView>
 
             {/* Floating Save Button */}
-            {activeTab === 'settings' && (
+            {activeSection === 'settings' && (
                 <View className="absolute bottom-6 right-6">
                     <Pressable
                         onPress={handleSave}
