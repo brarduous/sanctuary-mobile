@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { BookOpen, HeartHandshake, ShieldCheck, Sparkles } from 'lucide-react-native';
 import React, { useRef, useState } from 'react';
 import {
+    ActivityIndicator,
     Dimensions,
     FlatList,
     Image,
@@ -17,7 +18,7 @@ import {
 } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const SLIDES = [
     {
@@ -38,7 +39,7 @@ const SLIDES = [
         id: '3',
         title: 'Christian News',
         description: 'Stay informed with faith-based analysis of current events.',
-        icon: HeartHandshake, // Approximating news/community
+        icon: HeartHandshake,
         color: '#D97706', // Amber
     },
     {
@@ -60,8 +61,6 @@ export default function LoginScreen() {
     const [currentIndex, setCurrentIndex] = useState(0);
     const scrollX = useRef(new RNAnimated.Value(0)).current;
     
-    const slidesRef = useRef(null);
-    
     const viewableItemsChanged = useRef(({ viewableItems }: any) => {
         if (viewableItems && viewableItems.length > 0) {
             setCurrentIndex(viewableItems[0].index);
@@ -70,8 +69,6 @@ export default function LoginScreen() {
 
     const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
     
-    // Auto-scroll logic could go here, but manual is often better for onboarding
-
     const renderItem = ({ item }: { item: typeof SLIDES[0] }) => {
         const Icon = item.icon;
         return (
@@ -81,7 +78,7 @@ export default function LoginScreen() {
                         width: 120, 
                         height: 120, 
                         borderRadius: 60, 
-                        backgroundColor: item.color + '20', // 20% opacity
+                        backgroundColor: item.color + '20', 
                         alignItems: 'center',
                         justifyContent: 'center',
                         marginBottom: 40
@@ -97,7 +94,7 @@ export default function LoginScreen() {
                         color: theme.text, 
                         textAlign: 'center',
                         marginBottom: 16,
-                        fontFamily: Platform.select({ ios: 'Serif', android: 'serif' }) // Fallback serif
+                        fontFamily: Platform.select({ ios: 'Serif', android: 'serif' })
                     }}
                 >
                     {item.title}
@@ -137,7 +134,6 @@ export default function LoginScreen() {
                     scrollEventThrottle={32}
                     onViewableItemsChanged={viewableItemsChanged}
                     viewabilityConfig={viewConfig}
-                    ref={slidesRef}
                 />
                 
                 {/* Paginator */}
@@ -184,72 +180,78 @@ export default function LoginScreen() {
                     gap: 16
                 }}
             >
-                <View style={{ alignItems: 'center', marginBottom: 12 }}>
-                    <Text style={{ fontSize: 16, color: Colors.gray, fontWeight: '500' }}>Get started with</Text>
-                </View>
+                {loading ? (
+                    <View style={{ alignItems: 'center', justifyContent: 'center', height: 100 }}>
+                        <ActivityIndicator size="large" color={theme.tint} />
+                        <Text style={{ marginTop: 12, color: Colors.gray }}>Signing in...</Text>
+                    </View>
+                ) : (
+                    <>
+                        <View style={{ alignItems: 'center', marginBottom: 12 }}>
+                            <Text style={{ fontSize: 16, color: Colors.gray, fontWeight: '500' }}>Get started with</Text>
+                        </View>
 
-                {/* Apple Button */}
-                <Pressable
-                    onPress={signInWithApple}
-                    style={({ pressed }) => ({
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: colorScheme === 'dark' ? '#FFF' : '#000',
-                        paddingVertical: 16,
-                        borderRadius: 12,
-                        opacity: pressed ? 0.9 : 1,
-                        shadowColor: "#000",
-                        shadowOffset: {
-                            width: 0,
-                            height: 2,
-                        },
-                        shadowOpacity: 0.25,
-                        shadowRadius: 3.84,
-                        elevation: 5,
-                    })}
-                >
-                    <Image 
-                        source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/3/31/Apple_logo_white.svg' }} // Fallback if no local icon
-                        style={{ width: 20, height: 20, marginRight: 12, tintColor: colorScheme === 'dark' ? '#000' : '#FFF' }} // Inverse tint
-                    />
-                    {/* Using Text instead of Image for logo simplicy if possible, but standard is icon */}
-                   <Text style={{ color: colorScheme === 'dark' ? '#000' : '#FFF', fontSize: 16, fontWeight: 'bold' }}>Continue with Apple</Text>
-                </Pressable>
+                        {/* Apple Button - iOS Only */}
+                        {Platform.OS === 'ios' && (
+                            <Pressable
+                                onPress={signInWithApple}
+                                style={({ pressed }) => ({
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    backgroundColor: colorScheme === 'dark' ? '#FFF' : '#000',
+                                    paddingVertical: 16,
+                                    borderRadius: 12,
+                                    opacity: pressed ? 0.9 : 1,
+                                    shadowColor: "#000",
+                                    shadowOffset: { width: 0, height: 2 },
+                                    shadowOpacity: 0.25,
+                                    shadowRadius: 3.84,
+                                    elevation: 5,
+                                })}
+                            >
+                                <Image 
+                                    source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/3/31/Apple_logo_white.svg' }} 
+                                    style={{ width: 20, height: 20, marginRight: 12, tintColor: colorScheme === 'dark' ? '#000' : '#FFF' }} 
+                                />
+                                <Text style={{ color: colorScheme === 'dark' ? '#000' : '#FFF', fontSize: 16, fontWeight: 'bold' }}>Continue with Apple</Text>
+                            </Pressable>
+                        )}
 
-                {/* Google Button */}
-                <Pressable
-                    onPress={signInWithGoogle}
-                    style={({ pressed }) => ({
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        backgroundColor: '#FFF',
-                        paddingVertical: 16,
-                        borderRadius: 12,
-                        opacity: pressed ? 0.9 : 1,
-                        borderWidth: 1,
-                        borderColor: '#E5E7EB',
-                        shadowColor: "#000",
-                        shadowOffset: {
-                            width: 0,
-                            height: 1,
-                        },
-                        shadowOpacity: 0.1,
-                        shadowRadius: 2,
-                        elevation: 2,
-                    })}
-                >
-                    {/* Placeholder Google G */}
-                    <Text style={{ fontSize: 18, marginRight: 12 }}>G</Text>
-                    <Text style={{ color: '#374151', fontSize: 16, fontWeight: 'bold' }}>Continue with Google</Text>
-                </Pressable>
+                        {/* Google Button - All Platforms */}
+                        <Pressable
+                            onPress={signInWithGoogle}
+                            style={({ pressed }) => ({
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                backgroundColor: '#FFF',
+                                paddingVertical: 16,
+                                borderRadius: 12,
+                                opacity: pressed ? 0.9 : 1,
+                                borderWidth: 1,
+                                borderColor: '#E5E7EB',
+                                shadowColor: "#000",
+                                shadowOffset: { width: 0, height: 1 },
+                                shadowOpacity: 0.1,
+                                shadowRadius: 2,
+                                elevation: 2,
+                            })}
+                        >
+                             <Image 
+                                source={{ uri: 'https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg' }}
+                                style={{ width: 20, height: 20, marginRight: 12 }} 
+                            />
+                            <Text style={{ color: '#374151', fontSize: 16, fontWeight: 'bold' }}>Continue with Google</Text>
+                        </Pressable>
 
-                <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
-                    <Text style={{ color: Colors.gray, textAlign: 'center', fontSize: 12 }}>
-                        By continuing, you agree to our Terms of Service and Privacy Policy.
-                    </Text>
-                </View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'center', marginTop: 24 }}>
+                            <Text style={{ color: Colors.gray, textAlign: 'center', fontSize: 12, paddingHorizontal: 20 }}>
+                                By continuing, you agree to our Terms of Service and Privacy Policy.
+                            </Text>
+                        </View>
+                    </>
+                )}
             </Animated.View>
         </View>
     );

@@ -49,8 +49,8 @@ type Article = {
 export default function NewsScreen() {
     const { user } = useAuth();
     const router = useRouter();
-    const colorScheme = useColorScheme() ?? 'light';
-    const theme = Colors[colorScheme];
+    const colorScheme = useColorScheme();
+    const theme = Colors[colorScheme ?? 'light'];
 
     // --- STATE ---
     const [synopsis, setSynopsis] = useState<any>(null);
@@ -170,25 +170,25 @@ export default function NewsScreen() {
 
     // Components
     const renderHeader = () => (
-        <View className="px-5 pt-4 pb-2 bg-[#FDFBF7]">
+        <View className="px-5 pt-4 pb-2" style={{ backgroundColor: 'transparent' }}>
             {loadingSynopsis ? (
-                <View className="bg-white rounded-[24px] p-6 h-40 items-center justify-center border border-slate-100">
+                <View className="rounded-[24px] p-6 h-40 items-center justify-center border " style={{ backgroundColor: theme.card }}>
                     <ActivityIndicator color="#D4A373" />
                 </View>
             ) : synopsis ? (
-                <View className="bg-white rounded-[24px] shadow-sm border border-slate-100 p-6 mb-2">
+                <View className="rounded-[24px] border  p-6 mb-2" style={{ backgroundColor: theme.card }}>
                      <View className="flex-row justify-between items-start mb-4">
                         <Text className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Daily Outlook</Text>
                         <Text className="text-[10px] text-slate-400">
                             {new Date(synopsis.created_at).toLocaleDateString()}
                         </Text>
                      </View>
-                     <Text className="text-xl font-serif text-slate-900 mb-3 font-medium">Today's Christian Outlook</Text>
-                     <Text className="text-slate-700 leading-relaxed font-serif text-base">
+                     <Text className="text-xl font-serif mb-3 font-medium" style={{ color: theme.text }}>Today's Christian Outlook</Text>
+                     <Text className="leading-relaxed font-serif text-base" style={{ color: theme.text }}>
                          {synopsis.synopsis}
                      </Text>
                      {synopsis.scripture && (
-                        <View className="mt-4 pt-4 border-t border-slate-100 flex-row gap-2">
+                        <View className="mt-4 pt-4 border-t  flex-row gap-2">
                              <BookOpen size={16} color="#64748B" className="mt-0.5" />
                              <Text className="text-xs italic text-slate-500 font-medium flex-1">
                                  {synopsis.scripture}
@@ -201,9 +201,9 @@ export default function NewsScreen() {
     );
 
     const renderStickyHeader = () => (
-        <View className="bg-[#FDFBF7]/95 px-5 pt-2 pb-4 border-b border-slate-100 backdrop-blur-md">
+        <View style={{ backgroundColor: `${theme.background}F2` }} className="px-5 pt-2 pb-4 border-b  backdrop-blur-md">
             {/* Search */}
-            <View className="bg-white border border-slate-200 rounded-xl flex-row items-center px-4 h-11 mb-3 shadow-sm">
+            <View className="border border-slate-200 rounded-xl flex-row items-center px-4 h-11 mb-3" style={{ backgroundColor: theme.card }}>
                 <Search size={16} color="#94A3B8" />
                 <TextInput 
                     placeholder="Search articles..."
@@ -212,7 +212,8 @@ export default function NewsScreen() {
                     onChangeText={setSearchQuery}
                     onSubmitEditing={handleSearch}
                     returnKeyType="search"
-                    className="flex-1 ml-2 text-slate-900 font-medium h-full"
+                    className="flex-1 ml-2 font-medium h-full"
+                    style={{ color: theme.text }}
                 />
             </View>
 
@@ -224,12 +225,13 @@ export default function NewsScreen() {
                         className={`px-4 py-1.5 rounded-full border ${
                             activeFilter === 'my_feed' 
                             ? 'bg-slate-900 border-slate-900' 
-                            : 'bg-white border-slate-200'
+                            : 'border-slate-200'
                         }`}
+                        style={activeFilter !== 'my_feed' ? { backgroundColor: theme.card } : undefined}
                     >
                         <Text className={`text-xs font-bold ${
-                            activeFilter === 'my_feed' ? 'text-white' : 'text-slate-600'
-                        }`}>My Feed</Text>
+                            activeFilter === 'my_feed' ? 'text-white' : ''
+                        }`} style={activeFilter !== 'my_feed' ? { color: theme.text } : undefined}>My Feed</Text>
                     </Pressable>
                 )}
                 
@@ -238,12 +240,13 @@ export default function NewsScreen() {
                     className={`px-4 py-1.5 rounded-full border ${
                         activeFilter === 'all' 
                         ? 'bg-slate-900 border-slate-900' 
-                        : 'bg-white border-slate-200'
+                        : 'border-slate-200'
                     }`}
+                    style={activeFilter !== 'all' ? { backgroundColor: theme.card } : undefined}
                 >
                     <Text className={`text-xs font-bold ${
-                        activeFilter === 'all' ? 'text-white' : 'text-slate-600'
-                    }`}>All News</Text>
+                        activeFilter === 'all' ? 'text-white' : ''
+                    }`} style={activeFilter !== 'all' ? { color: theme.text } : undefined}>All News</Text>
                 </Pressable>
 
                 {categories.map(cat => (
@@ -253,12 +256,13 @@ export default function NewsScreen() {
                         className={`px-4 py-1.5 rounded-full border ${
                             activeFilter === cat.id.toString() 
                             ? 'bg-slate-900 border-slate-900' 
-                            : 'bg-white border-slate-200'
+                            : 'border-slate-200'
                         } ${userCategoryIds.includes(cat.id) ? 'border-l-4 border-l-[#D4A373]' : ''}`}
+                        style={activeFilter !== cat.id.toString() ? { backgroundColor: theme.card } : undefined}
                     >
                         <Text className={`text-xs font-bold ${
-                            activeFilter === cat.id.toString() ? 'text-white' : 'text-slate-600'
-                        }`}>{cat.name}</Text>
+                            activeFilter === cat.id.toString() ? 'text-white' : ''
+                        }`} style={activeFilter !== cat.id.toString() ? { color: theme.text } : undefined}>{cat.name}</Text>
                     </Pressable>
                 ))}
             </ScrollView>
@@ -268,7 +272,8 @@ export default function NewsScreen() {
     const renderArticle = ({ item }: { item: Article }) => (
         <Pressable
             onPress={() => router.push(`/news/${item.id}` as any)}
-            className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex-row gap-4 mb-4 mx-5 active:scale-[0.99]"
+            className="rounded-2xl p-4 border  flex-row gap-4 mb-4 mx-5 active:scale-[0.99]"
+            style={{ backgroundColor: theme.card }}
         >
             {item.article_thumbnail_url ? (
                 <Image 
@@ -285,7 +290,7 @@ export default function NewsScreen() {
 
             <View className="flex-1 justify-between py-1">
                 <View>
-                    <Text className="font-serif font-bold text-slate-900 leading-snug text-[15px] mb-2" numberOfLines={3}>
+                    <Text className="font-serif font-bold leading-snug text-[15px] mb-2" numberOfLines={3} style={{ color: theme.text }}>
                         {item.article_title}
                     </Text>
                     <View className="flex-row items-center gap-1">
@@ -307,7 +312,7 @@ export default function NewsScreen() {
     const listData = [{ id: 'sticky-header' } as any, ...articles];
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#FDFBF7' }} edges={['top']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
             <Stack.Screen options={{ headerShown: false }} />
             
             <FlatList

@@ -1,0 +1,30 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="doorGradient" x1="0%" y1="50%" x2="100%" y2="50%">
+      <stop offset="0%" stop-color="#D4A373" /> <stop offset="100%" stop-color="#F3E5D6" /> </linearGradient>
+    
+    <linearGradient id="shadowGradient" x1="100%" y1="50%" x2="0%" y2="50%">
+      <stop offset="0%" stop-color="#0F172A" /> <stop offset="100%" stop-color="#334155" /> </linearGradient>
+  </defs>
+
+  <path 
+    d="M120 80 H392 V432 H120 V80 Z" 
+    fill="none" 
+    stroke="#1E293B" 
+    stroke-width="32" 
+    stroke-linecap="round" 
+    stroke-linejoin="round"
+  />
+
+  <rect x="136" y="96" width="256" height="320" fill="url(#shadowGradient)" opacity="0.9"/>
+
+  <path 
+    d="M136 96 L136 416 L360 384 L360 128 L136 96 Z" 
+    fill="url(#doorGradient)" 
+    stroke="#FDFBF7"
+    stroke-width="4"
+  />
+  
+  <path d="M144 108 V404" stroke="#9C7645" stroke-width="4" stroke-opacity="0.2" />
+
+</svg>

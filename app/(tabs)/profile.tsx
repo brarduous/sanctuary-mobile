@@ -1,4 +1,5 @@
 import { useColorScheme } from '@/components/useColorScheme';
+import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import {
     fetchAppOptions,
@@ -11,7 +12,6 @@ import {
 } from '@/lib/api';
 import { useRouter } from 'expo-router';
 import {
-    BookMarked,
     Check,
     ChevronRight,
     Crown,
@@ -19,7 +19,6 @@ import {
     Moon,
     Newspaper,
     Save,
-    Settings,
     Sun,
     Target,
     Trash2,
@@ -30,11 +29,11 @@ import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    LayoutAnimation,
     Platform,
     Pressable,
     ScrollView,
     Text,
-    TouchableOpacity,
     UIManager,
     View
 } from 'react-native';
@@ -46,15 +45,15 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function ProfileScreen() {
     const { user, profile: authProfile, signOut } = useAuth();
-    const colorScheme = useColorScheme() ?? 'light';
-    const hasTheme = colorScheme === 'dark'; // Simplified for now
+    const colorScheme = useColorScheme();
+    const theme = Colors[colorScheme ?? 'light'];
     const router = useRouter();
-    
+
     // --- STATE ---
     const [activeSection, setActiveSection] = useState<'library' | 'settings'>('settings');
     const [favorites, setFavorites] = useState<any[]>([]);
     const [profile, setProfile] = useState<any>(authProfile || null);
-    
+
     // Options
     const [focusOptions, setFocusOptions] = useState<string[]>([]);
     const [improveOptions, setImproveOptions] = useState<string[]>([]);
@@ -86,7 +85,7 @@ export default function ProfileScreen() {
                 if (appOptions && Array.isArray(appOptions)) {
                     const focusOpt = appOptions.find((o: any) => o.name === 'focus_areas');
                     const improveOpt = appOptions.find((o: any) => o.name === 'improvement_areas');
-                    
+
                     if (focusOpt?.options && Array.isArray(focusOpt.options)) {
                         setFocusOptions(focusOpt.options.map((x: any) => x.title).filter(Boolean));
                     }
@@ -94,11 +93,11 @@ export default function ProfileScreen() {
                         setImproveOptions(improveOpt.options.map((x: any) => x.title).filter(Boolean));
                     }
                 }
-                
+
                 if (cats && Array.isArray(cats)) {
                     setCategoryOptions(cats);
                 }
-                
+
                 if (userCats && Array.isArray(userCats)) {
                     setFollowedCategoryIds(userCats.map((uc: any) => Number(uc.id || uc)).filter(id => !isNaN(id)));
                 }
@@ -166,14 +165,16 @@ export default function ProfileScreen() {
     const handleSignOut = () => {
         Alert.alert("Sign Out", "Are you sure?", [
             { text: "Cancel", style: "cancel" },
-            { text: "Sign Out", style: "destructive", onPress: () => {
-                try {
-                    // Trigger sign out; Root layout will handle redirect based on auth state
-                    signOut();
-                } catch (error) {
-                    console.error('Sign out error:', error);
+            {
+                text: "Sign Out", style: "destructive", onPress: () => {
+                    try {
+                        // Trigger sign out; Root layout will handle redirect based on auth state
+                        signOut();
+                    } catch (error) {
+                        console.error('Sign out error:', error);
+                    }
                 }
-            }}
+            }
         ]);
     };
 
@@ -184,7 +185,7 @@ export default function ProfileScreen() {
             else if (item.item_type === 'prayer') path = `/prayer/${item.item_id}`;
             else if (item.item_type === 'advice') path = `/advice/${item.item_id}`;
             else if (item.item_type === 'news') path = `/news/${item.item_id}`;
-            
+
             if (path) {
                 router.push(path as any);
             } else {
@@ -197,44 +198,55 @@ export default function ProfileScreen() {
 
     if (loading) {
         return (
-            <View className="flex-1 justify-center items-center bg-[#FDFBF7]">
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'transparent' }}>
                 <ActivityIndicator color="#D4A373" />
             </View>
         );
     }
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#FDFBF7' }} edges={['top']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
             {/* Header */}
-            <View className="px-5 pt-4 pb-2 bg-[#FDFBF7] z-10 border-b border-slate-100">
+            <View className="px-5 pt-4 pb-2 z-10 border-b " style={{ backgroundColor: 'transparent' }}>
                 <View className="flex-row justify-between items-center mb-6">
-                    <Text className="text-2xl font-serif font-bold text-slate-900">My Sanctuary</Text>
+                    <Text className="text-2xl font-serif font-bold" style={{ color: theme.text }}>My Sanctuary</Text>
                     <Pressable onPress={handleSignOut}>
                         <Text className="text-xs font-bold text-red-400 uppercase tracking-widest">Sign Out</Text>
                     </Pressable>
                 </View>
 
-                {/* Tabs */}
-                <View className="flex-row p-1 bg-white border border-slate-200 rounded-xl mb-2">
-                    <TouchableOpacity 
-                        onPress={() => setTimeout(() => setActiveSection('library'), 0)}
-                        className={`flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-lg ${activeSection === 'library' ? 'bg-slate-900 shadow-sm' : ''}`}
+                {/* --- TAB SWITCHER (FIXED) --- */}
+                <View className="flex-row p-1 bg-slate-100/80 rounded-xl mb-6 mx-4">
+                    <Pressable
+                        onPress={() => {
+                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                            setActiveSection('library');
+                        }}
+                        className={`flex-1 py-2 items-center rounded-lg ${activeSection === 'library' ? 'bg-white' : ''}`}
+                        style={activeSection === 'library' ? { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 } : undefined}
                     >
-                        <BookMarked size={16} color={activeSection === 'library' ? 'white' : '#64748B'} />
-                        <Text className={`text-sm font-bold ${activeSection === 'library' ? 'text-white' : 'text-slate-500'}`}>Library</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity 
-                        onPress={() => setTimeout(() => setActiveSection('settings'), 0)}
-                        className={`flex-1 flex-row items-center justify-center gap-2 py-2.5 rounded-lg ${activeSection === 'settings' ? 'bg-slate-900 shadow-sm' : ''}`}
+                        <Text className={`text-sm font-bold ${activeSection === 'library' ? '' : 'text-slate-500'}`} style={activeSection === 'library' ? { color: '#2C3E50' } : undefined}>
+                            My Library
+                        </Text>
+                    </Pressable>
+
+                    <Pressable
+                        onPress={() => {
+                            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                            setActiveSection('settings');
+                        }}
+                        className={`flex-1 py-2 items-center rounded-lg ${activeSection === 'settings' ? 'bg-white' : ''}`}
+                        style={activeSection === 'settings' ? { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 } : undefined}
                     >
-                        <Settings size={16} color={activeSection === 'settings' ? 'white' : '#64748B'} />
-                        <Text className={`text-sm font-bold ${activeSection === 'settings' ? 'text-white' : 'text-slate-500'}`}>Settings</Text>
-                    </TouchableOpacity>
+                        <Text className={`text-sm font-bold ${activeSection === 'settings' ? '' : 'text-slate-500'}`} style={activeSection === 'settings' ? { color: '#2C3E50' } : undefined}>
+                            Settings
+                        </Text>
+                    </Pressable>
                 </View>
             </View>
 
             <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
-                
+
                 {/* --- LIBRARY TAB --- */}
                 {activeSection === 'library' && (
                     <View className="gap-4">
@@ -251,16 +263,17 @@ export default function ProfileScreen() {
                                 <Pressable
                                     key={fav.id}
                                     onPress={() => handleItemPress(fav)}
-                                    className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex-row justify-between items-center active:bg-slate-50"
+                                    className="p-4 rounded-xl border  flex-row justify-between items-center"
+                                    style={{ backgroundColor: theme.card }}
                                 >
                                     <View className="flex-1 pr-4">
                                         <Text className="text-[10px] font-bold uppercase tracking-widest text-[#D4A373] mb-1">
                                             {fav.item_type}
                                         </Text>
-                                        <Text className="font-serif font-bold text-slate-900 text-base mb-1" numberOfLines={1}>
+                                        <Text className="font-serif font-bold text-base mb-1" numberOfLines={1} style={{ color: theme.text }}>
                                             {fav.title || 'Untitled Item'}
                                         </Text>
-                                        <Text className="text-xs text-slate-500" numberOfLines={2}>
+                                        <Text className="text-xs" numberOfLines={2} style={{ color: theme.mutedForeground }}>
                                             {fav.preview}
                                         </Text>
                                     </View>
@@ -272,18 +285,18 @@ export default function ProfileScreen() {
                 )}
 
                 {/* --- SETTINGS TAB --- */}
-                {activeSection === 'settings' &&  (
+                {activeSection === 'settings' && (
                     <View className="gap-8">
                         {/* User Info */}
-                        <View className="flex-row items-center gap-4 p-4 bg-white rounded-2xl border border-slate-100 shadow-sm">
+                        <View className="flex-row items-center gap-4 p-4 rounded-2xl border " style={{ backgroundColor: theme.card }}>
                             <View className="w-12 h-12 bg-[#D4A373]/10 rounded-full items-center justify-center">
                                 <User size={24} color="#D4A373" />
                             </View>
                             <View>
-                                <Text className="font-serif font-bold text-slate-900 text-lg">
+                                <Text className="font-serif font-bold text-lg" style={{ color: theme.text }}>
                                     {profile?.first_name || 'User'} {profile?.last_name || ''}
                                 </Text>
-                                <Text className="text-xs text-slate-500">{user?.email || ''}</Text>
+                                <Text className="text-xs" style={{ color: theme.mutedForeground }}>{user?.email || ''}</Text>
                             </View>
                         </View>
 
@@ -294,17 +307,17 @@ export default function ProfileScreen() {
                                     <Crown size={20} color="#D4A373" />
                                 </View>
                                 <View>
-                                    <Text className="font-serif font-bold text-slate-900 text-lg">
+                                    <Text className="font-serif font-bold text-lg" style={{ color: theme.text }}>
                                         {profile?.subscription_tier === 'pro' ? 'Sanctuary Pro' : 'Free Plan'}
                                     </Text>
-                                    <Text className="text-xs text-slate-500">
+                                    <Text className="text-xs" style={{ color: theme.mutedForeground }}>
                                         {profile?.subscription_tier === 'pro' ? 'Thank you for your support.' : 'Unlock unlimited advice & insights.'}
                                     </Text>
                                 </View>
                             </View>
                             {profile?.subscription_tier !== 'pro' && (
                                 <View>
-                                    <Pressable 
+                                    <Pressable
                                         onPress={() => {
                                             if (router && router.push) {
                                                 router.push('/paywall');
@@ -313,7 +326,7 @@ export default function ProfileScreen() {
                                                 Alert.alert("Error", "Navigation not available");
                                             }
                                         }}
-                                        className="mt-4 w-full py-3 bg-[#D4A373] rounded-lg items-center shadow-sm active:opacity-90"
+                                        className="mt-4 w-full py-3 bg-[#D4A373] rounded-lg items-center active:opacity-90"
                                     >
                                         <Text className="text-white font-bold">Upgrade for $4.99/mo</Text>
                                     </Pressable>
@@ -324,14 +337,14 @@ export default function ProfileScreen() {
                         {/* App Settings */}
                         <View>
                             <Text className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3 ml-1">App Settings</Text>
-                            <View className="bg-white border border-slate-100 rounded-xl p-4 flex-row justify-between items-center shadow-sm">
+                            <View className="border  rounded-xl p-4 flex-row justify-between items-center" style={{ backgroundColor: theme.card }}>
                                 <View className="flex-row items-center gap-3">
                                     <View className="p-2 bg-slate-100 rounded-full">
                                         {colorScheme === 'dark' ? <Moon size={20} color="#64748B" /> : <Sun size={20} color="#64748B" />}
                                     </View>
                                     <View>
-                                        <Text className="font-bold text-sm text-slate-900">Appearance</Text>
-                                        <Text className="text-xs text-slate-500">Uses system setting</Text>
+                                        <Text className="font-bold text-sm" style={{ color: theme.text }}>Appearance</Text>
+                                        <Text className="text-xs" style={{ color: theme.mutedForeground }}>Uses system setting</Text>
                                     </View>
                                 </View>
                                 <View className="bg-slate-100 px-3 py-1 rounded-md">
@@ -348,12 +361,13 @@ export default function ProfileScreen() {
                             </View>
                             <View className="flex-row flex-wrap gap-2">
                                 {(focusOptions || []).map(opt => (
-                                    <Pressable 
+                                    <Pressable
                                         key={opt}
                                         onPress={() => toggleString(focusAreas, opt, setFocusAreas)}
-                                        className={`px-4 py-2 rounded-full border ${focusAreas.includes(opt) ? 'bg-slate-900 border-slate-900' : 'bg-white border-slate-200'}`}
+                                        className={`px-4 py-2 rounded-full border ${focusAreas.includes(opt) ? 'bg-slate-900 border-slate-900' : 'border-slate-200'}`}
+                                        style={!focusAreas.includes(opt) ? { backgroundColor: theme.card } : undefined}
                                     >
-                                        <Text className={`text-xs font-bold ${focusAreas.includes(opt) ? 'text-white' : 'text-slate-600'}`}>
+                                        <Text className={`text-xs font-bold ${focusAreas.includes(opt) ? 'text-white' : ''}`} style={!focusAreas.includes(opt) ? { color: theme.text } : undefined}>
                                             {opt}
                                         </Text>
                                     </Pressable>
@@ -369,12 +383,13 @@ export default function ProfileScreen() {
                             </View>
                             <View className="flex-row flex-wrap gap-2">
                                 {(improveOptions || []).map(opt => (
-                                    <Pressable 
+                                    <Pressable
                                         key={opt}
                                         onPress={() => toggleString(improvementAreas, opt, setImprovementAreas)}
-                                        className={`px-4 py-2 rounded-full border ${improvementAreas.includes(opt) ? 'bg-slate-900 border-slate-900' : 'bg-white border-slate-200'}`}
+                                        className={`px-4 py-2 rounded-full border ${improvementAreas.includes(opt) ? 'bg-slate-900 border-slate-900' : 'border-slate-200'}`}
+                                        style={!improvementAreas.includes(opt) ? { backgroundColor: theme.card } : undefined}
                                     >
-                                        <Text className={`text-xs font-bold ${improvementAreas.includes(opt) ? 'text-white' : 'text-slate-600'}`}>
+                                        <Text className={`text-xs font-bold ${improvementAreas.includes(opt) ? 'text-white' : ''}`} style={!improvementAreas.includes(opt) ? { color: theme.text } : undefined}>
                                             {opt}
                                         </Text>
                                     </Pressable>
@@ -382,26 +397,25 @@ export default function ProfileScreen() {
                             </View>
                         </View>
 
-                         {/* News Interests */}
-                         <View>
+                        {/* News Interests */}
+                        <View>
                             <View className="flex-row items-center gap-2 mb-3 ml-1">
                                 <Newspaper size={16} color="#D4A373" />
                                 <Text className="text-sm font-bold uppercase tracking-widest text-slate-400">News Interests</Text>
                             </View>
                             <View className="flex-row flex-wrap gap-2">
                                 {(categoryOptions || []).map(cat => (
-                                    <Pressable 
+                                    <Pressable
                                         key={cat.id}
                                         onPress={() => toggleId(followedCategoryIds, cat.id, setFollowedCategoryIds)}
-                                        className={`flex-row items-center gap-2 px-4 py-3 rounded-xl border w-[48%] mb-1 ${
-                                            followedCategoryIds.includes(cat.id) 
-                                            ? 'bg-[#D4A373]/10 border-[#D4A373] border' 
-                                            : 'bg-white border-slate-200'
-                                        }`}
+                                        className={`flex-row items-center gap-2 px-4 py-3 rounded-xl border w-[48%] mb-1 ${followedCategoryIds.includes(cat.id)
+                                                ? 'bg-[#D4A373]/10 border-[#D4A373] border'
+                                                : 'border-slate-200'
+                                            }`}
+                                        style={!followedCategoryIds.includes(cat.id) ? { backgroundColor: theme.card } : undefined}
                                     >
-                                        <Text className={`text-xs font-bold flex-1 ${
-                                            followedCategoryIds.includes(cat.id) ? 'text-[#D4A373]' : 'text-slate-900'
-                                        }`} numberOfLines={1}>
+                                        <Text className={`text-xs font-bold flex-1 ${followedCategoryIds.includes(cat.id) ? 'text-[#D4A373]' : ''
+                                            }`} numberOfLines={1} style={!followedCategoryIds.includes(cat.id) ? { color: theme.text } : undefined}>
                                             {cat.name}
                                         </Text>
                                         {followedCategoryIds.includes(cat.id) && <Check size={14} color="#D4A373" />}
@@ -412,14 +426,14 @@ export default function ProfileScreen() {
 
                         {/* Delete Account */}
                         <View className="pt-8 mt-4 border-t border-slate-200">
-                             <Text className="text-xs font-bold uppercase tracking-widest text-red-300 mb-4 ml-1">Danger Zone</Text>
-                             <Pressable 
+                            <Text className="text-xs font-bold uppercase tracking-widest text-red-300 mb-4 ml-1">Danger Zone</Text>
+                            <Pressable
                                 onPress={() => Alert.alert("Delete Account", "Please email support@sanctuaryapp.us to delete your account.")}
                                 className="flex-row justify-between items-center p-2"
                             >
                                 <Text className="text-red-400 font-bold text-sm">Delete Account</Text>
                                 <Trash2 size={16} color="#F87171" />
-                             </Pressable>
+                            </Pressable>
                         </View>
 
                     </View>

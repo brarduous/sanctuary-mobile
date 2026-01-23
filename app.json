@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "sanctuary-mobile",
-    "slug": "sanctuary-mobile",
+    "name": "Sanctuary",
+    "slug": "sanctuary",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -9,28 +9,59 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/images/splash-icon.png",
+      "image": "./assets/images/icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#334155"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "us.sanctuaryapp.app"
+      "bundleIdentifier": "us.sanctuaryapp.app",
+      "associatedDomains": [
+        "applinks:sanctuaryapp.us",
+        "applinks:www.sanctuaryapp.us",
+        "applinks:sanctuaryapp.us",
+        "applinks:www.sanctuaryapp.us"
+      ],
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#334155"
       },
       "permissions": [
         "com.android.vending.BILLING"
       ],
-      "package": "us.sanctuaryapp.app"
+      "package": "us.sanctuaryapp.app",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "autoVerify": true,
+          "data": [
+            {
+              "scheme": "https",
+              "host": "sanctuaryapp.us",
+              "pathPrefix": "/"
+            },
+            {
+              "scheme": "https",
+              "host": "www.sanctuaryapp.us",
+              "pathPrefix": "/"
+            }
+          ],
+          "category": [
+            "BROWSABLE",
+            "DEFAULT"
+          ]
+        }
+      ]
     },
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       "expo-router",
@@ -44,6 +75,12 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "0147d18b-0261-436d-b284-e9c8f4e4deab"
+      }
     }
   }
 }

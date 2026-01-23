@@ -301,7 +301,7 @@ export default function OnboardingScreen() {
                     <Pressable
                         onPress={() => setStep(s => s + 1)}
                         style={{ backgroundColor: theme.tint }}
-                        className="flex-row items-center px-6 py-3 rounded-full shadow-sm"
+                        className="flex-row items-center px-6 py-3 rounded-full"
                     >
                         <Text className="text-white font-bold mr-2">Next</Text>
                         <ChevronRight size={18} color="white" />
@@ -317,7 +317,7 @@ export default function OnboardingScreen() {
                         }}
                         disabled={saving}
                         style={{ backgroundColor: theme.tint }}
-                        className="flex-row items-center px-6 py-3 rounded-full shadow-sm"
+                        className="flex-row items-center px-6 py-3 rounded-full"
                     >
                         {saving ? <ActivityIndicator color="white" /> : (
                             <>
@@ -332,7 +332,7 @@ export default function OnboardingScreen() {
                             onPress={goToPaywall}
                             disabled={saving}
                             style={{ backgroundColor: theme.tint }}
-                            className="w-full py-4 rounded-xl items-center justify-center flex-row shadow-sm mb-3"
+                            className="w-full py-4 rounded-xl items-center justify-center flex-row mb-3"
                          >
                             {saving ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Start 7-Day Free Trial</Text>}
                          </Pressable>

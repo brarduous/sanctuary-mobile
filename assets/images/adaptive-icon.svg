@@ -1,0 +1,6 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Adaptive icon foreground - centered logo -->
+  <path d="M256 128C266.667 202.667 288 234.667 384 256C288 277.333 266.667 309.333 256 384C245.333 309.333 224 277.333 128 256C224 234.667 245.333 202.667 256 128Z" fill="#FDFbf7"/>
+  
+  <path d="M256 96C262 96 256 96 256 96" stroke="#D4A373" stroke-width="2" stroke-opacity="0.5"/>
+</svg>

@@ -1,3 +1,4 @@
+import ScriptureLinkifier from '@/components/ScriptureLinkifier';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { fetchDevotionalById } from '@/lib/api';
@@ -117,9 +118,9 @@ export default function DevotionalDetailScreen() {
 
                 {/* Scripture Card */}
                 <View className="bg-amber-50 dark:bg-slate-900 border-l-4 border-amber-500 p-6 rounded-r-xl mb-8">
-                    <Text className="text-lg font-serif italic text-amber-900 dark:text-amber-100 leading-relaxed text-center">
-                        "{devotional.scripture}"
-                    </Text>
+                    <ScriptureLinkifier
+                        text={devotional.scripture}
+                    />
                 </View>
 
                 {/* Audio Controls */}
@@ -141,10 +142,16 @@ export default function DevotionalDetailScreen() {
 
                 {/* Content */}
                 <View className="mb-10">
-                     <Markdown
+                    <Markdown
                         style={{
-                            body: { color: theme.text, fontSize: 18, lineHeight: 28, fontFamily: 'serif' },
-                            paragraph: { marginBottom: 20 },
+                            body: { color: theme.text, fontSize: 17, lineHeight: 26, fontFamily: 'serif' },
+                            paragraph: { marginTop: 0, marginBottom: 14 },
+                            strong: { fontWeight: '700' },
+                            em: { fontStyle: 'italic' },
+                            bullet_list: { marginVertical: 8 },
+                            ordered_list: { marginVertical: 8 },
+                            list_item: { color: theme.text, fontSize: 17, lineHeight: 24 },
+                            link: { color: theme.tint },
                         }}
                     >
                         {devotional.content}

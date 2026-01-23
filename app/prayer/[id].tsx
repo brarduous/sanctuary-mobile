@@ -136,7 +136,7 @@ export default function PrayerDetailScreen() {
                 </View>
 
                 {/* Content */}
-                <View className="mb-10 bg-white p-8 rounded-[24px] shadow-sm border border-slate-100">
+                <View className="mb-10 bg-white p-8 rounded-[24px] border border-slate-100">
                      <Text className="text-slate-700 text-lg leading-loose font-serif italic text-center">
                         "{prayerContent}"
                      </Text>

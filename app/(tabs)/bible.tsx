@@ -10,7 +10,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 // Load Bible Data directly
 // In a real app with multiple versions, we might lazy load or use file system
-const WEB_DATA = require('@/assets/bible/web-optimized.json');
+const BIBLE_FILES: Record<string, any> = {
+  WEB: require('@/assets/bible/web-optimized.json'),
+  ASV: require('@/assets/bible/asv-optimized.json'),
+  NIV: require('@/assets/bible/niv-optimized.json'),
+  KJV: require('@/assets/bible/kjv-optimized.json'),
+};
 
 const AVAILABLE_TRANSLATIONS: Record<string, { key: string; longName: string; description: string }> = {
   WEB: {
@@ -18,11 +23,20 @@ const AVAILABLE_TRANSLATIONS: Record<string, { key: string; longName: string; de
     longName: 'World English Bible',
     description: 'Modern English, Public Domain',
   },
-  // Add placeholders for others if needed, but we only have WEB for now
   ASV: {
     key: 'ASV',
     longName: 'American Standard Version',
-    description: 'Literal translation (Coming Soon)', 
+    description: 'Literal translation, Public Domain', 
+  },
+  NIV: {
+    key: 'NIV',
+    longName: 'New International Version',
+    description: 'Balanced, readable translation',
+  },
+  KJV: {
+    key: 'KJV',
+    longName: 'King James Version',
+    description: 'Classic, majestic translation',
   }
 };
 
@@ -75,9 +89,11 @@ export default function BibleScreen() {
 
   // --- 2. LOAD DATA ---
   useEffect(() => {
-    // Simulate async load even though it's required
-    // This keeps the pattern consistent if we switch to FS later
-    setBibleData(WEB_DATA);
+    // Load the appropriate Bible translation file based on versionKey
+    const bibleData = BIBLE_FILES[versionKey];
+    if (bibleData) {
+      setBibleData(bibleData);
+    }
   }, [versionKey]);
 
   // --- 3. DERIVED STATE ---
@@ -154,6 +170,36 @@ export default function BibleScreen() {
     setMenuOpen(false);
   };
 
+  // Get next chapter or book label
+  const getNextLabel = () => {
+    if (!currentBook) return 'Next';
+    const bIndex = allBooks.findIndex((b: any) => b.title === currentBookId);
+    const cIndex = currentBook.chapters.findIndex((c: any) => c.number === currentChapterNum);
+    
+    if (cIndex < currentBook.chapters.length - 1) {
+      return `Ch. ${currentBook.chapters[cIndex + 1].number}`;
+    } else if (bIndex < allBooks.length - 1) {
+      const nextBook = allBooks[bIndex + 1];
+      return nextBook.title.substring(0, 15); // Truncate long names
+    }
+    return 'Next';
+  };
+
+  // Get previous chapter or book label
+  const getPrevLabel = () => {
+    if (!currentBook) return 'Prev';
+    const bIndex = allBooks.findIndex((b: any) => b.title === currentBookId);
+    const cIndex = currentBook.chapters.findIndex((c: any) => c.number === currentChapterNum);
+    
+    if (cIndex > 0) {
+      return `Ch. ${currentBook.chapters[cIndex - 1].number}`;
+    } else if (bIndex > 0) {
+      const prevBook = allBooks[bIndex - 1];
+      return prevBook.title.substring(0, 15); // Truncate long names
+    }
+    return 'Prev';
+  };
+
   const toggleFontSize = () => {
     if (fontSize === 'extra') setFontSize('normal');
     else if (fontSize === 'large') setFontSize('extra');
@@ -212,7 +258,7 @@ export default function BibleScreen() {
                     </Text>
                     <Pressable onPress={() => setVersionMenuOpen(true)} className="bg-gray-100 dark:bg-gray-800 px-3 py-1 rounded-full mt-1">
                         <Text className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase">
-                            {bibleData.shortname} ▼
+                            {versionKey} ▼
                         </Text>
                     </Pressable>
                 </View>
@@ -223,15 +269,16 @@ export default function BibleScreen() {
             </Animated.View>
         )}
 
-        {/* CONTENT */}
-        <Pressable 
+        {/* CONTENT WRAPPER */}
+        <View 
             style={{ flex: 1 }} 
-            onPress={() => setShowControls(prev => !prev)}
         >
             <ScrollView 
                 ref={scrollViewRef}
+                scrollEnabled={true}
                 contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
-                showsVerticalScrollIndicator={false}
+                showsVerticalScrollIndicator={true}
+                onTouchEnd={() => setShowControls(prev => !prev)}
             >
                 <RenderHtml
                     contentWidth={width - 40}
@@ -239,27 +286,27 @@ export default function BibleScreen() {
                     tagsStyles={tagsStyles}
                     enableExperimentalMarginCollapsing={true}
                 />
-
-                {/* Footer Nav */}
-                <View className="flex-row justify-between mt-12 pt-6 border-t border-gray-200 dark:border-gray-800">
-                    <Pressable 
-                        onPress={(e) => { e.stopPropagation(); navigateChapter('prev'); }}
-                        className="flex-row items-center p-4 active:opacity-50"
-                    >
-                        <ChevronLeft size={20} color={theme.text} />
-                        <Text style={{ color: theme.text, marginLeft: 4, fontWeight: '600' }}>Previous</Text>
-                    </Pressable>
-
-                    <Pressable 
-                        onPress={(e) => { e.stopPropagation(); navigateChapter('next'); }}
-                        className="flex-row items-center p-4 active:opacity-50"
-                    >
-                        <Text style={{ color: theme.text, marginRight: 4, fontWeight: '600' }}>Next</Text>
-                        <ChevronRight size={20} color={theme.text} />
-                    </Pressable>
-                </View>
             </ScrollView>
-        </Pressable>
+        </View>
+
+        {/* Sticky Navigation at Bottom */}
+        <View className="flex-row justify-between items-center px-4 py-3 border-t border-gray-200 dark:border-gray-800" style={{ backgroundColor: theme.background }}>
+            <Pressable 
+                onPress={() => navigateChapter('prev')}
+                className="flex-row items-center p-2 active:opacity-50"
+            >
+                <ChevronLeft size={20} color={theme.text} />
+                <Text style={{ color: theme.text, marginLeft: 4, fontWeight: '600', fontSize: 12 }}>{getPrevLabel()}</Text>
+            </Pressable>
+
+            <Pressable 
+                onPress={() => navigateChapter('next')}
+                className="flex-row items-center p-2 active:opacity-50"
+            >
+                <Text style={{ color: theme.text, marginRight: 4, fontWeight: '600', fontSize: 12 }}>{getNextLabel()}</Text>
+                <ChevronRight size={20} color={theme.text} />
+            </Pressable>
+        </View>
 
         {/* BOOKS MENU (Modal) */}
         <Modal
@@ -292,7 +339,7 @@ export default function BibleScreen() {
                                 <Pressable 
                                     key={tab} 
                                     onPress={() => setActiveTab(tab as 'OT' | 'NT')}
-                                    className={`flex-1 py-2 rounded-md items-center justify-center ${activeTab === tab ? 'bg-white dark:bg-gray-700 shadow-sm' : ''}`}
+                                    className={`flex-1 py-2 rounded-md items-center justify-center ${activeTab === tab ? 'bg-white dark:bg-gray-700' : ''}`}
                                 >
                                     <Text style={{ 
                                         color: activeTab === tab ? theme.tint : theme.tabIconDefault,
@@ -340,13 +387,18 @@ export default function BibleScreen() {
                                         aspectRatio: 1,
                                         backgroundColor: currentBookId === selectedMenuBook.title && currentChapterNum === ch.number ? theme.tint : (colorScheme === 'dark' ? '#333' : '#f0f0f0'),
                                         alignItems: 'center',
+                                        alignContent: 'center',
                                         justifyContent: 'center',
                                         borderRadius: 8,
                                     }}
                                 >
                                     <Text style={{ 
                                         color: currentBookId === selectedMenuBook.title && currentChapterNum === ch.number ? '#fff' : theme.text,
-                                        fontWeight: 'bold' 
+                                        fontWeight: 'bold',
+                                        textAlign: 'center',
+                                        flex: 1,
+                                        width: '100%',
+                                        textAlignVertical: 'center'
                                     }}>
                                         {ch.number}
                                     </Text>

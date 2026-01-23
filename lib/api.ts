@@ -207,6 +207,18 @@ export const logUserActivity = async (userId: string, activityType: string, acti
 export const checkAdviceLimit = async (userId: string) => {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+    //if user is pro, return no limit
+    const { data: userData, error: userError } = await supabase
+        .from('user_profiles')
+        .select('subscription_tier')
+        .eq('user_id', userId)
+        .single();
+    if (userError || !userData) {
+        return { usage: 0, limitReached: false };
+    }
+    if (userData.subscription_tier === 'pro') {
+        return { usage: 0, limitReached: false };
+    }
     try {
         const { count } = await supabase
         .from('advice_guidance')

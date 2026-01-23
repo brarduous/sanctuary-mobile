@@ -1,36 +1,37 @@
-import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
+import { Book, Home, MessageCircle, Newspaper, User } from 'lucide-react-native';
 import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useClientOnlyValue } from '@/components/useClientOnlyValue';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 
-// You can explore the built-in icon families and icons on the web at https://icons.expo.fyi/
-function TabBarIcon(props: {
-  name: React.ComponentProps<typeof FontAwesome>['name'];
-  color: string;
-}) {
-  return <FontAwesome size={28} style={{ marginBottom: -3 }} {...props} />;
-}
-
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
-        // Disable the static render of the header on web
-        // to prevent a hydration error in React Navigation v6.
         headerShown: useClientOnlyValue(false, true),
+        tabBarStyle: {
+           paddingBottom: 5 + insets.bottom,
+           height: 60 + insets.bottom,
+        },
+        tabBarLabelStyle: {
+           fontSize: 10,
+           fontWeight: '600',
+           marginBottom: 5,
+        }
       }}>
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
           headerShown: false,
-          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
+          tabBarIcon: ({ color }) => <Home size={24} color={color} strokeWidth={2.5} />,
         }}
       />
       <Tabs.Screen
@@ -38,7 +39,7 @@ export default function TabLayout() {
         options={{
           title: 'Bible',
           headerShown: false,
-          tabBarIcon: ({ color }) => <TabBarIcon name="book" color={color} />,
+          tabBarIcon: ({ color }) => <Book size={24} color={color} strokeWidth={2.5} />,
         }}
       />
       <Tabs.Screen
@@ -46,7 +47,7 @@ export default function TabLayout() {
         options={{
           title: 'Advice',
           headerShown: false,
-          tabBarIcon: ({ color }) => <TabBarIcon name="comments" color={color} />,
+          tabBarIcon: ({ color }) => <MessageCircle size={24} color={color} strokeWidth={2.5} />,
         }}
       />
       <Tabs.Screen
@@ -54,7 +55,7 @@ export default function TabLayout() {
         options={{
           title: 'News',
           headerShown: false,
-          tabBarIcon: ({ color }) => <TabBarIcon name="newspaper-o" color={color} />,
+          tabBarIcon: ({ color }) => <Newspaper size={24} color={color} strokeWidth={2.5} />,
         }}
       />
       <Tabs.Screen
@@ -62,7 +63,7 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           headerShown: false,
-          tabBarIcon: ({ color }) => <TabBarIcon name="user" color={color} />,
+          tabBarIcon: ({ color }) => <User size={24} color={color} strokeWidth={2.5} />,
         }}
       />
     </Tabs>

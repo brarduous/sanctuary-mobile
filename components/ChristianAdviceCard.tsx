@@ -1,101 +1,167 @@
+import { useColorScheme } from '@/components/useColorScheme';
+import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
-import { generateContent } from '@/lib/api';
+import { useRevenueCat } from '@/context/RevenueCatContext';
+import { checkAdviceLimit, generateContent } from '@/lib/api';
 import { useRouter } from 'expo-router';
-import { Send, Sparkles } from 'lucide-react-native';
-import React, { useState } from 'react';
-import { Alert, LayoutAnimation, Pressable, Text, TextInput, View } from 'react-native';
-import GeneratingState from './GeneratingState';
+import { Lock, Send, Sparkles } from 'lucide-react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 
-export default function ChristianAdviceCard({ limitReached }: { limitReached?: boolean }) {
-  const { user } = useAuth();
-  const router = useRouter();
+interface ChristianAdviceCardProps {
+    limitReached?: boolean;
+}
 
-  const [situation, setSituation] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isFocused, setIsFocused] = useState(false);
+export default function ChristianAdviceCard({ limitReached: initialLimitReached }: ChristianAdviceCardProps) {
+    const { user } = useAuth();
+    const router = useRouter();
+    const { isPro } = useRevenueCat();
+    const colorScheme = useColorScheme() ?? 'light';
+    const theme = Colors[colorScheme];
 
-  const handleSubmit = async () => {
-    if (!situation.trim() || !user || isSubmitting) return;
+    const [limitReached, setLimitReached] = useState(initialLimitReached ?? false);
+    const [loadingLimit, setLoadingLimit] = useState(true);
 
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-    setIsSubmitting(true);
-    
-    try {
-      const result = await generateContent('/generate-advice', {
-        userId: user.id,
-        situation: situation,
-      });
+    // Input State
+    const [situation, setSituation] = useState('');
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
-      if (result && result.adviceId) {
-        setIsSubmitting(false); // Reset state before nav (or not, but safer here)
-        router.push(`/advice/${result.adviceId}`);
-      } else {
-        setIsSubmitting(false);
-        Alert.alert("Error", "Could not generate advice. Please try again.");
-      }
-    } catch (error) {
-      console.error("Error generating advice:", error);
-      setIsSubmitting(false);
-      Alert.alert("Error", "Could not generate advice. Please try again.");
-    }
-  };
+    useEffect(() => {
+        async function check() {
+            if (user && !isPro) {
+                const status = await checkAdviceLimit(user.id);
+                setLimitReached(status.limitReached);
+            } else {
+                setLimitReached(false);
+            }
+            setLoadingLimit(false);
+        }
+        check();
+    }, [user, isPro]);
 
-  return (
-    <View className="w-full mb-8">
-      <View className="flex-row items-center gap-2 mb-3">
-        <Sparkles size={16} color="#CA8A04" />
-        <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Spiritual Guidance</Text>
-      </View>
+    const handleSubmit = async () => {
+        if (!situation.trim() || !user || isSubmitting) return;
 
-      <View className={`bg-white rounded-[24px] shadow-sm border overflow-hidden transition-all ${isFocused ? 'border-[#D4A373]/30' : 'border-slate-100'}`}>
-        {isSubmitting ? (
-          <GeneratingState className="border-0" />
-        ) : (
-          <View>
-            <TextInput
-              value={situation}
-              onChangeText={setSituation}
-              onFocus={() => {
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                  setIsFocused(true);
-              }}
-              onBlur={() => {
-                  LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-                  setIsFocused(false);
-              }}
-              placeholder="What's weighing on your heart today? Get scripture-based advice for you or a loved one."
-              placeholderTextColor="#94A3B8"
-              multiline
-              textAlignVertical="top"
-              className="w-full p-5 min-h-[140px] text-lg text-slate-900 font-serif leading-relaxed"
-              editable={!limitReached}
-            />
+        setIsSubmitting(true);
+        try {
+            const result = await generateContent('/generate-advice', {
+                userId: user.id,
+                situation: situation,
+            });
 
-            {situation.length > 0 && (
-              <View className="flex-row justify-between items-center px-4 pb-4 pt-2">
-                <Text className="text-xs text-slate-400 font-medium ml-2">
-                  {situation.length} characters
-                </Text>
+            if (result && result.adviceId) {
+                setSituation('');
+                setIsSubmitting(false);
+                router.push(`/advice/${result.adviceId}` as any);
+            } else {
+                setIsSubmitting(false);
+                Alert.alert("Error", "Could not generate advice. Please try again.");
+            }
+        } catch (error) {
+            console.error("Error generating advice:", error);
+            setIsSubmitting(false);
+            Alert.alert("Error", "An error occurred.");
+        }
+    };
 
-                <Pressable
-                  onPress={handleSubmit}
-                  disabled={isSubmitting || limitReached}
-                  className="bg-[#D4A373] px-5 py-3 rounded-full flex-row items-center gap-2 shadow-sm active:opacity-90"
+    if (!user) {
+        return (
+            <View className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 items-center">
+                <Sparkles size={32} color={theme.tint} style={{ marginBottom: 12 }} />
+                <Text style={{ color: theme.text }} className="text-lg font-serif font-bold text-center mb-2">Spiritual Guidance</Text>
+                <Text style={{ color: Colors.gray }} className="text-center text-sm mb-4">Sign in to get personalized biblical advice.</Text>
+                <Pressable 
+                    onPress={() => router.push('/profile')}
+                    style={{ backgroundColor: theme.tint }}
+                    className="w-full py-2 rounded-lg items-center"
                 >
-                  <Text className="text-white font-bold text-sm">Ask Advice</Text>
-                  <Send size={14} color="white" />
+                    <Text className="text-white font-bold text-sm">Sign In</Text>
                 </Pressable>
-              </View>
-            )}
-          </View>
-        )}
-      </View>
+            </View>
+        );
+    }
 
-      {!isSubmitting && (
-        <Text className="text-center text-xs text-slate-400 mt-3 mx-4 leading-relaxed">
-          Receive scripture-based wisdom tailored to your specific situation.
-        </Text>
-      )}
-    </View>
-  );
+    if (loadingLimit) {
+        return (
+            <View className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 items-center justify-center h-24">
+                <ActivityIndicator color={theme.tint} />
+            </View>
+        );
+    }
+
+    if (limitReached && !isPro) {
+        return (
+            <View className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 items-center">
+                <View className="w-10 h-10 bg-white dark:bg-gray-700 rounded-full items-center justify-center mb-3">
+                    <Lock size={18} color={Colors.gray} />
+                </View>
+                <Text className="font-bold text-base mb-1" style={{ color: theme.text }}>Monthly Limit Reached</Text>
+                <Text className="text-center text-gray-500 text-xs mb-4">
+                    You've used your free advice session. Upgrade for unlimited guidance.
+                </Text>
+                <Pressable 
+                    onPress={() => router.push('/paywall')}
+                    style={{ backgroundColor: theme.tint }}
+                    className="flex-row items-center px-4 py-2 rounded-full"
+                >
+                    <Sparkles size={14} color="white" style={{ marginRight: 6 }} />
+                    <Text className="text-white font-bold text-xs">Unlock Pro</Text>
+                </Pressable>
+            </View>
+        );
+    }
+
+    return (
+        <View 
+            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-1"
+            style={{ 
+                shadowColor: '#000', 
+                shadowOffset: { width: 0, height: 1 }, 
+                shadowOpacity: 0.1, 
+                shadowRadius: 2, 
+                elevation: 2 
+            }}
+        >
+            {isSubmitting ? (
+                <View className="py-8 items-center justify-center">
+                    <ActivityIndicator size="large" color={theme.tint} />
+                    <Text style={{ color: theme.tint, fontWeight: 'bold', marginTop: 8 }}>Seeking Wisdom...</Text>
+                    <Text style={{ color: Colors.gray, fontSize: 12, marginTop: 4 }}>Consulting Scripture...</Text>
+                </View>
+            ) : (
+                <View>
+                    <TextInput
+                        value={situation}
+                        onChangeText={setSituation}
+                        placeholder="What's weighing on your heart today?"
+                        placeholderTextColor={Colors.gray}
+                        editable={!isSubmitting}
+                        multiline
+                        style={{ 
+                            minHeight: 100, 
+                            padding: 16, 
+                            fontSize: 16, 
+                            color: theme.text,
+                            textAlignVertical: 'top'
+                        }}
+                    />
+                    {situation.length > 0 && (
+                        <Animated.View entering={FadeInUp} className="flex-row justify-between items-center p-4 border-t border-slate-100 dark:border-slate-700">
+                            <Text style={{ color: Colors.gray, fontSize: 12 }}>{situation.length} chars</Text>
+                            <Pressable
+                                onPress={handleSubmit}
+                                disabled={isSubmitting}
+                                style={{ backgroundColor: theme.tint }}
+                                className="flex-row items-center px-4 py-2 rounded-full"
+                            >
+                                <Text className="text-white font-bold mr-2 text-sm">Ask Advice</Text>
+                                <Send size={12} color="white" />
+                            </Pressable>
+                        </Animated.View>
+                    )}
+                </View>
+            )}
+        </View>
+    );
 }

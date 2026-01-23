@@ -1,3 +1,4 @@
+import ScriptureLinkifier from '@/components/ScriptureLinkifier';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { fetchNewsById } from '@/lib/api';
@@ -177,9 +178,8 @@ export default function NewsDetailScreen() {
                             {outlook.synopsis && (
                                 <View className="mb-6">
                                     <Text className="text-lg font-bold mb-2 uppercase tracking-wide opacity-70" style={{ color: theme.text }}>Synopsis</Text>
-                                    <Text style={{ color: theme.text, fontSize: 16, lineHeight: 26 }}>
-                                        {outlook.synopsis}
-                                    </Text>
+                                    <Text style={{ color: theme.text }}>{outlook.synopsis}</Text>
+                                    
                                 </View>
                             )}
 
@@ -187,9 +187,9 @@ export default function NewsDetailScreen() {
                             {outlook.scriptureReference && (
                                 <View className="mb-8 p-4 rounded-xl bg-gray-100 dark:bg-gray-800 border-l-4 border-amber-500">
                                     <Text className="font-bold text-amber-600 dark:text-amber-400 mb-2 uppercase text-xs tracking-widest">Scripture Focus</Text>
-                                    <Text style={{ color: theme.text, fontSize: 18, fontFamily: 'serif', fontStyle: 'italic', fontWeight: '500' }}>
-                                        "{outlook.scriptureReference}"
-                                    </Text>
+                                    <ScriptureLinkifier
+                                        text={`"${outlook.scriptureReference}"`}
+                                    />
                                 </View>
                             )}
 
@@ -198,9 +198,9 @@ export default function NewsDetailScreen() {
                                 <View className="mb-8">
                                     <Text className="text-xl font-serif font-bold mb-3" style={{ color: theme.text }}>Christian Outlook</Text>
                                     <View style={{ height: 2, width: 40, backgroundColor: theme.tint, marginBottom: 16 }} />
-                                    <Text style={{ color: theme.text, fontSize: 18, lineHeight: 30, fontFamily: 'serif' }}>
-                                        {outlook.outlook}
-                                    </Text>
+                                    <ScriptureLinkifier
+                                        text={outlook.outlook}
+                                    />
                                 </View>
                             )}
 
