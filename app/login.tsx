@@ -1,9 +1,10 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
+import { logActivityEvent } from '@/lib/activityLogger';
 import { useRouter } from 'expo-router';
 import { BookOpen, HeartHandshake, ShieldCheck, Sparkles } from 'lucide-react-native';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Dimensions,
@@ -56,6 +57,10 @@ export default function LoginScreen() {
     const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
+
+    useEffect(() => {
+        void logActivityEvent({ activityType: 'login_screen_viewed', description: 'Login screen mounted' });
+    }, []);
     
     // Slider Logic
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -68,6 +73,16 @@ export default function LoginScreen() {
     }).current;
 
     const viewConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+
+    const handleApplePress = async () => {
+        void logActivityEvent({ activityType: 'login_apple_pressed' });
+        await signInWithApple();
+    };
+
+    const handleGooglePress = async () => {
+        void logActivityEvent({ activityType: 'login_google_pressed' });
+        await signInWithGoogle();
+    };
     
     const renderItem = ({ item }: { item: typeof SLIDES[0] }) => {
         const Icon = item.icon;
@@ -194,7 +209,7 @@ export default function LoginScreen() {
                         {/* Apple Button - iOS Only */}
                         {Platform.OS === 'ios' && (
                             <Pressable
-                                onPress={signInWithApple}
+                                onPress={handleApplePress}
                                 style={{
                                     flexDirection: 'row',
                                     alignItems: 'center',
@@ -220,7 +235,7 @@ export default function LoginScreen() {
 
                         {/* Google Button - All Platforms */}
                         <Pressable
-                            onPress={signInWithGoogle}
+                            onPress={handleGooglePress}
                             style={{
                                 flexDirection: 'row',
                                 alignItems: 'center',
