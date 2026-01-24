@@ -7,7 +7,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 
 // Configure Google Sign-In (Get Web Client ID from Google Cloud Console)
 GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID, 
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
 });
 
 const AuthContext = createContext<any>(null);
@@ -31,13 +32,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null);
       if (session?.user) loadProfile(session.user.id);
       else setProfile(null);
       void logActivityEvent({
         userId: session?.user?.id,
         activityType: 'auth_state_changed',
+        activityId: event,
         description: session?.user ? 'Signed in' : 'Signed out',
       });
       setLoading(false);
