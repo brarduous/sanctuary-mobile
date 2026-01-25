@@ -14,7 +14,7 @@
       "backgroundColor": "#334155"
     },
     "ios": {
-      "supportsTablet": true,
+      "supportsTablet": false,
       "bundleIdentifier": "us.sanctuaryapp.app",
       "associatedDomains": [
         "applinks:sanctuaryapp.us",
