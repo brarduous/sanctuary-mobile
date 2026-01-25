@@ -9,6 +9,8 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 GoogleSignin.configure({
   webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
   iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
+  offlineAccess: false,
+  forceCodeForRefreshToken: true,
 });
 
 const AuthContext = createContext<any>(null);
@@ -119,6 +121,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
+      
+      await logActivityEvent({
+        activityType: 'google_sign_in_token_received',
+        description: userInfo.data?.idToken ? 'ID token received' : 'No ID token in response',
+      });
+      
       if (userInfo.data?.idToken) {
         const { error } = await supabase.auth.signInWithIdToken({
           provider: 'google',
@@ -132,10 +140,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           activityType: 'google_sign_in_success',
           description: 'Supabase session created via Google',
         });
+      } else {
+        await logActivityEvent({
+          activityType: 'google_sign_in_no_token',
+          description: 'Google sign-in succeeded but no ID token returned',
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
        console.error("Google Sign In Error", error);
-       await logErrorEvent('google_sign_in_error', error);
+       
+       // Enhanced error diagnostics for DEVELOPER_ERROR (Android)
+       const errorDescription = error?.message || String(error);
+       const isDeveloperError = errorDescription.includes('DEVELOPER_ERROR') || errorDescription.includes('error 10');
+       
+       if (isDeveloperError) {
+         await logErrorEvent('google_sign_in_developer_error_android', error, {
+           userId: user?.id
+         });
+       } else {
+         await logErrorEvent('google_sign_in_error', error);
+       }
     }
   };
 
