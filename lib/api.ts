@@ -525,3 +525,14 @@ export const deletePrayer = async (prayerId: string) => {
         return null;
     }
 };
+
+export const fetchRecommendedVideos = async () => {
+  try {
+    // Assuming 'apiClient' is your axios/fetch instance with auth headers
+    const response = await apiClient.get('/recommended');
+    return response.data;
+  } catch (error) {
+    console.error('[API] Error fetching recommended videos:', error);
+    return [];
+  }
+};

@@ -13,12 +13,14 @@ import {
     fetchDailyPrayers,
     fetchGeneralDevotional,
     fetchRandomCommunityPrayer,
+    fetchRecommendedVideos,
     fetchUserStreak,
     generateContent,
     markPrayerAsPrayed,
     submitPrayerRequest,
 } from '@/lib/api';
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import {
@@ -38,6 +40,7 @@ import {
     ActivityIndicator,
     Alert,
     LayoutAnimation,
+    Linking,
     Modal,
     Platform,
     Pressable,
@@ -49,6 +52,8 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -86,6 +91,8 @@ export default function HomeScreen() {
     //polling ref state
     const pollingRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 
+    const [recommendedVideos, setRecommendedVideos] = useState<any[]>([]);
+
     // Clean up polling on unmount
     useEffect(() => {
         return () => {
@@ -98,11 +105,12 @@ export default function HomeScreen() {
         if (!user) return;
         //console.log(user);
         // 1. Fetch Basic Data
-        const [news, streakData, stats, adviceLimit] = await Promise.all([
+        const [news, streakData, stats, adviceLimit, videos] = await Promise.all([
             fetchDailyNewsSynopsis(),
             fetchUserStreak(user.id, 'daily_devotional'),
             fetchCommunityStats(),
-            checkAdviceLimit(user.id)
+            checkAdviceLimit(user.id),
+            fetchRecommendedVideos(),
         ]);
         // 2. Fetch Content (Devotional + Guided Prayer)
         const isPro = profile?.subscription_tier === 'pro';
@@ -111,7 +119,7 @@ export default function HomeScreen() {
         setStreak(streakData?.current_streak || streakData?.streak || 0);
         setCommunityStats(stats || { totalPrayedForYou: 0 });
         setAdviceLimitReached(!isPro && adviceLimit?.limitReached || false);
-
+        setRecommendedVideos(videos);
 
 
         if (!isPro) {
@@ -385,14 +393,41 @@ export default function HomeScreen() {
                         <Pressable
                             onPress={() => router.push(`/prayer/${todaysPrayer.prayer_id || todaysPrayer.id}`)}
                             className="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 active:scale-[0.99]"
-                            style={{ backgroundColor: theme.card }}  
+                            style={{ backgroundColor: theme.card }}
                         >
                             <Text className="text-lg font-serif mb-1" style={{ color: theme.text }}>Daily Prayer</Text>
                             <Text className="text-sm" style={{ color: theme.mutedForeground }}>Take a moment to connect.</Text>
                         </Pressable>
                     </View>
                 )}
-
+                {recommendedVideos.length > 0 && (
+                    <View className="mt-8 px-4">
+                        <Text className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">
+                            Recommended For Your Walk
+                        </Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            {recommendedVideos.map((video) => (
+                                <Pressable
+                                    key={video.id}
+                                    onPress={() => Linking.openURL(video.video_url)}
+                                    className="w-72 mr-4 bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm"
+                                >
+                                    <Image source={{ uri: video.thumbnail_url }} className="h-40 w-full" />
+                                    <View className="p-4">
+                                        <Text className="font-bold text-slate-900 mb-2" numberOfLines={2}>{video.title}</Text>
+                                        <View className="flex-row flex-wrap gap-1">
+                                            {video.focus_areas.map((tag: any) => (
+                                                <View key={tag} className="bg-orange-50 px-2 py-1 rounded-md">
+                                                    <Text className="text-[10px] text-orange-700 font-bold">{tag}</Text>
+                                                </View>
+                                            ))}
+                                        </View>
+                                    </View>
+                                </Pressable>
+                            ))}
+                        </ScrollView>
+                    </View>
+                )}
                 {/* --- 3. COMMUNITY STATS (New) --- */}
                 {communityStats.totalPrayedForYou > 0 && (
                     <View className="bg-[#D4A373]/5 border border-[#D4A373]/20 rounded-xl p-4 flex-row items-center gap-3 mb-8 mt-8">
@@ -496,18 +531,18 @@ export default function HomeScreen() {
 
                 {/* --- 5. CHRISTIAN ADVICE --- */}
                 {!adviceLimitReached && (
-                    <>            
-                    <View className="mb-8">
-                        <View className="flex-row items-end justify-between mb-3 px-1">
-                            <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Scriptural Advice</Text>
-                            <Pressable onPress={() => router.push('/advice')}>
-                                <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: theme.text }}>View All</Text>
-                            </Pressable>
-                        </View>
+                    <>
+                        <View className="mb-8">
+                            <View className="flex-row items-end justify-between mb-3 px-1">
+                                <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Scriptural Advice</Text>
+                                <Pressable onPress={() => router.push('/advice')}>
+                                    <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: theme.text }}>View All</Text>
+                                </Pressable>
+                            </View>
 
 
                             <ChristianAdviceCard />
-                    </View>
+                        </View>
                     </>
                 )}
 
