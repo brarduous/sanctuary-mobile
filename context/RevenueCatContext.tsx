@@ -8,6 +8,7 @@ interface RevenueCatContextType {
   isPro: boolean;
   packages: PurchasesPackage[];
   customerInfo: CustomerInfo | null;
+  isLoaded: boolean; // <--- NEW: To prevent infinite loading
   purchasePackage: (pack: PurchasesPackage) => Promise<void>;
   restorePurchases: () => Promise<void>;
 }
@@ -15,15 +16,21 @@ interface RevenueCatContextType {
 const RevenueCatContext = createContext<RevenueCatContextType | undefined>(undefined);
 
 export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
-  const { user, profile } = useAuth(); // We might need user ID to identify in RC
+  const { user, profile } = useAuth();
   const [isPro, setIsPro] = useState(false);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false); // <--- NEW
 
   useEffect(() => {
-    // Check if user is Pro based on RevenueCat OR Profile (Database)
+    // 1. Check RevenueCat (Real Subscriptions)
     const isRevenueCatPro = customerInfo?.entitlements.active['pro_access'] !== undefined;
-    const isProfilePro = profile?.subscription_tier === 'pro' || profile?.subscription_tier === 'admin';
+    
+    // 2. Check Database Overrides (Whitelist / Admin)
+    const isProfilePro = 
+        profile?.subscription_tier === 'pro' || 
+        profile?.subscription_tier === 'admin' ||
+        profile?.is_whitelisted === true; // <--- Whitelist Logic
     
     setIsPro(isRevenueCatPro || isProfilePro);
   }, [customerInfo, profile]);
@@ -43,19 +50,14 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
 
         const info = await Purchases.getCustomerInfo();
         setCustomerInfo(info);
-        // checkEntitlements is now handled by the useEffect above
-
-        loadOfferings();
+        await loadOfferings();
       } catch (e) {
         console.error("RevenueCat init error", e);
+        setIsLoaded(true); // Stop loading even on error
       }
     };
     init();
   }, [user]);
-
-  // Helper to re-evaluate locally if needed (conceptually, but state drives it now)
-  // const checkEntitlements = (info: CustomerInfo) => {
-  // };
 
   const loadOfferings = async () => {
     try {
@@ -65,6 +67,8 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
       }
     } catch (e) {
       console.error("Error fetching offerings", e);
+    } finally {
+      setIsLoaded(true); // <--- Crucial: Always stop the spinner
     }
   };
 
@@ -75,7 +79,6 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
     } catch (e: any) {
       if (!e.userCancelled) {
         console.error("Purchase error", e);
-        // Alert.alert("Error", e.message);
       }
     }
   };
@@ -90,7 +93,7 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <RevenueCatContext.Provider value={{ isPro, packages, customerInfo, purchasePackage, restorePurchases }}>
+    <RevenueCatContext.Provider value={{ isPro, packages, customerInfo, isLoaded, purchasePackage, restorePurchases }}>
       {children}
     </RevenueCatContext.Provider>
   );
