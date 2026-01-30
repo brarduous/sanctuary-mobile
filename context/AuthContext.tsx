@@ -25,6 +25,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       if (session?.user) loadProfile(session.user.id);
+      else setLoading(false); // Ensure loading stops if no user
       void logActivityEvent({
         userId: session?.user?.id,
         activityType: 'auth_session_checked',
@@ -36,7 +37,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null);
-      if (session?.user) loadProfile(session.user.id);
+      if (session?.user && event !== 'INITIAL_SESSION') {
+        loadProfile(session.user.id);
+      } else if (!session?.user) {
+        setProfile(null);
+        setLoading(false);
+      }
       else setProfile(null);
       void logActivityEvent({
         userId: session?.user?.id,
@@ -62,8 +68,15 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } catch (error) {
       await logErrorEvent('profile_load_error', error, { userId });
     }
+    finally {
+      setLoading(false);
+    }
   };
-
+  const refreshProfile = async () => {
+    if (user?.id) {
+      await loadProfile(user.id);
+    }
+  };
   // --- APPLE SIGN IN ---
   const signInWithApple = async () => {
     await logActivityEvent({ activityType: 'apple_sign_in_started', description: 'User tapped Apple sign-in' });
@@ -121,12 +134,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
-      
+
       await logActivityEvent({
         activityType: 'google_sign_in_token_received',
         description: userInfo.data?.idToken ? 'ID token received' : 'No ID token in response',
       });
-      
+
       if (userInfo.data?.idToken) {
         const { error } = await supabase.auth.signInWithIdToken({
           provider: 'google',
@@ -147,19 +160,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
       }
     } catch (error: any) {
-       console.error("Google Sign In Error", error);
-       
-       // Enhanced error diagnostics for DEVELOPER_ERROR (Android)
-       const errorDescription = error?.message || String(error);
-       const isDeveloperError = errorDescription.includes('DEVELOPER_ERROR') || errorDescription.includes('error 10');
-       
-       if (isDeveloperError) {
-         await logErrorEvent('google_sign_in_developer_error_android', error, {
-           userId: user?.id
-         });
-       } else {
-         await logErrorEvent('google_sign_in_error', error);
-       }
+      console.error("Google Sign In Error", error);
+
+      // Enhanced error diagnostics for DEVELOPER_ERROR (Android)
+      const errorDescription = error?.message || String(error);
+      const isDeveloperError = errorDescription.includes('DEVELOPER_ERROR') || errorDescription.includes('error 10');
+
+      if (isDeveloperError) {
+        await logErrorEvent('google_sign_in_developer_error_android', error, {
+          userId: user?.id
+        });
+      } else {
+        await logErrorEvent('google_sign_in_error', error);
+      }
     }
   };
 
@@ -176,7 +189,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signInWithApple, signInWithGoogle, signOut }}>
+    <AuthContext.Provider value={{ user, profile, loading, signInWithApple, signInWithGoogle, signOut, refreshProfile}}>
       {children}
     </AuthContext.Provider>
   );

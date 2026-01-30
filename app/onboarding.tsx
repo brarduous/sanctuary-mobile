@@ -11,7 +11,7 @@ import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function OnboardingScreen() {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const router = useRouter();
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
@@ -98,6 +98,8 @@ export default function OnboardingScreen() {
     setSaving(true);
     try {
       await savePreferences();
+      await refreshProfile();
+
       router.replace('/(tabs)');
     } catch (err) {
       console.error(err);
@@ -114,7 +116,8 @@ export default function OnboardingScreen() {
       try {
         // We set onboardingCompleted to true because even if they decline pro, they are done with onboarding content
         await savePreferences(); 
-        router.push('/paywall'); 
+        await refreshProfile();
+        router.replace('/paywall');
       } catch (e) {
         console.log(e);
         setSaving(false);
@@ -126,6 +129,7 @@ export default function OnboardingScreen() {
       setSaving(true);
       try {
         await savePreferences();
+        await refreshProfile();
         router.replace('/(tabs)');
       } catch (err) {
         setSaving(false);

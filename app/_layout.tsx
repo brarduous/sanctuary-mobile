@@ -60,7 +60,7 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { user, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const theme = Colors[colorScheme ?? 'light'];
@@ -69,13 +69,24 @@ function RootLayoutNav() {
     if (loading) return;
 
     const inAuthGroup = segments[0] === '(tabs)';
+    const inOnboarding = segments[0] === 'onboarding';
+    const inLogin = segments[0] === 'login';
+    
     
     if (!user && inAuthGroup) {
       router.replace('/login');
-    } else if (user && segments[0] === 'login') {
+   } else if (user && !inOnboarding && (!profile?.user_preferences || !profile?.user_preferences?.onboardingCompleted)) {
+      router.replace('/onboarding');
+
+    // 3. Logged in, HAS preferences, trying to view onboarding -> Go Home
+    } else if (user && inOnboarding && profile?.user_preferences?.onboardingCompleted) {
+      router.replace('/(tabs)');
+      
+    // 4. Logged in, trying to view login -> Go Home
+    } else if (user && inLogin) {
       router.replace('/(tabs)');
     }
-  }, [user, loading, segments]);
+  }, [user, profile, loading, segments]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
