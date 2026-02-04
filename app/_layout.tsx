@@ -70,23 +70,26 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === '(tabs)';
     const inOnboarding = segments[0] === 'onboarding';
-    const inLogin = segments[0] === 'login';
-    
-    
-    if (!user && inAuthGroup) {
-      router.replace('/login');
-   } else if (user && !inOnboarding && (!profile?.user_preferences || !profile?.user_preferences?.onboardingCompleted)) {
-      router.replace('/onboarding');
 
-    // 3. Logged in, HAS preferences, trying to view onboarding -> Go Home
-    } else if (user && inOnboarding && profile?.user_preferences?.onboardingCompleted) {
-      router.replace('/(tabs)');
-      
-    // 4. Logged in, trying to view login -> Go Home
-    } else if (user && inLogin) {
+    // 1. Guest Logic: If not logged in, they CAN stay in (tabs), but not onboarding
+    if (!user) {
+        if (inOnboarding) {
+             // Guests cannot do onboarding because they have no DB profile to save to
+             router.replace('/login');
+        }
+        // ALLOW access to index/tabs
+        return;
+    }
+
+    // 2. User Logic: If logged in but NO preferences -> Force Onboarding
+    const hasPreferences = profile?.user_preferences && Object.keys(profile.user_preferences).length > 0;
+    
+    if (user && !inOnboarding && !hasPreferences) {
+      router.replace('/onboarding');
+    } else if (user && inOnboarding && hasPreferences) {
       router.replace('/(tabs)');
     }
-  }, [user, profile, loading, segments]);
+  }, [user, loading, segments, profile]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

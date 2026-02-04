@@ -8,9 +8,10 @@ interface RevenueCatContextType {
   isPro: boolean;
   packages: PurchasesPackage[];
   customerInfo: CustomerInfo | null;
-  isLoaded: boolean; // <--- NEW: To prevent infinite loading
+  isLoaded: boolean; 
   purchasePackage: (pack: PurchasesPackage) => Promise<void>;
   restorePurchases: () => Promise<void>;
+  loadOfferings: () => Promise<void>; // <--- NEW: Exposed for Retry
 }
 
 const RevenueCatContext = createContext<RevenueCatContextType | undefined>(undefined);
@@ -20,17 +21,15 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
   const [isPro, setIsPro] = useState(false);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false); // <--- NEW
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    // 1. Check RevenueCat (Real Subscriptions)
+    // Check RevenueCat OR Profile Whitelist
     const isRevenueCatPro = customerInfo?.entitlements.active['pro_access'] !== undefined;
-    
-    // 2. Check Database Overrides (Whitelist / Admin)
     const isProfilePro = 
         profile?.subscription_tier === 'pro' || 
         profile?.subscription_tier === 'admin' ||
-        profile?.is_whitelisted === true; // <--- Whitelist Logic
+        profile?.is_whitelisted === true; 
     
     setIsPro(isRevenueCatPro || isProfilePro);
   }, [customerInfo, profile]);
@@ -53,13 +52,14 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
         await loadOfferings();
       } catch (e) {
         console.error("RevenueCat init error", e);
-        setIsLoaded(true); // Stop loading even on error
+        setIsLoaded(true); 
       }
     };
     init();
   }, [user]);
 
   const loadOfferings = async () => {
+    setIsLoaded(false);
     try {
       const offerings = await Purchases.getOfferings();
       if (offerings.current && offerings.current.availablePackages.length !== 0) {
@@ -68,7 +68,7 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
     } catch (e) {
       console.error("Error fetching offerings", e);
     } finally {
-      setIsLoaded(true); // <--- Crucial: Always stop the spinner
+      setIsLoaded(true);
     }
   };
 
@@ -93,7 +93,7 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <RevenueCatContext.Provider value={{ isPro, packages, customerInfo, isLoaded, purchasePackage, restorePurchases }}>
+    <RevenueCatContext.Provider value={{ isPro, packages, customerInfo, isLoaded, purchasePackage, restorePurchases, loadOfferings }}>
       {children}
     </RevenueCatContext.Provider>
   );

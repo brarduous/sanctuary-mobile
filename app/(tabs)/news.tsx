@@ -72,7 +72,7 @@ export default function NewsScreen() {
 
     // Initial Load
     const initData = useCallback(async () => {
-        if (!user) return;
+        
         
         // 1. Load Synopsis
         setLoadingSynopsis(true);
@@ -83,7 +83,7 @@ export default function NewsScreen() {
         // 2. Load Categories
         const [allCats, userFollowed] = await Promise.all([
             fetchCategories(),
-            fetchUserFollowedCategories(user.id)
+            user && fetchUserFollowedCategories(user.id)
         ]);
 
         const followedIds = (userFollowed || []).map((id: any) => Number(id));
@@ -272,7 +272,7 @@ export default function NewsScreen() {
     const renderArticle = ({ item }: { item: Article }) => (
         <Pressable
             onPress={() => router.push(`/news/${item.id}` as any)}
-            className="rounded-2xl p-4 border  flex-row gap-4 mb-4 mx-5 active:scale-[0.99]"
+            className="rounded-2xl p-4 border  flex-row gap-4 mt-4 mx-5 active:scale-[0.99]"
             style={{ backgroundColor: theme.card }}
         >
             {item.article_thumbnail_url ? (

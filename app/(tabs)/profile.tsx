@@ -16,6 +16,7 @@ import {
     ChevronRight,
     Crown,
     Heart,
+    LogIn,
     Moon,
     Newspaper,
     Save,
@@ -120,7 +121,6 @@ export default function ProfileScreen() {
 
     // Fetch Favorites
     useEffect(() => {
-        console.log('Active Tab:', activeSection);
         if (activeSection === 'library' && user?.id) {
             fetchFavorites(user.id).then(setFavorites).catch(err => {
                 console.error('Error fetching favorites:', err);
@@ -168,7 +168,6 @@ export default function ProfileScreen() {
             {
                 text: "Sign Out", style: "destructive", onPress: () => {
                     try {
-                        // Trigger sign out; Root layout will handle redirect based on auth state
                         signOut();
                     } catch (error) {
                         console.error('Sign out error:', error);
@@ -188,8 +187,6 @@ export default function ProfileScreen() {
 
             if (path) {
                 router.push(path as any);
-            } else {
-                console.warn("Unknown type", item.item_type);
             }
         } catch (error) {
             console.error('Navigation error:', error);
@@ -204,6 +201,40 @@ export default function ProfileScreen() {
         );
     }
 
+    // --- GUEST VIEW (If not logged in) ---
+    if (!user) {
+        return (
+            <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
+                <View className="px-5 pt-4 border-b border-transparent">
+                     <Text className="text-2xl font-serif font-bold mb-6" style={{ color: theme.text }}>Profile</Text>
+                </View>
+                
+                <View className="flex-1 items-center justify-center p-6">
+                    <View className="bg-slate-50 dark:bg-slate-900 p-8 rounded-3xl items-center w-full max-w-sm border border-slate-200 dark:border-slate-800">
+                        <View className="w-20 h-20 bg-[#D4A373]/20 rounded-full items-center justify-center mb-6">
+                            <User size={40} color="#D4A373" />
+                        </View>
+                        <Text className="text-xl font-bold mb-2 text-center" style={{ color: theme.text }}>
+                            Create Your Profile
+                        </Text>
+                        <Text className="text-center text-slate-500 mb-8 leading-6">
+                            Sign in to save your spiritual preferences, track your favorite devotionals, and customize your daily walk.
+                        </Text>
+
+                        <Pressable 
+                            onPress={() => router.push('/login')}
+                            className="w-full bg-[#D4A373] py-4 rounded-xl flex-row items-center justify-center mb-4 active:opacity-90 shadow-sm"
+                        >
+                            <LogIn size={20} color="white" className="mr-2" />
+                            <Text className="text-white font-bold text-lg">Sign In / Sign Up</Text>
+                        </Pressable>
+                    </View>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    // --- LOGGED IN VIEW ---
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
             {/* Header */}
@@ -215,7 +246,7 @@ export default function ProfileScreen() {
                     </Pressable>
                 </View>
 
-                {/* --- TAB SWITCHER (FIXED) --- */}
+                {/* Tab Switcher */}
                 <View className="flex-row p-1 bg-slate-100/80 rounded-xl mb-6 mx-4">
                     <Pressable
                         onPress={() => {

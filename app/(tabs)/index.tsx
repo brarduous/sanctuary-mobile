@@ -102,7 +102,21 @@ export default function HomeScreen() {
 
     // --- DATA LOADING ---
     const loadData = useCallback(async (forceRefresh = false) => {
-        if (!user) return;
+        if (!user) {
+            const [news, videos, generalData] = await Promise.all([
+                fetchDailyNewsSynopsis(),
+                fetchRecommendedVideos(),
+                fetchGeneralDevotional() // Ensure this exists in your API lib
+            ]);
+            setDailyNews(news);
+            setRecommendedVideos(videos);
+            if (generalData) {
+                setTodaysDevotional(generalData.devotional);
+                setTodaysPrayer(generalData.prayer);
+            }
+            setIsGenerating(false);
+            return;
+        }
         //console.log(user);
         // 1. Fetch Basic Data
         const [news, streakData, stats, adviceLimit, videos] = await Promise.all([
@@ -314,13 +328,19 @@ export default function HomeScreen() {
                         </Text>
                     </View>
 
-                    {streak > 1 && (
+                    {user && streak > 1 && (
                         <View className="flex-row items-center bg-slate-100 rounded-full px-3 py-1">
                             <Flame size={14} color="#F97316" fill="#F97316" />
                             <Text className="ml-1 text-xs font-bold text-slate-600">
                                 {streak} Day Streak
                             </Text>
                         </View>
+                    )}
+                    {/* Show Sign In for Guest */}
+                    {!user && (
+                        <Pressable onPress={() => router.push('/login')} className="bg-slate-100 px-4 py-2 rounded-full">
+                            <Text className="font-bold text-slate-700">Sign In</Text>
+                        </Pressable>
                     )}
                 </View>
 
@@ -429,7 +449,7 @@ export default function HomeScreen() {
                     </View>
                 )}
                 {/* --- 3. COMMUNITY STATS (New) --- */}
-                {communityStats.totalPrayedForYou > 0 && (
+                {user && communityStats.totalPrayedForYou > 0 && (
                     <View className="bg-[#D4A373]/5 border border-[#D4A373]/20 rounded-xl p-4 flex-row items-center gap-3 mb-8 mt-8">
                         <View className="bg-[#D4A373]/10 p-2 rounded-full">
                             <Users size={18} color="#D4A373" />
@@ -447,7 +467,7 @@ export default function HomeScreen() {
                         <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Community</Text>
                     </View>
                 </View>
-
+                {user? (
                 <View className="mb-8">
                     {communityPrayer ? (
                         <View className="bg-[#1E293B] rounded-2xl shadow-lg overflow-hidden relative">
@@ -528,9 +548,19 @@ export default function HomeScreen() {
                         </View>
                     )}
                 </View>
+                ) : (
+                    <View className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 mb-8 items-center">
+                        <HeartHandshake size={32} color={Colors.gray} />
+                        <Text className="font-bold text-lg mt-2 text-slate-900 dark:text-white">Join the Community</Text>
+                        <Text className="text-center text-slate-500 mb-4">Sign in to share prayer requests and pray for others.</Text>
+                        <Pressable onPress={() => router.push('/login')} className="bg-slate-900 dark:bg-white px-6 py-3 rounded-xl">
+                            <Text className="text-white dark:text-black font-bold">Sign In / Create Account</Text>
+                        </Pressable>
+                    </View>
+                )}
 
                 {/* --- 5. CHRISTIAN ADVICE --- */}
-                {!adviceLimitReached && (
+                {user && !adviceLimitReached && (
                     <>
                         <View className="mb-8">
                             <View className="flex-row items-end justify-between mb-3 px-1">
