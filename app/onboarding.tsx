@@ -167,7 +167,8 @@ export default function OnboardingScreen() {
                     <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={{ flex: 1 }}>
                         <Text style={{ color: theme.tint }} className="text-3xl font-serif mb-2 text-center">Spiritual Focus</Text>
                         <Text style={{ color: Colors.gray }} className="text-center mb-6">Where would you like to grow in your walk with God?</Text>
-                        
+                        {/* add a line to instruct about long press for more information */}
+                            <Text style={{ color: Colors.gray }} className="text-center mb-4 text-xs italic">Long press for more information</Text>
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <View className="flex-row flex-wrap gap-3 pb-8">
                                 {focusOptions.map((opt) => (
@@ -175,6 +176,8 @@ export default function OnboardingScreen() {
                                         {/* Simple custom card */}
                                         <Pressable
                                             onPress={() => handleToggle(selectedFocus, setSelectedFocus, opt.title)}
+                                            onLongPress={() => setModalData(opt)}
+                                            delayLongPress={500}
                                             style={{
                                                 padding: 16,
                                                 borderRadius: 12,
@@ -187,9 +190,9 @@ export default function OnboardingScreen() {
                                                  <Text style={{ fontWeight: '600', color: theme.text, flex: 1 }}>{opt.title}</Text>
                                                  {selectedFocus.includes(opt.title) && <Check size={16} color={theme.tint} />}
                                             </View>
-                                            <Pressable onPress={() => setModalData(opt)} hitSlop={10}>
+                                            <View className="opacity-50">
                                                 <Info size={14} color={Colors.gray} />
-                                            </Pressable>
+                                            </View>
                                         </Pressable>
                                     </View>
                                 ))}
@@ -202,6 +205,7 @@ export default function OnboardingScreen() {
                     <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={{ flex: 1 }}>
                         <Text style={{ color: theme.tint }} className="text-3xl font-serif mb-2 text-center">Areas for Growth</Text>
                         <Text style={{ color: Colors.gray }} className="text-center mb-6">What specific challenges would you like guidance on?</Text>
+                        <Text style={{ color: Colors.gray }} className="text-center mb-4 text-sm">(Long press for more info on each topic)</Text>
                         
                         <ScrollView showsVerticalScrollIndicator={false}>
                             <View className="flex-row flex-wrap gap-3 pb-8">
@@ -209,6 +213,8 @@ export default function OnboardingScreen() {
                                     <View key={opt.title} style={{ width: '48%' }}>
                                         <Pressable
                                             onPress={() => handleToggle(selectedImprove, setSelectedImprove, opt.title)}
+                                            onLongPress={() => setModalData(opt)}
+                                            delayLongPress={500}
                                             style={{
                                                 padding: 16,
                                                 borderRadius: 12,
@@ -221,9 +227,9 @@ export default function OnboardingScreen() {
                                                  <Text style={{ fontWeight: '600', color: theme.text, flex: 1 }}>{opt.title}</Text>
                                                  {selectedImprove.includes(opt.title) && <Check size={16} color={theme.tint} />}
                                             </View>
-                                            <Pressable onPress={() => setModalData(opt)} hitSlop={10}>
+                                            <View className="opacity-50">
                                                 <Info size={14} color={Colors.gray} />
-                                            </Pressable>
+                                            </View>
                                         </Pressable>
                                     </View>
                                 ))}

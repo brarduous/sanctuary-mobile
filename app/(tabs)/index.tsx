@@ -23,6 +23,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
+import * as Sharing from 'expo-sharing';
 import {
     BookOpen,
     Check,
@@ -35,7 +36,7 @@ import {
     Users,
     X
 } from 'lucide-react-native';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -52,18 +53,68 @@ import {
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ViewShot from "react-native-view-shot";
 
+import VerseOfTheDayCard from '@/components/VerseOfTheDayCard';
+const bg1 = require('@/assets/images/votd-image-1.jpg');
+const bg2 = require('@/assets/images/votd-image-2.jpg');
+const bg3 = require('@/assets/images/votd-image-3.png');
+const bg4 = require('@/assets/images/votd-image-4.jpg');
+const bg5 = require('@/assets/images/votd-image-5.jpg');
 
+const backgrounds = [bg1, bg2, bg3, bg4, bg5];
+const todayIndex = new Date().getDate() % backgrounds.length;
+const verseBackground = backgrounds[todayIndex];
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
+// Add this helper function inside HomeScreen or in a utility file
+async function scheduleStreakNotification(streak: number, userName: string) {
+    if (Platform.OS === 'web') return;
 
+    const Notifications = await import('expo-notifications');
+
+    // 1. Request permissions if not granted
+    const { status } = await Notifications.getPermissionsAsync();
+    if (status !== 'granted') {
+        const { status: newStatus } = await Notifications.requestPermissionsAsync();
+        if (newStatus !== 'granted') return;
+    }
+
+    // 2. Cancel existing notifications to avoid duplicates
+    await Notifications.cancelAllScheduledNotificationsAsync();
+
+    // 3. Define the message based on streak
+    let title = "Good Morning, " + (userName || "Friend");
+    let body = "Start your day with Sanctuary.";
+
+    if (streak > 0) {
+        title = "Keep it going! 🔥";
+        body = `You're on a ${streak}-day streak. Don't break the chain!`;
+    }
+
+    // 4. Schedule for tomorrow morning at 8:00 AM
+    // Note: logic here schedules for the *next* occurrence of 8 AM
+    await Notifications.scheduleNotificationAsync({
+        content: {
+            title,
+            body,
+            sound: true,
+        },
+        trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.DAILY,
+            hour: 8,
+            minute: 0,
+        },
+    });
+}
 export default function HomeScreen() {
     const { user, profile } = useAuth();
     const router = useRouter();
     const colorScheme = useColorScheme();
     const theme = Colors[colorScheme ?? 'light'];
+    const viewShotRef = useRef<ViewShot>(null);
 
     // --- STATE ---
     const [dailyNews, setDailyNews] = useState<any>(null);
@@ -93,6 +144,17 @@ export default function HomeScreen() {
 
     const [recommendedVideos, setRecommendedVideos] = useState<any[]>([]);
 
+    const handleShareVerse = async () => {
+        try {
+            if (viewShotRef.current && viewShotRef.current.capture) {
+                const uri = await viewShotRef.current.capture();
+                await Sharing.shareAsync(uri);
+            }
+        } catch (error) {
+            console.error("Sharing failed", error);
+        }
+    };
+
     // Clean up polling on unmount
     useEffect(() => {
         return () => {
@@ -109,10 +171,20 @@ export default function HomeScreen() {
                 fetchGeneralDevotional() // Ensure this exists in your API lib
             ]);
             setDailyNews(news);
+
             setRecommendedVideos(videos);
             if (generalData) {
                 setTodaysDevotional(generalData.devotional);
                 setTodaysPrayer(generalData.prayer);
+            }
+            if (todaysDevotional?.scripture) {
+                // Standard way to share data with iOS Widgets in Expo
+                // requires 'expo-group-preferences' or similar native module
+                // Example:
+                // SharedGroupPreferences.setItem('widgetData', { 
+                //   verse: todaysDevotional.scripture, 
+                //   date: new Date().toISOString() 
+                // }, 'group.us.sanctuaryapp');
             }
             setIsGenerating(false);
             return;
@@ -131,6 +203,9 @@ export default function HomeScreen() {
 
         setDailyNews(news);
         setStreak(streakData?.current_streak || streakData?.streak || 0);
+        if (user) {
+            scheduleStreakNotification(streakData?.current_streak || streakData?.streak || 0, user.user_metadata?.given_name);
+        }
         setCommunityStats(stats || { totalPrayedForYou: 0 });
         setAdviceLimitReached(!isPro && adviceLimit?.limitReached || false);
         setRecommendedVideos(videos);
@@ -184,6 +259,16 @@ export default function HomeScreen() {
             setTodaysDevotional(todayDevo);
             setTodaysPrayer(todayPrayer);
             setIsGenerating(false);
+
+            if (todaysDevotional?.scripture) {
+                // Standard way to share data with iOS Widgets in Expo
+                // requires 'expo-group-preferences' or similar native module
+                // Example:
+                // SharedGroupPreferences.setItem('widgetData', { 
+                //   verse: todaysDevotional.scripture, 
+                //   date: new Date().toISOString() 
+                // }, 'group.us.sanctuaryapp');
+            }
             // Stop any existing polling
             if (pollingRef.current) {
                 clearInterval(pollingRef.current);
@@ -228,6 +313,16 @@ export default function HomeScreen() {
                     if (pollingRef.current) {
                         clearInterval(pollingRef.current);
                         pollingRef.current = null;
+                    }
+
+                    if (todaysDevotional?.scripture) {
+                        // Standard way to share data with iOS Widgets in Expo
+                        // requires 'expo-group-preferences' or similar native module
+                        // Example:
+                        // SharedGroupPreferences.setItem('widgetData', { 
+                        //   verse: todaysDevotional.scripture, 
+                        //   date: new Date().toISOString() 
+                        // }, 'group.us.sanctuaryapp');
                     }
                 }
             }, 3000); // Check every 3 seconds
@@ -344,6 +439,12 @@ export default function HomeScreen() {
                     )}
                 </View>
 
+                {todaysDevotional && (
+                    <VerseOfTheDayCard
+                        verse={todaysDevotional.scripture}
+                        backgroundImage={verseBackground} // Pass your background image here
+                    />
+                )}
                 {/* --- 1. DAILY DEVOTIONAL --- */}
                 <View className="mb-4 flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2">
@@ -467,87 +568,87 @@ export default function HomeScreen() {
                         <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Community</Text>
                     </View>
                 </View>
-                {user? (
-                <View className="mb-8">
-                    {communityPrayer ? (
-                        <View className="bg-[#1E293B] rounded-2xl shadow-lg overflow-hidden relative">
-                            <View className="absolute top-4 right-4 z-10">
-                                <Pressable onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setCommunityPrayer(null); }} className="p-2 bg-white/10 rounded-full">
-                                    <X size={16} color="white" />
+                {user ? (
+                    <View className="mb-8">
+                        {communityPrayer ? (
+                            <View className="bg-[#1E293B] rounded-2xl shadow-lg overflow-hidden relative">
+                                <View className="absolute top-4 right-4 z-10">
+                                    <Pressable onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setCommunityPrayer(null); }} className="p-2 bg-white/10 rounded-full">
+                                        <X size={16} color="white" />
+                                    </Pressable>
+                                </View>
+
+                                <LinearGradient
+                                    colors={['#1E293B', '#0F172A']}
+                                    className="p-6 min-h-[220px] justify-center"
+                                >
+                                    {prayingState === 'sent' ? (
+                                        <View className="items-center justify-center py-6">
+                                            <View className="w-14 h-14 bg-green-500 rounded-full items-center justify-center mb-4 shadow-lg shadow-green-900/50">
+                                                <Check size={28} color="white" strokeWidth={3} />
+                                            </View>
+                                            <Text className="text-white font-bold text-xl mb-1">Prayer Sent</Text>
+                                            <Text className="text-slate-400 text-center">You've lifted someone up today.</Text>
+                                        </View>
+                                    ) : (
+                                        <>
+                                            <View className="flex-row justify-between items-center mb-6">
+                                                <View className="bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">
+                                                    <Text className="text-white/90 text-[10px] font-bold uppercase">Request</Text>
+                                                </View>
+                                            </View>
+
+                                            <Text className="text-white text-lg font-serif mb-8 leading-relaxed italic opacity-90">
+                                                "{communityPrayer.anonymized_content || communityPrayer.content}"
+                                            </Text>
+
+                                            <Pressable
+                                                onPress={handlePrayAction}
+                                                disabled={prayingState !== 'idle'}
+                                                className={`w-full py-4 rounded-xl flex-row items-center justify-center ${prayingState === 'sending' ? 'bg-white/90' : 'bg-white'} active:scale-[0.98] transition-all shadow-lg`}
+                                            >
+                                                {prayingState === 'sending' ? (
+                                                    <ActivityIndicator color="#0F172A" />
+                                                ) : (
+                                                    <>
+                                                        <HeartHandshake size={18} color="#0F172A" className="mr-2" />
+                                                        <Text className="text-slate-900 font-bold text-base ml-2">I Prayed for this</Text>
+                                                    </>
+                                                )}
+                                            </Pressable>
+                                        </>
+                                    )}
+                                </LinearGradient>
+                            </View>
+                        ) : (
+                            <View className="flex-row gap-3">
+                                <Pressable
+                                    onPress={handlePrayForOthers}
+                                    disabled={loadingCommunityPrayer}
+                                    className="flex-1 p-4 rounded-2xl borderactive:scale-[0.98]"
+                                    style={{ backgroundColor: theme.card }}
+                                >
+                                    <View className="bg-blue-50 w-8 h-8 rounded-full items-center justify-center mb-3">
+                                        {loadingCommunityPrayer ? <ActivityIndicator size="small" color="#2563EB" /> : <HeartHandshake size={16} color="#2563EB" />}
+                                    </View>
+                                    <Text className="text-sm font-bold mb-0.5" style={{ color: theme.text }}>Pray for Others</Text>
+                                    <Text className="text-xs" style={{ color: theme.mutedForeground }}>Lift up the community</Text>
+                                </Pressable>
+
+                                <Pressable
+                                    onPress={() => setShowRequestModal(true)}
+                                    className="flex-1 p-4 rounded-2xl border active:scale-[0.98]"
+                                    style={{ backgroundColor: theme.card }}
+                                >
+                                    <View className="bg-orange-50 w-8 h-8 rounded-full items-center justify-center mb-3">
+                                        <Users size={16} color="#EA580C" />
+                                    </View>
+                                    <Text className="text-sm font-bold mb-0.5" style={{ color: theme.text }}>Ask for Prayer</Text>
+                                    <Text className="text-xs" style={{ color: theme.mutedForeground }}>Share a burden</Text>
                                 </Pressable>
                             </View>
-
-                            <LinearGradient
-                                colors={['#1E293B', '#0F172A']}
-                                className="p-6 min-h-[220px] justify-center"
-                            >
-                                {prayingState === 'sent' ? (
-                                    <View className="items-center justify-center py-6">
-                                        <View className="w-14 h-14 bg-green-500 rounded-full items-center justify-center mb-4 shadow-lg shadow-green-900/50">
-                                            <Check size={28} color="white" strokeWidth={3} />
-                                        </View>
-                                        <Text className="text-white font-bold text-xl mb-1">Prayer Sent</Text>
-                                        <Text className="text-slate-400 text-center">You've lifted someone up today.</Text>
-                                    </View>
-                                ) : (
-                                    <>
-                                        <View className="flex-row justify-between items-center mb-6">
-                                            <View className="bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">
-                                                <Text className="text-white/90 text-[10px] font-bold uppercase">Request</Text>
-                                            </View>
-                                        </View>
-
-                                        <Text className="text-white text-lg font-serif mb-8 leading-relaxed italic opacity-90">
-                                            "{communityPrayer.anonymized_content || communityPrayer.content}"
-                                        </Text>
-
-                                        <Pressable
-                                            onPress={handlePrayAction}
-                                            disabled={prayingState !== 'idle'}
-                                            className={`w-full py-4 rounded-xl flex-row items-center justify-center ${prayingState === 'sending' ? 'bg-white/90' : 'bg-white'} active:scale-[0.98] transition-all shadow-lg`}
-                                        >
-                                            {prayingState === 'sending' ? (
-                                                <ActivityIndicator color="#0F172A" />
-                                            ) : (
-                                                <>
-                                                    <HeartHandshake size={18} color="#0F172A" className="mr-2" />
-                                                    <Text className="text-slate-900 font-bold text-base ml-2">I Prayed for this</Text>
-                                                </>
-                                            )}
-                                        </Pressable>
-                                    </>
-                                )}
-                            </LinearGradient>
-                        </View>
-                    ) : (
-                        <View className="flex-row gap-3">
-                            <Pressable
-                                onPress={handlePrayForOthers}
-                                disabled={loadingCommunityPrayer}
-                                className="flex-1 p-4 rounded-2xl borderactive:scale-[0.98]"
-                                style={{ backgroundColor: theme.card }}
-                            >
-                                <View className="bg-blue-50 w-8 h-8 rounded-full items-center justify-center mb-3">
-                                    {loadingCommunityPrayer ? <ActivityIndicator size="small" color="#2563EB" /> : <HeartHandshake size={16} color="#2563EB" />}
-                                </View>
-                                <Text className="text-sm font-bold mb-0.5" style={{ color: theme.text }}>Pray for Others</Text>
-                                <Text className="text-xs" style={{ color: theme.mutedForeground }}>Lift up the community</Text>
-                            </Pressable>
-
-                            <Pressable
-                                onPress={() => setShowRequestModal(true)}
-                                className="flex-1 p-4 rounded-2xl border active:scale-[0.98]"
-                                style={{ backgroundColor: theme.card }}
-                            >
-                                <View className="bg-orange-50 w-8 h-8 rounded-full items-center justify-center mb-3">
-                                    <Users size={16} color="#EA580C" />
-                                </View>
-                                <Text className="text-sm font-bold mb-0.5" style={{ color: theme.text }}>Ask for Prayer</Text>
-                                <Text className="text-xs" style={{ color: theme.mutedForeground }}>Share a burden</Text>
-                            </Pressable>
-                        </View>
-                    )}
-                </View>
+                        )}
+                    </View>
                 ) : (
                     <View className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 mb-8 items-center">
                         <HeartHandshake size={32} color={Colors.gray} />
@@ -655,7 +756,21 @@ export default function HomeScreen() {
                     </View>
                 </View>
             </Modal>
-
+            <View style={{ position: 'absolute', left: -9999, top: 0 }}>
+                <ViewShot ref={viewShotRef} options={{ format: "jpg", quality: 0.9 }}>
+                    <View style={{ width: 1080, height: 1920, backgroundColor: '#1E293B', padding: 60, justifyContent: 'center', alignItems: 'center' }}>
+                        <Text style={{ fontFamily: 'Serif', color: '#D4A373', fontSize: 40, textAlign: 'center', marginBottom: 40 }}>
+                            VERSE OF THE DAY
+                        </Text>
+                        <Text style={{ fontFamily: 'Serif', color: 'white', fontSize: 60, textAlign: 'center', lineHeight: 90, marginBottom: 60 }}>
+                            "{todaysDevotional?.scripture || "Loading..."}"
+                        </Text>
+                        <Text style={{ color: '#94A3B8', fontSize: 30 }}>
+                            SANCTUARY
+                        </Text>
+                    </View>
+                </ViewShot>
+            </View>
         </SafeAreaView>
     );
 }

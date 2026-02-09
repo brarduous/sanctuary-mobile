@@ -72,8 +72,8 @@ export default function NewsScreen() {
 
     // Initial Load
     const initData = useCallback(async () => {
-        
-        
+
+
         // 1. Load Synopsis
         setLoadingSynopsis(true);
         const synData = await fetchDailyNewsSynopsis();
@@ -117,7 +117,7 @@ export default function NewsScreen() {
         try {
             const data = await fetchNewsArticles(params);
             const newArticles = data || [];
-            
+
             if (newArticles.length < 10) setHasMore(false);
             else setHasMore(true);
 
@@ -168,6 +168,18 @@ export default function NewsScreen() {
         fetchFeed(activeFilter, searchQuery, nextPage, userCategoryIds, true);
     };
 
+    const getRelativeTime = (dateString: string) => {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+
+        return date.toLocaleDateString();
+    };
+
     // Components
     const renderHeader = () => (
         <View className="px-5 pt-4 pb-2" style={{ backgroundColor: 'transparent' }}>
@@ -177,24 +189,24 @@ export default function NewsScreen() {
                 </View>
             ) : synopsis ? (
                 <View className="rounded-[24px] border  p-6 mb-2" style={{ backgroundColor: theme.card }}>
-                     <View className="flex-row justify-between items-start mb-4">
+                    <View className="flex-row justify-between items-start mb-4">
                         <Text className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Daily Outlook</Text>
                         <Text className="text-[10px] text-slate-400">
                             {new Date(synopsis.created_at).toLocaleDateString()}
                         </Text>
-                     </View>
-                     <Text className="text-xl font-serif mb-3 font-medium" style={{ color: theme.text }}>Today's Christian Outlook</Text>
-                     <Text className="leading-relaxed font-serif text-base" style={{ color: theme.text }}>
-                         {synopsis.synopsis}
-                     </Text>
-                     {synopsis.scripture && (
+                    </View>
+                    <Text className="text-xl font-serif mb-3 font-medium" style={{ color: theme.text }}>Today's Christian Outlook</Text>
+                    <Text className="leading-relaxed font-serif text-base" style={{ color: theme.text }}>
+                        {synopsis.synopsis}
+                    </Text>
+                    {synopsis.scripture && (
                         <View className="mt-4 pt-4 border-t  flex-row gap-2">
-                             <BookOpen size={16} color="#64748B" className="mt-0.5" />
-                             <Text className="text-xs italic text-slate-500 font-medium flex-1">
-                                 {synopsis.scripture}
-                             </Text>
+                            <BookOpen size={16} color="#64748B" className="mt-0.5" />
+                            <Text className="text-xs italic text-slate-500 font-medium flex-1">
+                                {synopsis.scripture}
+                            </Text>
                         </View>
-                     )}
+                    )}
                 </View>
             ) : null}
         </View>
@@ -205,7 +217,7 @@ export default function NewsScreen() {
             {/* Search */}
             <View className="border border-slate-200 rounded-xl flex-row items-center px-4 h-11 mb-3" style={{ backgroundColor: theme.card }}>
                 <Search size={16} color="#94A3B8" />
-                <TextInput 
+                <TextInput
                     placeholder="Search articles..."
                     placeholderTextColor="#94A3B8"
                     value={searchQuery}
@@ -222,47 +234,41 @@ export default function NewsScreen() {
                 {userCategoryIds.length > 0 && (
                     <Pressable
                         onPress={() => handleFilterChange('my_feed')}
-                        className={`px-4 py-1.5 rounded-full border ${
-                            activeFilter === 'my_feed' 
-                            ? 'bg-slate-900 border-slate-900' 
-                            : 'border-slate-200'
-                        }`}
+                        className={`px-4 py-1.5 rounded-full border ${activeFilter === 'my_feed'
+                                ? 'bg-slate-900 border-slate-900'
+                                : 'border-slate-200'
+                            }`}
                         style={activeFilter !== 'my_feed' ? { backgroundColor: theme.card } : undefined}
                     >
-                        <Text className={`text-xs font-bold ${
-                            activeFilter === 'my_feed' ? 'text-white' : ''
-                        }`} style={activeFilter !== 'my_feed' ? { color: theme.text } : undefined}>My Feed</Text>
+                        <Text className={`text-xs font-bold ${activeFilter === 'my_feed' ? 'text-white' : ''
+                            }`} style={activeFilter !== 'my_feed' ? { color: theme.text } : undefined}>My Feed</Text>
                     </Pressable>
                 )}
-                
+
                 <Pressable
                     onPress={() => handleFilterChange('all')}
-                    className={`px-4 py-1.5 rounded-full border ${
-                        activeFilter === 'all' 
-                        ? 'bg-slate-900 border-slate-900' 
-                        : 'border-slate-200'
-                    }`}
+                    className={`px-4 py-1.5 rounded-full border ${activeFilter === 'all'
+                            ? 'bg-slate-900 border-slate-900'
+                            : 'border-slate-200'
+                        }`}
                     style={activeFilter !== 'all' ? { backgroundColor: theme.card } : undefined}
                 >
-                    <Text className={`text-xs font-bold ${
-                        activeFilter === 'all' ? 'text-white' : ''
-                    }`} style={activeFilter !== 'all' ? { color: theme.text } : undefined}>All News</Text>
+                    <Text className={`text-xs font-bold ${activeFilter === 'all' ? 'text-white' : ''
+                        }`} style={activeFilter !== 'all' ? { color: theme.text } : undefined}>All News</Text>
                 </Pressable>
 
                 {categories.map(cat => (
-                     <Pressable
+                    <Pressable
                         key={cat.id}
                         onPress={() => handleFilterChange(cat.id.toString())}
-                        className={`px-4 py-1.5 rounded-full border ${
-                            activeFilter === cat.id.toString() 
-                            ? 'bg-slate-900 border-slate-900' 
-                            : 'border-slate-200'
-                        } ${userCategoryIds.includes(cat.id) ? 'border-l-4 border-l-[#D4A373]' : ''}`}
+                        className={`px-4 py-1.5 rounded-full border ${activeFilter === cat.id.toString()
+                                ? 'bg-slate-900 border-slate-900'
+                                : 'border-slate-200'
+                            } ${userCategoryIds.includes(cat.id) ? 'border-l-4 border-l-[#D4A373]' : ''}`}
                         style={activeFilter !== cat.id.toString() ? { backgroundColor: theme.card } : undefined}
                     >
-                        <Text className={`text-xs font-bold ${
-                            activeFilter === cat.id.toString() ? 'text-white' : ''
-                        }`} style={activeFilter !== cat.id.toString() ? { color: theme.text } : undefined}>{cat.name}</Text>
+                        <Text className={`text-xs font-bold ${activeFilter === cat.id.toString() ? 'text-white' : ''
+                            }`} style={activeFilter !== cat.id.toString() ? { color: theme.text } : undefined}>{cat.name}</Text>
                     </Pressable>
                 ))}
             </ScrollView>
@@ -276,8 +282,8 @@ export default function NewsScreen() {
             style={{ backgroundColor: theme.card }}
         >
             {item.article_thumbnail_url ? (
-                <Image 
-                    source={{ uri: item.article_thumbnail_url }} 
+                <Image
+                    source={{ uri: item.article_thumbnail_url }}
                     style={{ width: 90, height: 90, borderRadius: 12, backgroundColor: '#E2E8F0' }}
                     contentFit="cover"
                     transition={300}
@@ -294,13 +300,13 @@ export default function NewsScreen() {
                         {item.article_title}
                     </Text>
                     <View className="flex-row items-center gap-1">
-                         <Calendar size={10} color="#94A3B8" />
-                         <Text className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                            {new Date(item.created_at).toLocaleDateString()}
-                         </Text>
+                        <Calendar size={10} color="#94A3B8" />
+                        <Text className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                            {getRelativeTime(item.created_at)}
+                        </Text>
                     </View>
                 </View>
-                
+
                 <View className="flex-row items-center mt-2">
                     <Text className="text-[#D4A373] text-xs font-bold mr-1">Read Outlook</Text>
                     <ChevronRight size={12} color="#D4A373" />
@@ -314,7 +320,7 @@ export default function NewsScreen() {
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
             <Stack.Screen options={{ headerShown: false }} />
-            
+
             <FlatList
                 data={listData}
                 keyExtractor={(item) => item.id.toString()}
@@ -328,16 +334,16 @@ export default function NewsScreen() {
                 onEndReachedThreshold={0.5}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D4A373" />}
                 ListEmptyComponent={
-                   loadingArticles ? (
-                       <View className="mt-8">
-                           <ActivityIndicator color="#D4A373" />
-                           <Text className="text-center text-slate-400 text-xs mt-2">Loading Articles...</Text>
-                       </View>
-                   ) : (
-                       <View className="py-20 items-center">
-                           <Text className="text-slate-400">No articles found.</Text>
-                       </View>
-                   )
+                    loadingArticles ? (
+                        <View className="mt-8">
+                            <ActivityIndicator color="#D4A373" />
+                            <Text className="text-center text-slate-400 text-xs mt-2">Loading Articles...</Text>
+                        </View>
+                    ) : (
+                        <View className="py-20 items-center">
+                            <Text className="text-slate-400">No articles found.</Text>
+                        </View>
+                    )
                 }
                 ListFooterComponent={
                     loadingMore ? <ActivityIndicator className="py-4" color="#D4A373" /> : (hasMore ? null : <View className="h-20" />)
