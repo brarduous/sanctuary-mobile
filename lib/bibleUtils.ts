@@ -39,7 +39,7 @@ function findBook(bibleData: any, bookName: string) {
     .find((b: any) => normalize(b.title).toLowerCase() === target || normalize(b.id).toLowerCase() === target);
 }
 
-export function getPassageHtml(reference: string, versionKey: string = 'WEB'): { html: string; title: string } | null {
+export function getPassageHtml(reference: string, versionKey: string = 'NIV'): { html: string; title: string } | null {
   const parsed = parseScriptureReference(reference);
   const bibleData = BIBLE_FILES[versionKey] || BIBLE_FILES.WEB;
   if (!parsed || !bibleData) return null;
@@ -67,4 +67,22 @@ export function getPassageHtml(reference: string, versionKey: string = 'WEB'): {
   }
 
   return { html, title: `${book.title} ${parsed.chapter}${parsed.startVerse ? ':' + parsed.startVerse + (parsed.endVerse && parsed.endVerse !== parsed.startVerse ? '-' + parsed.endVerse : '') : ''}` };
+}
+export function getPassageText(reference: string, versionKey: string = 'WEB'): { text: string; reference: string } | null {
+  const result = getPassageHtml(reference, versionKey);
+  if (!result) return null;
+
+  // 1. Remove <sup> verse numbers
+  let text = result.html.replace(/<sup class="v">\d+<\/sup>/g, '');
+  
+  // 2. Remove <span> tags but keep content
+  text = text.replace(/<\/?span>/g, '');
+  
+  // 3. Clean up extra whitespace
+  text = text.replace(/\s+/g, ' ').trim();
+
+  return { 
+    text, 
+    reference: result.title 
+  };
 }

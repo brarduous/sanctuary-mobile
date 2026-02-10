@@ -138,6 +138,8 @@ export default function HomeScreen() {
     const [requestText, setRequestText] = useState('');
     const [requestStatus, setRequestStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
 
+    // bible version
+    const userBibleVersion = profile?.preferred_translation || 'NIV';
 
     //polling ref state
     const pollingRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
@@ -441,8 +443,9 @@ export default function HomeScreen() {
 
                 {todaysDevotional && (
                     <VerseOfTheDayCard
-                        verse={todaysDevotional.scripture}
-                        backgroundImage={verseBackground} // Pass your background image here
+                        reference={todaysDevotional.scripture}
+                        version={userBibleVersion}
+                        backgroundImage={verseBackground}
                     />
                 )}
                 {/* --- 1. DAILY DEVOTIONAL --- */}
