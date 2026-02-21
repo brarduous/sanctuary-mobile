@@ -25,6 +25,7 @@ SplashScreen.preventAutoHideAsync();
 
 import { AuthProvider } from '@/context/AuthContext';
 import { RevenueCatProvider } from '@/context/RevenueCatContext';
+import { savePushTokenToProfile, usePushNotifications } from '@/lib/pushNotifications';
 import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 
 export default function RootLayout() {
@@ -64,6 +65,13 @@ function RootLayoutNav() {
   const segments = useSegments();
   const router = useRouter();
   const theme = Colors[colorScheme ?? 'light'];
+  const { expoPushToken } = usePushNotifications();
+
+  useEffect(() => {
+    if (user && expoPushToken) {
+      savePushTokenToProfile(user.id, expoPushToken);
+    }
+  }, [user, expoPushToken]);
 
   useEffect(() => {
     if (loading) return;
