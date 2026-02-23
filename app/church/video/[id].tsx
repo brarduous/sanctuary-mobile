@@ -1,37 +1,39 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
-import { fetchMessageDetail, logUserActivity } from '@/lib/api';
+import { fetchMessageDetail, logUserActivity } from '@/lib/api'; // <-- Updated import
 import { Stack, useLocalSearchParams } from 'expo-router';
-import { useVideoPlayer, VideoView } from 'expo-video'; // <-- NEW IMPORTS
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { Calendar } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
-export default function VideoMessageScreen() {
-    const { id } = useLocalSearchParams();
-    const { user } = useAuth();
-    const theme = Colors[useColorScheme() ?? 'light'];
-    
-    const [message, setMessage] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
+// --- NEW: SEPARATED PLAYER COMPONENT ---
+// This guarantees the hook only initializes when the URL is ready
+const PastoralVideoPlayer = ({ 
+    sourceUrl, 
+    message, 
+    user 
+}: { 
+    sourceUrl: string; 
+    message: any; 
+    user: any; 
+}) => {
     const [hasLoggedView, setHasLoggedView] = useState(false);
 
-    // 1. Define the source. It will be null until the fetch completes.
-    const videoSource = message ? `https://stream.mux.com/${message.playback_id}.m3u8` : null;
-
-    // 2. Initialize the expo-video player
-    const player = useVideoPlayer(videoSource, player => {
+    // Initialize the expo-video player
+    const player = useVideoPlayer(sourceUrl, player => {
         player.loop = false;
-        player.play(); // <-- AUTOPLAY: Fires as soon as the source is loaded!
+        player.play(); // Autoplay now works reliably!
     });
 
-    // 3. Analytics Listener for expo-video
+    // Analytics Listener for expo-video
     useEffect(() => {
-        // Listen to playback state changes
         const subscription = player.addListener('playingChange', ({ isPlaying }) => {
             if (isPlaying && !hasLoggedView && user && message) {
                 setHasLoggedView(true);
+                
+                // Updated to match your exact parameter signature
                 logUserActivity(
                     user.id,
                     'pastoral_message',
@@ -41,14 +43,45 @@ export default function VideoMessageScreen() {
             }
         });
 
-        // Cleanup listener on unmount
         return () => subscription.remove();
     }, [player, hasLoggedView, user, message]);
+
+    return (
+        <VideoView
+            player={player}
+            style={styles.video}
+            allowsFullscreen
+            allowsPictureInPicture
+            contentFit="contain"
+        />
+    );
+};
+
+// --- MAIN SCREEN ---
+export default function VideoMessageScreen() {
+    const { id } = useLocalSearchParams();
+    const { user } = useAuth();
+    const theme = Colors[useColorScheme() ?? 'light'];
+    
+    const [message, setMessage] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [muxStreamUrl, setMuxStreamUrl] = useState<string | null>(null);
+    const [formattedDate, setFormattedDate] = useState<string>(''); 
 
     // Fetch the video data
     useEffect(() => {
         fetchMessageDetail(id as string)
-            .then(data => setMessage(data))
+            .then(data => {
+                console.log('Fetched message detail:', data);
+                setMessage(data);
+                console.log('https://stream.mux.com/' + data.video_playback_id + '.m3u8');    
+                setMuxStreamUrl(`https://stream.mux.com/${data.video_playback_id}.m3u8`);
+                setFormattedDate(new Date(data.created_at).toLocaleDateString(undefined, {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                }));
+            })
             .catch(err => console.error(err))
             .finally(() => setLoading(false));
     }, [id]);
@@ -56,20 +89,17 @@ export default function VideoMessageScreen() {
     if (loading) return <View className="flex-1 justify-center items-center bg-background"><ActivityIndicator size="large" color={theme.tint} /></View>;
     if (!message) return <View className="flex-1 justify-center items-center bg-background"><Text className="dark:text-white">Message not found</Text></View>;
 
-    const formattedDate = new Date(message.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
 
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
             <Stack.Screen options={{ title: 'Pastoral Update', headerBackTitle: 'Church' }} />
             
-            {/* New expo-video VideoView Component */}
+            {/* The video container now safely renders our child component ONLY after the URL is known */}
             <View style={styles.videoContainer}>
-                <VideoView
-                    player={player}
-                    style={styles.video}
-                    allowsFullscreen
-                    allowsPictureInPicture
-                    contentFit="contain" // Equivalent to resizeMode="contain"
+                <PastoralVideoPlayer 
+                    sourceUrl={muxStreamUrl? muxStreamUrl : ''} 
+                    message={message} 
+                    user={user} 
                 />
             </View>
 
