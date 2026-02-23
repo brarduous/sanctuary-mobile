@@ -536,3 +536,82 @@ export const fetchRecommendedVideos = async () => {
     return [];
   }
 };
+
+export const fetchUserCongregation = async (userId: string) => {
+    try {
+        const { data, error } = await supabase
+            .from('congregation_members')
+            .select('congregation_id')
+            .eq('user_id', userId)
+            .single();
+            
+        // PGRST116 means no rows found (which is normal if they aren't in a church)
+        if (error && error.code !== 'PGRST116') throw error; 
+        
+        return data?.congregation_id || null;
+    } catch (error) {
+        console.error('Error fetching user congregation:', error);
+        return null;
+    }
+};
+
+export const joinCongregation = async (userId: string, token: string) => {
+    try {
+        // 1. Look up the congregation by the unique QR invite token
+        const { data: cong, error: congError } = await supabase
+            .from('congregations')
+            .select('congregation_id')
+            .eq('invite_token', token)
+            .single();
+            
+        if (congError || !cong) throw new Error("Invalid or expired invite code.");
+        
+        // 2. Check if they are already a member
+        const existing = await fetchUserCongregation(userId);
+        if (existing === cong.congregation_id) {
+            return cong.congregation_id; // Already joined
+        }
+        
+        // 3. Add them to the congregation_members table
+        const { error } = await supabase
+            .from('congregation_members')
+            .insert({
+                congregation_id: cong.congregation_id,
+                user_id: userId
+            });
+            
+        if (error) throw error;
+        
+        return cong.congregation_id;
+    } catch (error: any) {
+        console.error('Error joining congregation:', error);
+        throw new Error(error.message || 'Failed to join congregation');
+    }
+};
+
+export const fetchChurchContent = async (congregationId: number) => {
+    
+    const response = await apiClient.get(`/api/congregations/${congregationId}/content`);
+    
+    return response.data;
+};
+
+export const fetchStudyDetails = async (studyId: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    // Re-using the backend route you already built for the clergy app!
+    const response = await apiClient.get(`/bible-study/${studyId}`);
+    const lessons_response = await apiClient.get(`/bible-study-lessons/${studyId}`);  
+    const studyData = response.data;
+    studyData.lessons = lessons_response.data;
+    return studyData;
+};
+
+export const fetchLessonDetail = async (lessonId: string) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await apiClient.get(`/bible-study-lessons/detail/${lessonId}`);
+    return response.data;
+};
+export const fetchMessageDetail = async (messageId: string) => {
+    const response = await apiClient.get(`/messages/detail/${messageId}`);
+    return response.data;
+};

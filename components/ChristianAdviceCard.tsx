@@ -7,7 +7,9 @@ import { useRouter } from 'expo-router';
 import { Lock, Send, Sparkles } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+
+// Import the new Mic Button
+import AudioMicButton from './AudioMicButton';
 
 interface ChristianAdviceCardProps {
     limitReached?: boolean;
@@ -65,6 +67,10 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached 
         }
     };
 
+    const handleTranscription = (text: string) => {
+        setSituation(prev => prev ? `${prev} ${text}` : text);
+    };
+
     if (!user) {
         return (
             <View className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 items-center">
@@ -72,7 +78,7 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached 
                 <Text style={{ color: theme.text }} className="text-lg font-serif font-bold text-center mb-2">Spiritual Guidance</Text>
                 <Text style={{ color: Colors.gray }} className="text-center text-sm mb-4">Sign in to get personalized biblical advice.</Text>
                 <Pressable 
-                    onPress={() => router.push('/profile')}
+                    onPress={() => router.push('/profile' as any)}
                     style={{ backgroundColor: theme.tint }}
                     className="w-full py-2 rounded-lg items-center"
                 >
@@ -101,7 +107,7 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached 
                     You've used your free advice session. Upgrade for unlimited guidance.
                 </Text>
                 <Pressable 
-                    onPress={() => router.push('/paywall')}
+                    onPress={() => router.push('/paywall' as any)}
                     style={{ backgroundColor: theme.tint }}
                     className="flex-row items-center px-4 py-2 rounded-full"
                 >
@@ -134,7 +140,7 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached 
                     <TextInput
                         value={situation}
                         onChangeText={setSituation}
-                        placeholder="What's weighing on your heart today?"
+                        placeholder="Type or hold the mic to speak..."
                         placeholderTextColor={Colors.gray}
                         editable={!isSubmitting}
                         multiline
@@ -146,20 +152,31 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached 
                             textAlignVertical: 'top'
                         }}
                     />
-                    {situation.length > 0 && (
-                        <Animated.View entering={FadeInUp} className="flex-row justify-between items-center p-4 border-t border-slate-100 dark:border-slate-700">
-                            <Text style={{ color: Colors.gray, fontSize: 12 }}>{situation.length} chars</Text>
+                    
+                    {/* The Footer with Mic and Send Button */}
+                    <View className="flex-row justify-between items-center p-4 border-t border-slate-100 dark:border-slate-700">
+                        <View className="flex-row items-center gap-3">
+                            <AudioMicButton 
+                                onTranscription={handleTranscription} 
+                                tintColor={theme.tint} 
+                            />
+                            <Text style={{ color: Colors.gray, fontSize: 12 }}>
+                                {situation.length > 0 ? `${situation.length} chars` : 'Hold to record'}
+                            </Text>
+                        </View>
+                        
+                        {situation.length > 0 && (
                             <Pressable
                                 onPress={handleSubmit}
                                 disabled={isSubmitting}
                                 style={{ backgroundColor: theme.tint }}
-                                className="flex-row items-center px-4 py-2 rounded-full"
+                                className="flex-row items-center px-4 py-3 rounded-full shadow-sm"
                             >
                                 <Text className="text-white font-bold mr-2 text-sm">Ask Advice</Text>
                                 <Send size={12} color="white" />
                             </Pressable>
-                        </Animated.View>
-                    )}
+                        )}
+                    </View>
                 </View>
             )}
         </View>

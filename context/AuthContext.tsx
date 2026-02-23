@@ -1,5 +1,5 @@
 import { logActivityEvent, logErrorEvent } from '@/lib/activityLogger';
-import { fetchUserProfile } from '@/lib/api';
+import { fetchUserCongregation, fetchUserProfile } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -18,6 +18,7 @@ const AuthContext = createContext<any>(null);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [userCongregationId, setUserCongregationId] = useState<number | null>(null); // <-- NEW
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -60,6 +61,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const data = await fetchUserProfile(userId);
       setProfile(data);
+      const congregationId = await fetchUserCongregation(userId);
+      setUserCongregationId(congregationId);
       await logActivityEvent({
         userId,
         activityType: 'profile_loaded',
@@ -189,7 +192,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, signInWithApple, signInWithGoogle, signOut, refreshProfile}}>
+    <AuthContext.Provider value={{ user, profile, userCongregationId, setUserCongregationId, loading, signInWithApple, signInWithGoogle, signOut, refreshProfile}}>
       {children}
     </AuthContext.Provider>
   );

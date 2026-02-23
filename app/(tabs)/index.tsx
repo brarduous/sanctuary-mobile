@@ -32,6 +32,7 @@ import {
     Heart,
     HeartHandshake,
     Lock,
+    Send,
     Sparkles,
     Users,
     X
@@ -55,10 +56,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ViewShot from "react-native-view-shot";
 
+import AudioMicButton from '@/components/AudioMicButton';
 import VerseOfTheDayCard from '@/components/VerseOfTheDayCard';
 const bg1 = require('@/assets/images/votd-image-1.jpg');
 const bg2 = require('@/assets/images/votd-image-2.jpg');
-const bg3 = require('@/assets/images/votd-image-3.png');
+const bg3 = require('@/assets/images/votd-image-3.jpg');
 const bg4 = require('@/assets/images/votd-image-4.jpg');
 const bg5 = require('@/assets/images/votd-image-5.jpg');
 
@@ -709,51 +711,80 @@ export default function HomeScreen() {
                 onRequestClose={() => setShowRequestModal(false)}
             >
                 <View className="flex-1 justify-center items-center bg-black/50 p-4">
-                    <View className="w-full max-w-sm rounded-2xl p-6 shadow-xl" style={{ backgroundColor: theme.card }}>
+                    <View className="w-full max-w-sm rounded-3xl p-6 shadow-2xl" style={{ backgroundColor: theme.card }}>
+
                         <View className="flex-row justify-between items-center mb-4">
                             <Text className="text-xl font-serif font-bold" style={{ color: theme.text }}>How can we pray?</Text>
-                            <Pressable onPress={() => setShowRequestModal(false)} className="bg-slate-100 p-2 rounded-full">
+                            <Pressable onPress={() => setShowRequestModal(false)} className="bg-slate-100 dark:bg-slate-800 p-2 rounded-full">
                                 <X size={20} color="#64748B" />
                             </Pressable>
                         </View>
 
                         {requestStatus === 'success' ? (
                             <View className="py-8 items-center">
-                                <Check size={40} color="#16A34A" />
-                                <Text className="text-green-600 font-bold mt-2">Request Shared!</Text>
+                                <View className="bg-green-100 dark:bg-green-900/30 p-4 rounded-full mb-4">
+                                    <Check size={40} color="#16A34A" />
+                                </View>
+                                <Text className="text-green-600 dark:text-green-400 font-bold text-lg">Request Shared!</Text>
+                                <Text className="text-center text-slate-500 mt-2 text-sm">Your community is praying for you.</Text>
                             </View>
                         ) : (
                             <>
-                                <Text className="text-xs mb-4" style={{ color: theme.mutedForeground }}>
-                                    Your request will be anonymized before being shared with the community. No personal details will be included.
+                                <Text className="text-xs mb-5 leading-relaxed" style={{ color: theme.mutedForeground }}>
+                                    Your request will be anonymized before being shared. No personal details will be included.
                                 </Text>
 
-                                <TextInput
-                                    multiline
-                                    numberOfLines={4}
-                                    placeholder="I'm struggling with..."
-                                    placeholderTextColor="#94A3B8"
-                                    value={requestText}
-                                    onChangeText={setRequestText}
-                                    className="border border-slate-200 rounded-xl p-4 h-32 text-base mb-6"
-                                    style={{ backgroundColor: theme.surface, color: theme.text }}
-                                    textAlignVertical="top"
-                                />
-
-                                <Pressable
-                                    onPress={handleSubmitRequest}
-                                    disabled={requestStatus === 'submitting' || !requestText.trim()}
-                                    className={`w-full py-4 rounded-xl items-center justify-center ${!requestText.trim() ? 'bg-slate-200' : 'bg-[#D4A373]'
-                                        }`}
+                                {/* Integrated Input & Controls Card */}
+                                <View
+                                    className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
+                                    style={{ backgroundColor: theme.surface }}
                                 >
-                                    {requestStatus === 'submitting' ? (
-                                        <ActivityIndicator color="white" />
-                                    ) : (
-                                        <Text className={`font-bold ${!requestText.trim() ? 'text-slate-400' : 'text-white'}`}>
-                                            Share Request
-                                        </Text>
-                                    )}
-                                </Pressable>
+                                    <TextInput
+                                        multiline
+                                        numberOfLines={4}
+                                        placeholder="Type or hold the mic to speak..."
+                                        placeholderTextColor="#94A3B8"
+                                        value={requestText}
+                                        onChangeText={setRequestText}
+                                        editable={requestStatus !== 'submitting'}
+                                        className="p-4 min-h-[120px] text-base"
+                                        style={{ color: theme.text }}
+                                        textAlignVertical="top"
+                                    />
+
+                                    {/* Footer Controls */}
+                                    <View className="flex-row justify-between items-center p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
+
+                                        {/* Left Side: Mic & Status */}
+                                        <View className="flex-row items-center gap-3">
+                                            <AudioMicButton
+                                                onTranscription={(text) => setRequestText((prev) => prev ? prev + ' ' + text : text)}
+                                                tintColor="#D4A373" // Matching your prayer theme color
+                                            />
+                                            <Text style={{ color: '#94A3B8', fontSize: 12 }}>
+                                                {requestText.length > 0 ? `${requestText.length} chars` : 'Hold to record'}
+                                            </Text>
+                                        </View>
+
+                                        {/* Right Side: Submit Button (Only shows when there is text) */}
+                                        {requestText.trim().length > 0 && (
+                                            <Pressable
+                                                onPress={handleSubmitRequest}
+                                                disabled={requestStatus === 'submitting'}
+                                                className="flex-row items-center px-4 py-3 rounded-full shadow-sm bg-[#D4A373] active:opacity-80"
+                                            >
+                                                {requestStatus === 'submitting' ? (
+                                                    <ActivityIndicator size="small" color="white" />
+                                                ) : (
+                                                    <>
+                                                        <Text className="text-white font-bold mr-2 text-sm">Share</Text>
+                                                        <Send size={12} color="white" />
+                                                    </>
+                                                )}
+                                            </Pressable>
+                                        )}
+                                    </View>
+                                </View>
                             </>
                         )}
                     </View>

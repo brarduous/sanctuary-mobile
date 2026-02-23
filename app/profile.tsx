@@ -10,15 +10,17 @@ import {
     updateUserFollowedCategories,
     updateUserProfile
 } from '@/lib/api';
-import { useRouter } from 'expo-router';
+import { Stack, useRouter } from 'expo-router';
 import {
     Check,
     ChevronRight,
+    Church,
     Crown,
     Heart,
     LogIn,
     Moon,
     Newspaper,
+    QrCode,
     Save,
     Sun,
     Target,
@@ -45,7 +47,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 export default function ProfileScreen() {
-    const { user, profile: authProfile, signOut } = useAuth();
+    const { user, profile: authProfile, signOut, userCongregationId } = useAuth();
     const colorScheme = useColorScheme();
     const theme = Colors[colorScheme ?? 'light'];
     const router = useRouter();
@@ -205,10 +207,11 @@ export default function ProfileScreen() {
     if (!user) {
         return (
             <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
+                <Stack.Screen options={{ title: 'Profile' }} />
                 <View className="px-5 pt-4 border-b border-transparent">
-                     <Text className="text-2xl font-serif font-bold mb-6" style={{ color: theme.text }}>Profile</Text>
+                    <Text className="text-2xl font-serif font-bold mb-6" style={{ color: theme.text }}>Profile</Text>
                 </View>
-                
+
                 <View className="flex-1 items-center justify-center p-6">
                     <View className="bg-slate-50 dark:bg-slate-900 p-8 rounded-3xl items-center w-full max-w-sm border border-slate-200 dark:border-slate-800">
                         <View className="w-20 h-20 bg-[#D4A373]/20 rounded-full items-center justify-center mb-6">
@@ -221,7 +224,7 @@ export default function ProfileScreen() {
                             Sign in to save your spiritual preferences, track your favorite devotionals, and customize your daily walk.
                         </Text>
 
-                        <Pressable 
+                        <Pressable
                             onPress={() => router.push('/login')}
                             className="w-full bg-[#D4A373] py-4 rounded-xl flex-row items-center justify-center mb-4 active:opacity-90 shadow-sm"
                         >
@@ -238,9 +241,9 @@ export default function ProfileScreen() {
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
             {/* Header */}
-            <View className="px-5 pt-4 pb-2 z-10 border-b " style={{ backgroundColor: 'transparent' }}>
-                <View className="flex-row justify-between items-center mb-6">
-                    <Text className="text-2xl font-serif font-bold" style={{ color: theme.text }}>My Sanctuary</Text>
+            <Stack.Screen options={{ title: 'My Sanctuary' }} />
+            <View className="px-5 pt-0 pb-2 z-10 border-b " style={{ backgroundColor: 'transparent' }}>
+                <View className="flex-row justify-end items-center mb-8">
                     <Pressable onPress={handleSignOut}>
                         <Text className="text-xs font-bold text-red-400 uppercase tracking-widest">Sign Out</Text>
                     </Pressable>
@@ -364,7 +367,31 @@ export default function ProfileScreen() {
                                 </View>
                             )}
                         </View>
-
+                        {!userCongregationId ? (
+                            <Pressable
+                                onPress={() => router.push('/scan')}
+                                className="flex-row items-center p-4 bg-white dark:bg-gray-900 rounded-2xl mb-3 border border-indigo-200 dark:border-indigo-900 shadow-sm"
+                            >
+                                <View className="bg-indigo-100 dark:bg-indigo-900 p-2 rounded-lg mr-4">
+                                    <QrCode size={20} color="#4f46e5" />
+                                </View>
+                                <View className="flex-1">
+                                    <Text className="font-bold text-base dark:text-white">Join a Congregation</Text>
+                                    <Text className="text-xs text-slate-500">Scan your church's invite code</Text>
+                                </View>
+                                <ChevronRight size={20} color="#9ca3af" />
+                            </Pressable>
+                        ) : (
+                            <View className="flex-row items-center p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl mb-3 border border-emerald-100 dark:border-emerald-900/50">
+                                <View className="bg-emerald-100 dark:bg-emerald-800 p-2 rounded-lg mr-4">
+                                    <Church size={20} color="#059669" />
+                                </View>
+                                <View className="flex-1">
+                                    <Text className="font-bold text-emerald-900 dark:text-emerald-100">Connected to Church</Text>
+                                    <Text className="text-xs text-emerald-700 dark:text-emerald-300">Check the 'My Church' tab for content.</Text>
+                                </View>
+                            </View>
+                        )}
                         {/* App Settings */}
                         <View>
                             <Text className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3 ml-1">App Settings</Text>
@@ -440,8 +467,8 @@ export default function ProfileScreen() {
                                         key={cat.id}
                                         onPress={() => toggleId(followedCategoryIds, cat.id, setFollowedCategoryIds)}
                                         className={`flex-row items-center gap-2 px-4 py-3 rounded-xl border w-[48%] mb-1 ${followedCategoryIds.includes(cat.id)
-                                                ? 'bg-[#D4A373]/10 border-[#D4A373] border'
-                                                : 'border-slate-200'
+                                            ? 'bg-[#D4A373]/10 border-[#D4A373] border'
+                                            : 'border-slate-200'
                                             }`}
                                         style={!followedCategoryIds.includes(cat.id) ? { backgroundColor: theme.card } : undefined}
                                     >
@@ -473,7 +500,7 @@ export default function ProfileScreen() {
 
             {/* Floating Save Button */}
             {activeSection === 'settings' && (
-                <View className="absolute bottom-6 right-6">
+                <View className="absolute bottom-16 right-6">
                     <Pressable
                         onPress={handleSave}
                         disabled={saving}
