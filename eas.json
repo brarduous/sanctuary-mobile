@@ -16,6 +16,9 @@
     },
     "production": {
       "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://api.sanctuaryapp.us"
       }
