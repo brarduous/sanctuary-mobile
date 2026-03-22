@@ -12,12 +12,11 @@ import {
     fetchDailyNewsSynopsis,
     fetchDailyPrayers,
     fetchGeneralDevotional,
-    fetchRandomCommunityPrayer,
+    fetchRandomPrayer, // <-- Using the new API function!
     fetchRecommendedVideos,
     fetchUserStreak,
     generateContent,
-    markPrayerAsPrayed,
-    submitPrayerRequest,
+    logUserActivity, // <-- Using the generic activity logger!
 } from '@/lib/api';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
@@ -32,7 +31,6 @@ import {
     Heart,
     HeartHandshake,
     Lock,
-    Send,
     Sparkles,
     Users,
     X
@@ -43,20 +41,17 @@ import {
     Alert,
     LayoutAnimation,
     Linking,
-    Modal,
     Platform,
     Pressable,
     RefreshControl,
     ScrollView,
     Text,
-    TextInput,
     UIManager,
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ViewShot from "react-native-view-shot";
 
-import AudioMicButton from '@/components/AudioMicButton';
 import VerseOfTheDayCard from '@/components/VerseOfTheDayCard';
 const bg1 = require('@/assets/images/votd-image-1.jpg');
 const bg2 = require('@/assets/images/votd-image-2.jpg');
@@ -71,23 +66,20 @@ const verseBackground = backgrounds[todayIndex];
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-// Add this helper function inside HomeScreen or in a utility file
+
 async function scheduleStreakNotification(streak: number, userName: string) {
     if (Platform.OS === 'web') return;
 
     const Notifications = await import('expo-notifications');
 
-    // 1. Request permissions if not granted
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') {
         const { status: newStatus } = await Notifications.requestPermissionsAsync();
         if (newStatus !== 'granted') return;
     }
 
-    // 2. Cancel existing notifications to avoid duplicates
     await Notifications.cancelAllScheduledNotificationsAsync();
 
-    // 3. Define the message based on streak
     let title = "Good Morning, " + (userName || "Friend");
     let body = "Start your day with Sanctuary.";
 
@@ -96,8 +88,6 @@ async function scheduleStreakNotification(streak: number, userName: string) {
         body = `You're on a ${streak}-day streak. Don't break the chain!`;
     }
 
-    // 4. Schedule for tomorrow morning at 8:00 AM
-    // Note: logic here schedules for the *next* occurrence of 8 AM
     await Notifications.scheduleNotificationAsync({
         content: {
             title,
@@ -111,6 +101,7 @@ async function scheduleStreakNotification(streak: number, userName: string) {
         },
     });
 }
+
 export default function HomeScreen() {
     const { user, profile } = useAuth();
     const router = useRouter();
@@ -135,11 +126,6 @@ export default function HomeScreen() {
     const [refreshing, setRefreshing] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
 
-    // Modal State
-    const [showRequestModal, setShowRequestModal] = useState(false);
-    const [requestText, setRequestText] = useState('');
-    const [requestStatus, setRequestStatus] = useState<'idle' | 'submitting' | 'success'>('idle');
-
     // bible version
     const userBibleVersion = profile?.preferred_translation || 'NIV';
 
@@ -159,7 +145,6 @@ export default function HomeScreen() {
         }
     };
 
-    // Clean up polling on unmount
     useEffect(() => {
         return () => {
             if (pollingRef.current) clearInterval(pollingRef.current);
@@ -172,29 +157,19 @@ export default function HomeScreen() {
             const [news, videos, generalData] = await Promise.all([
                 fetchDailyNewsSynopsis(),
                 fetchRecommendedVideos(),
-                fetchGeneralDevotional() // Ensure this exists in your API lib
+                fetchGeneralDevotional()
             ]);
             setDailyNews(news);
-
+            //console.log("Recommended Videos:", videos);
             setRecommendedVideos(videos);
             if (generalData) {
                 setTodaysDevotional(generalData.devotional);
                 setTodaysPrayer(generalData.prayer);
             }
-            if (todaysDevotional?.scripture) {
-                // Standard way to share data with iOS Widgets in Expo
-                // requires 'expo-group-preferences' or similar native module
-                // Example:
-                // SharedGroupPreferences.setItem('widgetData', { 
-                //   verse: todaysDevotional.scripture, 
-                //   date: new Date().toISOString() 
-                // }, 'group.us.sanctuaryapp');
-            }
             setIsGenerating(false);
             return;
         }
-        //console.log(user);
-        // 1. Fetch Basic Data
+        
         const [news, streakData, stats, adviceLimit, videos] = await Promise.all([
             fetchDailyNewsSynopsis(),
             fetchUserStreak(user.id, 'daily_devotional'),
@@ -202,7 +177,7 @@ export default function HomeScreen() {
             checkAdviceLimit(user.id),
             fetchRecommendedVideos(),
         ]);
-        // 2. Fetch Content (Devotional + Guided Prayer)
+        
         const isPro = profile?.subscription_tier === 'pro';
 
         setDailyNews(news);
@@ -214,9 +189,7 @@ export default function HomeScreen() {
         setAdviceLimitReached(!isPro && adviceLimit?.limitReached || false);
         setRecommendedVideos(videos);
 
-
         if (!isPro) {
-            // Free Tier: General Content
             const generalData = await fetchGeneralDevotional();
             if (generalData) {
                 setTodaysDevotional(generalData.devotional);
@@ -227,7 +200,7 @@ export default function HomeScreen() {
             }
             return;
         }
-        // PRO TIER: Personalized Content Logic (Updated to match Web)
+        
         const now = new Date();
         const isToday = (dateString: string) => {
             if (!dateString) return false;
@@ -237,7 +210,6 @@ export default function HomeScreen() {
                 date.getDate() === now.getDate();
         };
 
-        // A. Fetch existing
         const [allDevotionals, allPrayers] = await Promise.all([
             fetchDailyDevotionals(user.id),
             fetchDailyPrayers(user.id)
@@ -246,34 +218,20 @@ export default function HomeScreen() {
         let todayDevo = allDevotionals.find((d: any) => isToday(d.created_at));
         let todayPrayer = allPrayers.find((p: any) => isToday(p.created_at));
 
-        // B. Cleanup Failed Generations (Retry Logic)
         if (todayDevo?.status === 'failed') {
-            console.log("Cleaning up failed devotional...");
             await deleteDevotional(todayDevo.devotional_id || todayDevo.id);
             todayDevo = null;
         }
         if (todayPrayer?.status === 'failed') {
-            console.log("Cleaning up failed prayer...");
             await deletePrayer(todayPrayer.prayer_id || todayPrayer.id);
             todayPrayer = null;
         }
 
-        // C. Check Completion
         if (todayDevo?.status === 'completed' && todayPrayer?.status === 'completed') {
             setTodaysDevotional(todayDevo);
             setTodaysPrayer(todayPrayer);
             setIsGenerating(false);
 
-            if (todaysDevotional?.scripture) {
-                // Standard way to share data with iOS Widgets in Expo
-                // requires 'expo-group-preferences' or similar native module
-                // Example:
-                // SharedGroupPreferences.setItem('widgetData', { 
-                //   verse: todaysDevotional.scripture, 
-                //   date: new Date().toISOString() 
-                // }, 'group.us.sanctuaryapp');
-            }
-            // Stop any existing polling
             if (pollingRef.current) {
                 clearInterval(pollingRef.current);
                 pollingRef.current = null;
@@ -281,9 +239,7 @@ export default function HomeScreen() {
             return;
         }
 
-        // D. Trigger Generation if Missing
         if (!todayDevo) {
-            console.log("No personal content found. Triggering AI...");
             setIsGenerating(true);
             try {
                 await generateContent('/generate-devotional', {
@@ -296,13 +252,10 @@ export default function HomeScreen() {
                 console.error("Generation trigger failed", err);
             }
         } else {
-            // Content exists but is 'pending'
             setIsGenerating(true);
         }
 
-        // E. Start Polling (if not already polling)
         if (!pollingRef.current) {
-            console.log("Starting polling for content...");
             pollingRef.current = setInterval(async () => {
                 const updatedDevos = await fetchDailyDevotionals(user.id);
                 const updatedPrayers = await fetchDailyPrayers(user.id);
@@ -318,18 +271,8 @@ export default function HomeScreen() {
                         clearInterval(pollingRef.current);
                         pollingRef.current = null;
                     }
-
-                    if (todaysDevotional?.scripture) {
-                        // Standard way to share data with iOS Widgets in Expo
-                        // requires 'expo-group-preferences' or similar native module
-                        // Example:
-                        // SharedGroupPreferences.setItem('widgetData', { 
-                        //   verse: todaysDevotional.scripture, 
-                        //   date: new Date().toISOString() 
-                        // }, 'group.us.sanctuaryapp');
-                    }
                 }
-            }, 3000); // Check every 3 seconds
+            }, 3000); 
         }
 
     }, [user, profile]);
@@ -347,14 +290,18 @@ export default function HomeScreen() {
 
     const handlePrayForOthers = async () => {
         setLoadingCommunityPrayer(true);
-        const prayer = await fetchRandomCommunityPrayer();
-        setLoadingCommunityPrayer(false);
-
-        if (prayer && !prayer.error) { // Check for empty or error
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            setCommunityPrayer(prayer);
-        } else {
+        try {
+            const prayer = await fetchRandomPrayer(user?.congregation_id);
+            if (prayer && !prayer.error) {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                setCommunityPrayer(prayer);
+            } else {
+                Alert.alert("Community Caught Up", "No new prayer requests right now. Check back later!");
+            }
+        } catch (error) {
             Alert.alert("Community Caught Up", "No new prayer requests right now. Check back later!");
+        } finally {
+            setLoadingCommunityPrayer(false);
         }
     };
 
@@ -364,9 +311,17 @@ export default function HomeScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
         setPrayingState('sending');
 
-        // UX Delay
         setTimeout(async () => {
-            await markPrayerAsPrayed(communityPrayer.id);
+            // Log the activity to feed the Pastor's CRM dashboard
+            if (user && communityPrayer) {
+                await logUserActivity(
+                    user.id,
+                    'intercessory_prayer',
+                    communityPrayer.id,
+                    `Prayed for a ${communityPrayer.visibility} request.`
+                );
+            }
+            
             setPrayingState('sent');
 
             setTimeout(() => {
@@ -375,26 +330,6 @@ export default function HomeScreen() {
                 setPrayingState('idle');
             }, 1500);
         }, 1000);
-    };
-
-    const handleSubmitRequest = async () => {
-        if (!requestText.trim()) return;
-
-        setRequestStatus('submitting');
-        try {
-            await submitPrayerRequest(user.id, requestText);
-            setRequestStatus('success');
-            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-
-            setTimeout(() => {
-                setShowRequestModal(false);
-                setRequestStatus('idle');
-                setRequestText('');
-            }, 1500);
-        } catch (e) {
-            Alert.alert("Error", "Could not submit prayer request.");
-            setRequestStatus('idle');
-        }
     };
 
     const getGreeting = () => {
@@ -470,7 +405,7 @@ export default function HomeScreen() {
                     <GeneratingState />
                 ) : todaysDevotional ? (
                     <Link href={`/devotional/${todaysDevotional.devotional_id}`} asChild>
-                        <Pressable className="rounded-2xl border border-slate-100 dark:border-slate-800 mb-8 overflow-hidden active:scale-[0.99] transition-transform" style={{ backgroundColor: theme.card }}>
+                        <Pressable className="rounded-2xl border border-slate-100 dark:border-slate-800 mb-10 overflow-hidden active:scale-[0.99] transition-transform" style={{ backgroundColor: theme.card }}>
                             <View className="p-6">
                                 <Text className="text-xl font-serif mb-3 leading-tight font-medium" numberOfLines={2} style={{ color: theme.text }}>
                                     {todaysDevotional.title}
@@ -502,7 +437,7 @@ export default function HomeScreen() {
                         </Pressable>
                     </Link>
                 ) : (
-                    <View className="p-6 rounded-2xl mb-8 border border-slate-100 dark:border-slate-800 items-center" style={{ backgroundColor: theme.card }}>
+                    <View className="p-6 rounded-2xl mb-10 border border-slate-100 dark:border-slate-800 items-center" style={{ backgroundColor: theme.card }}>
                         <Text className="text-slate-400 mb-2">Unable to load content.</Text>
                         <Pressable onPress={() => loadData(true)} className="bg-slate-100 px-4 py-2 rounded-full">
                             <Text className="text-slate-700 font-bold">Retry</Text>
@@ -512,7 +447,7 @@ export default function HomeScreen() {
 
                 {/* --- 2. GUIDED PRAYER (New) --- */}
                 {!isGenerating && todaysPrayer && (
-                    <View className="mb-8">
+                    <View className="mb-10">
                         <View className="mb-3 flex-row items-center gap-2">
                             <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Guided Prayer</Text>
                         </View>
@@ -527,8 +462,8 @@ export default function HomeScreen() {
                     </View>
                 )}
                 {recommendedVideos.length > 0 && (
-                    <View className="mt-8 px-4">
-                        <Text className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-4">
+                    <View className="mt-10 px-4">
+                        <Text className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: theme.mutedForeground }}>
                             Recommended For Your Walk
                         </Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -536,15 +471,16 @@ export default function HomeScreen() {
                                 <Pressable
                                     key={video.id}
                                     onPress={() => Linking.openURL(video.video_url)}
-                                    className="w-72 mr-4 bg-white rounded-2xl overflow-hidden border border-slate-100 shadow-sm"
+                                    className="w-72 mr-4 rounded-2xl overflow-hidden border border-slate-100 dark:border-slate-800 shadow-sm"
+                                    style={{ backgroundColor: theme.card }}
                                 >
-                                    <Image source={{ uri: video.thumbnail_url }} className="h-40 w-full" />
+                                    <Image source={{ uri: video.thumbnail_url }} style={{ width: '100%', height: 140 }} />
                                     <View className="p-4">
-                                        <Text className="font-bold text-slate-900 mb-2" numberOfLines={2}>{video.title}</Text>
+                                        <Text className="font-bold mb-2" numberOfLines={2} style={{ color: theme.text }}>{video.title}</Text>
                                         <View className="flex-row flex-wrap gap-1">
                                             {video.focus_areas.map((tag: any) => (
-                                                <View key={tag} className="bg-orange-50 px-2 py-1 rounded-md">
-                                                    <Text className="text-[10px] text-orange-700 font-bold">{tag}</Text>
+                                                <View key={tag} className="bg-orange-50 dark:bg-orange-500/15 px-2 py-1 rounded-md">
+                                                    <Text className="text-[10px] text-orange-700 dark:text-orange-300 font-bold">{tag}</Text>
                                                 </View>
                                             ))}
                                         </View>
@@ -554,29 +490,29 @@ export default function HomeScreen() {
                         </ScrollView>
                     </View>
                 )}
-                {/* --- 3. COMMUNITY STATS (New) --- */}
+                {/* --- 3. COMMUNITY STATS --- */}
                 {user && communityStats.totalPrayedForYou > 0 && (
-                    <View className="bg-[#D4A373]/5 border border-[#D4A373]/20 rounded-xl p-4 flex-row items-center gap-3 mb-8 mt-8">
-                        <View className="bg-[#D4A373]/10 p-2 rounded-full">
+                    <View className="bg-[#D4A373]/5 dark:bg-[#D4A373]/10 border border-[#D4A373]/20 dark:border-[#D4A373]/30 rounded-xl p-4 flex-row items-center gap-3 mb-10 mt-10">
+                        <View className="bg-[#D4A373]/10 dark:bg-[#D4A373]/20 p-2 rounded-full">
                             <Users size={18} color="#D4A373" />
                         </View>
-                        <Text className="text-sm text-slate-700 flex-1">
+                        <Text className="text-sm text-slate-700 dark:text-slate-300 flex-1">
                             <Text className="font-bold">{communityStats.totalPrayedForYou} people</Text> in your community have prayed for you this week.
                         </Text>
                     </View>
                 )}
 
                 {/* --- 4. COMMUNITY --- */}
-                <View className="mb-4 flex-row items-center justify-between mt-4">
+                <View className="mb-5 flex-row items-center justify-between mt-6">
                     <View className="flex-row items-center gap-2">
                         <Heart size={16} color="#94A3B8" />
                         <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Community</Text>
                     </View>
                 </View>
                 {user ? (
-                    <View className="mb-8">
+                    <View className="mb-10">
                         {communityPrayer ? (
-                            <View className="bg-[#1E293B] rounded-2xl shadow-lg overflow-hidden relative">
+                            <View className="bg-[#1E293B] dark:bg-[#0F172A] rounded-2xl shadow-lg overflow-hidden relative">
                                 <View className="absolute top-4 right-4 z-10">
                                     <Pressable onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setCommunityPrayer(null); }} className="p-2 bg-white/10 rounded-full">
                                         <X size={16} color="white" />
@@ -599,12 +535,18 @@ export default function HomeScreen() {
                                         <>
                                             <View className="flex-row justify-between items-center mb-6">
                                                 <View className="bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">
-                                                    <Text className="text-white/90 text-[10px] font-bold uppercase">Request</Text>
+                                                    <Text className="text-white/90 text-[10px] font-bold uppercase">
+                                                        {communityPrayer.visibility === 'congregation' ? 'Church Family' : 'Global Community'}
+                                                    </Text>
                                                 </View>
                                             </View>
 
-                                            <Text className="text-white text-lg font-serif mb-8 leading-relaxed italic opacity-90">
-                                                "{communityPrayer.anonymized_content || communityPrayer.content}"
+                                            <Text className="text-white text-lg font-serif mb-4 leading-relaxed italic opacity-90">
+                                                "{communityPrayer.request_text}"
+                                            </Text>
+                                            
+                                            <Text className="text-slate-400 font-bold uppercase tracking-wider text-sm mb-8">
+                                                — {communityPrayer.author_name}
                                             </Text>
 
                                             <Pressable
@@ -630,7 +572,7 @@ export default function HomeScreen() {
                                 <Pressable
                                     onPress={handlePrayForOthers}
                                     disabled={loadingCommunityPrayer}
-                                    className="flex-1 p-4 rounded-2xl borderactive:scale-[0.98]"
+                                    className="flex-1 p-4 rounded-2xl border active:scale-[0.98]"
                                     style={{ backgroundColor: theme.card }}
                                 >
                                     <View className="bg-blue-50 w-8 h-8 rounded-full items-center justify-center mb-3">
@@ -641,7 +583,7 @@ export default function HomeScreen() {
                                 </Pressable>
 
                                 <Pressable
-                                    onPress={() => setShowRequestModal(true)}
+                                    onPress={() => router.push('/prayer/new')}
                                     className="flex-1 p-4 rounded-2xl border active:scale-[0.98]"
                                     style={{ backgroundColor: theme.card }}
                                 >
@@ -655,7 +597,7 @@ export default function HomeScreen() {
                         )}
                     </View>
                 ) : (
-                    <View className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 mb-8 items-center">
+                    <View className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 mb-10 items-center">
                         <HeartHandshake size={32} color={Colors.gray} />
                         <Text className="font-bold text-lg mt-2 text-slate-900 dark:text-white">Join the Community</Text>
                         <Text className="text-center text-slate-500 mb-4">Sign in to share prayer requests and pray for others.</Text>
@@ -668,14 +610,13 @@ export default function HomeScreen() {
                 {/* --- 5. CHRISTIAN ADVICE --- */}
                 {user && !adviceLimitReached && (
                     <>
-                        <View className="mb-8">
+                        <View className="mb-10">
                             <View className="flex-row items-end justify-between mb-3 px-1">
                                 <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Scriptural Advice</Text>
                                 <Pressable onPress={() => router.push('/advice')}>
                                     <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: theme.text }}>View All</Text>
                                 </Pressable>
                             </View>
-
 
                             <ChristianAdviceCard />
                         </View>
@@ -684,7 +625,7 @@ export default function HomeScreen() {
 
                 {/* --- 6. NEWS CARD --- */}
                 {dailyNews && (
-                    <View>
+                    <View className="mb-10">
                         <View className="flex-row items-end justify-between mb-3 px-1">
                             <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Today's News Recap</Text>
                             <Pressable onPress={() => router.push('/news')}>
@@ -703,93 +644,6 @@ export default function HomeScreen() {
 
             </ScrollView>
 
-            {/* --- PRAYER REQUEST MODAL --- */}
-            <Modal
-                animationType="slide"
-                transparent={true}
-                visible={showRequestModal}
-                onRequestClose={() => setShowRequestModal(false)}
-            >
-                <View className="flex-1 justify-center items-center bg-black/50 p-4">
-                    <View className="w-full max-w-sm rounded-3xl p-6 shadow-2xl" style={{ backgroundColor: theme.card }}>
-
-                        <View className="flex-row justify-between items-center mb-4">
-                            <Text className="text-xl font-serif font-bold" style={{ color: theme.text }}>How can we pray?</Text>
-                            <Pressable onPress={() => setShowRequestModal(false)} className="bg-slate-100 dark:bg-slate-800 p-2 rounded-full">
-                                <X size={20} color="#64748B" />
-                            </Pressable>
-                        </View>
-
-                        {requestStatus === 'success' ? (
-                            <View className="py-8 items-center">
-                                <View className="bg-green-100 dark:bg-green-900/30 p-4 rounded-full mb-4">
-                                    <Check size={40} color="#16A34A" />
-                                </View>
-                                <Text className="text-green-600 dark:text-green-400 font-bold text-lg">Request Shared!</Text>
-                                <Text className="text-center text-slate-500 mt-2 text-sm">Your community is praying for you.</Text>
-                            </View>
-                        ) : (
-                            <>
-                                <Text className="text-xs mb-5 leading-relaxed" style={{ color: theme.mutedForeground }}>
-                                    Your request will be anonymized before being shared. No personal details will be included.
-                                </Text>
-
-                                {/* Integrated Input & Controls Card */}
-                                <View
-                                    className="rounded-2xl border border-slate-200 dark:border-slate-700 overflow-hidden"
-                                    style={{ backgroundColor: theme.surface }}
-                                >
-                                    <TextInput
-                                        multiline
-                                        numberOfLines={4}
-                                        placeholder="Type or hold the mic to speak..."
-                                        placeholderTextColor="#94A3B8"
-                                        value={requestText}
-                                        onChangeText={setRequestText}
-                                        editable={requestStatus !== 'submitting'}
-                                        className="p-4 min-h-[120px] text-base"
-                                        style={{ color: theme.text }}
-                                        textAlignVertical="top"
-                                    />
-
-                                    {/* Footer Controls */}
-                                    <View className="flex-row justify-between items-center p-3 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/30">
-
-                                        {/* Left Side: Mic & Status */}
-                                        <View className="flex-row items-center gap-3">
-                                            <AudioMicButton
-                                                onTranscription={(text) => setRequestText((prev) => prev ? prev + ' ' + text : text)}
-                                                tintColor="#D4A373" // Matching your prayer theme color
-                                            />
-                                            <Text style={{ color: '#94A3B8', fontSize: 12 }}>
-                                                {requestText.length > 0 ? `${requestText.length} chars` : 'Hold to record'}
-                                            </Text>
-                                        </View>
-
-                                        {/* Right Side: Submit Button (Only shows when there is text) */}
-                                        {requestText.trim().length > 0 && (
-                                            <Pressable
-                                                onPress={handleSubmitRequest}
-                                                disabled={requestStatus === 'submitting'}
-                                                className="flex-row items-center px-4 py-3 rounded-full shadow-sm bg-[#D4A373] active:opacity-80"
-                                            >
-                                                {requestStatus === 'submitting' ? (
-                                                    <ActivityIndicator size="small" color="white" />
-                                                ) : (
-                                                    <>
-                                                        <Text className="text-white font-bold mr-2 text-sm">Share</Text>
-                                                        <Send size={12} color="white" />
-                                                    </>
-                                                )}
-                                            </Pressable>
-                                        )}
-                                    </View>
-                                </View>
-                            </>
-                        )}
-                    </View>
-                </View>
-            </Modal>
             <View style={{ position: 'absolute', left: -9999, top: 0 }}>
                 <ViewShot ref={viewShotRef} options={{ format: "jpg", quality: 0.9 }}>
                     <View style={{ width: 1080, height: 1920, backgroundColor: '#1E293B', padding: 60, justifyContent: 'center', alignItems: 'center' }}>

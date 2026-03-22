@@ -496,14 +496,27 @@ export const markPrayerAsPrayed = async (prayerId: string) => {
   }
 };
 
-export const submitPrayerRequest = async (userId: string, content: string) => {
-  try {
-    const response = await apiClient.post('/community/request', { userId, content });
-    return response.data;
-  } catch (error) {
-    console.error("Error submitting prayer:", error);
-    throw error;
-  }
+// Submit a new community prayer request with visibility tier
+export const submitPrayerRequest = async (params: {
+    requestText: string;
+    visibility: 'public_anonymous' | 'congregation' | 'pastor';
+    congregationId?: number | null;
+}) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/prayers/request`, {
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(params)
+    });
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to submit prayer request');
+    }
+    return response.json();
 };
 
 export const deleteDevotional = async (devotionalId: string) => {
@@ -614,4 +627,42 @@ export const fetchLessonDetail = async (lessonId: string) => {
 export const fetchMessageDetail = async (messageId: string) => {
     const response = await apiClient.get(`/messages/detail/${messageId}`);
     return response.data;
+};
+
+export const fetchRandomPrayer = async (congregationId?: number | null) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    // Safely append query param if it exists
+    const url = new URL(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/prayers/random`);
+    if (congregationId) {
+        url.searchParams.append('congregationId', congregationId.toString());
+    }
+
+    const response = await fetch(url.toString(), {
+        headers: { 'Authorization': `Bearer ${session?.access_token}` }
+    });
+
+    if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to fetch prayer');
+    }
+    return response.json();
+};
+// Leave the current digital congregation
+export const leaveCongregation = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/congregations/leave`, {
+        method: 'DELETE',
+        headers: {
+            'Authorization': `Bearer ${session?.access_token}`,
+            'Content-Type': 'application/json',
+        }
+    });
+
+    if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || 'Failed to leave congregation');
+    }
+    return response.json();
 };

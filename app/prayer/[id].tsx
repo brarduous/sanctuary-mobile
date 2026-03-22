@@ -66,18 +66,18 @@ export default function PrayerDetailScreen() {
 
     if (loading) {
         return (
-            <View className="flex-1 items-center justify-center bg-[#FDFBF7]">
-                <ActivityIndicator size="large" color="#D4A373" />
+            <View className="flex-1 items-center justify-center" style={{ backgroundColor: theme.background }}>
+                <ActivityIndicator size="large" color={theme.tint} />
             </View>
         );
     }
 
     if (!prayer) {
         return (
-            <View className="flex-1 items-center justify-center p-4 bg-[#FDFBF7]">
-                <Text className="text-slate-600 mb-4">Prayer not found.</Text>
+            <View className="flex-1 items-center justify-center p-4" style={{ backgroundColor: theme.background }}>
+                <Text className="mb-4" style={{ color: theme.mutedForeground }}>Prayer not found.</Text>
                 <Pressable onPress={() => router.back()} className="p-2">
-                    <Text className="text-[#D4A373] font-bold">Go Back</Text>
+                    <Text className="font-bold" style={{ color: theme.tint }}>Go Back</Text>
                 </Pressable>
             </View>
         );
@@ -86,16 +86,16 @@ export default function PrayerDetailScreen() {
     const prayerContent = prayer.content || prayer.generated_prayer || "";
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: '#FDFBF7' }} edges={['top', 'bottom']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top', 'bottom']}>
             
             {/* Custom Header */}
-            <View className="flex-row items-center justify-between px-4 py-2 border-b border-gray-100" style={{ backgroundColor: '#FDFBF7' }}>
-                <Pressable onPress={() => router.back()} className="p-2 -ml-2 rounded-full active:bg-[#F3EFE9]">
-                    <ArrowLeft size={24} color="#0F172A" />
+            <View className="flex-row items-center justify-between px-4 py-2 border-b" style={{ backgroundColor: theme.background, borderColor: theme.border }}>
+                <Pressable onPress={() => router.back()} className="p-2 -ml-2 rounded-full" style={({ pressed }) => [{ backgroundColor: pressed ? theme.muted : 'transparent' }]}>
+                    <ArrowLeft size={24} color={theme.text} />
                 </Pressable>
-                <Text className="text-lg font-bold" style={{ color: '#0F172A' }}>Prayer</Text>
-                <Pressable onPress={handleShare} className="p-2 -mr-2 rounded-full active:bg-[#F3EFE9]">
-                    <Share2 size={22} color="#0F172A" />
+                <Text className="text-lg font-bold" style={{ color: theme.text }}>Prayer</Text>
+                <Pressable onPress={handleShare} className="p-2 -mr-2 rounded-full" style={({ pressed }) => [{ backgroundColor: pressed ? theme.muted : 'transparent' }]}>
+                    <Share2 size={22} color={theme.text} />
                 </Pressable>
             </View>
 
@@ -106,13 +106,13 @@ export default function PrayerDetailScreen() {
                     <View className="w-12 h-12 bg-[#D4A373]/10 rounded-full items-center justify-center mb-4">
                         <Sparkles size={24} color="#D4A373" />
                     </View>
-                    <Text className="text-2xl font-serif font-bold text-slate-900 text-center mb-2">
+                    <Text className="text-2xl font-serif font-bold text-center mb-2" style={{ color: theme.text }}>
                         {prayer.title || "Daily Prayer"}
                     </Text>
                     
                     <View className="flex-row items-center gap-2">
-                        <Calendar size={14} color="#94A3B8" />
-                        <Text className="text-slate-400 text-xs font-bold uppercase tracking-wider">
+                        <Calendar size={14} color={theme.mutedForeground} />
+                        <Text className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.mutedForeground }}>
                             {new Date(prayer.created_at).toLocaleDateString(undefined, {
                                 weekday: 'long',
                                 month: 'long',
@@ -124,9 +124,10 @@ export default function PrayerDetailScreen() {
 
                 {/* Audio Controls */}
                 <View className="flex-row items-center mb-10 justify-center">
-                   <Pressable 
+                    <Pressable 
                         onPress={handleSpeak}
-                        className="flex-row items-center px-6 py-3 rounded-full bg-slate-900 active:bg-slate-800"
+                        className="flex-row items-center px-6 py-3 rounded-full"
+                        style={({ pressed }) => [{ backgroundColor: pressed ? theme.text : '#0F172A' }]}
                    >
                         {isSpeaking ? <Square size={16} color="white" fill="white" /> : <Play size={16} color="white" fill="white" />}
                         <Text className="text-white font-bold ml-2 text-sm">
@@ -136,14 +137,14 @@ export default function PrayerDetailScreen() {
                 </View>
 
                 {/* Content */}
-                <View className="mb-10 bg-white p-8 rounded-[24px] border border-slate-100">
-                     <Text className="text-slate-700 text-lg leading-loose font-serif italic text-center">
+                <View className="mb-10 p-8 rounded-[24px] border border-slate-100 dark:border-slate-800" style={{ backgroundColor: theme.card }}>
+                     <Text className="text-lg leading-loose font-serif italic text-center" style={{ color: theme.text }}>
                         "{prayerContent}"
                      </Text>
                 </View>
 
-                <View className="border-t border-slate-100 pt-8 items-center">
-                    <Text className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">
+                <View className="border-t pt-8 items-center" style={{ borderColor: theme.border }}>
+                    <Text className="text-[10px] uppercase tracking-widest font-bold" style={{ color: theme.mutedForeground }}>
                         Sanctuary Prayer
                     </Text>
                 </View>

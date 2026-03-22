@@ -69,7 +69,7 @@ export default function ChurchTab() {
               {messages.map((msg) => {
                 // Format the date to "Oct 24"
                 const dateLabel = new Date(msg.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                console.log(`https://image.mux.com/${msg.video_playback_id}/animated.webp?width=400` );
+                //console.log(`https://image.mux.com/${msg.video_playback_id}/animated.webp?width=400` );
                 return (
                   <Pressable
                     key={msg.message_id}

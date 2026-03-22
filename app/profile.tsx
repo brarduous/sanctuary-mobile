@@ -7,17 +7,20 @@ import {
     fetchFavorites,
     fetchUserFollowedCategories,
     fetchUserProfile,
+    leaveCongregation,
     updateUserFollowedCategories,
     updateUserProfile
 } from '@/lib/api';
 import { Stack, useRouter } from 'expo-router';
 import {
+    AlertTriangle,
     Check,
     ChevronRight,
     Church,
     Crown,
     Heart,
     LogIn,
+    LogOut,
     Moon,
     Newspaper,
     QrCode,
@@ -37,6 +40,7 @@ import {
     Pressable,
     ScrollView,
     Text,
+    TouchableOpacity,
     UIManager,
     View
 } from 'react-native';
@@ -47,7 +51,8 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 export default function ProfileScreen() {
-    const { user, profile: authProfile, signOut, userCongregationId } = useAuth();
+    const { user, profile: authProfile, signOut, userCongregationId, setUserCongregationId } = useAuth();
+    const [isLeavingChurch, setIsLeavingChurch] = useState(false);
     const colorScheme = useColorScheme();
     const theme = Colors[colorScheme ?? 'light'];
     const router = useRouter();
@@ -69,6 +74,34 @@ export default function ProfileScreen() {
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+
+
+    const handleLeaveChurch = () => {
+        Alert.alert(
+            "Leave Congregation",
+            "Are you sure you want to disconnect from this church? You will no longer receive their updates or see their community prayer requests.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Leave Church",
+                    style: "destructive",
+                    onPress: async () => {
+                        setIsLeavingChurch(true);
+                        try {
+                            await leaveCongregation();
+                            // Instantly update local state so the app UI changes immediately
+                            setUserCongregationId(null);
+                            Alert.alert("Success", "You have left the congregation.");
+                        } catch (error: any) {
+                            Alert.alert("Error", error.message || "Failed to leave the church.");
+                        } finally {
+                            setIsLeavingChurch(false);
+                        }
+                    }
+                }
+            ]
+        );
+    };
 
     // Initial Load
     useEffect(() => {
@@ -482,6 +515,35 @@ export default function ProfileScreen() {
                             </View>
                         </View>
 
+                        {userCongregationId && (
+                            <View className="mb-8">
+                                <Text className="text-xs font-bold uppercase tracking-widest text-red-500 mb-3 px-1">
+                                    Danger Zone
+                                </Text>
+                                <View className="bg-white dark:bg-gray-900 rounded-2xl border border-red-100 dark:border-red-900/30 overflow-hidden shadow-sm">
+                                    <TouchableOpacity
+                                        onPress={handleLeaveChurch}
+                                        disabled={isLeavingChurch}
+                                        className="p-4 flex-row items-center justify-between"
+                                    >
+                                        <View className="flex-row items-center gap-3">
+                                            <View className="bg-red-50 dark:bg-red-900/20 p-2 rounded-lg">
+                                                <AlertTriangle size={20} color="#ef4444" />
+                                            </View>
+                                            <View>
+                                                <Text className="font-bold text-red-600 dark:text-red-400">Leave Congregation</Text>
+                                                <Text className="text-xs text-gray-500 dark:text-gray-400">Disconnect from your current church</Text>
+                                            </View>
+                                        </View>
+                                        {isLeavingChurch ? (
+                                            <ActivityIndicator size="small" color="#ef4444" />
+                                        ) : (
+                                            <LogOut size={16} color="#ef4444" />
+                                        )}
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+                        )}
                         {/* Delete Account */}
                         <View className="pt-8 mt-4 border-t border-slate-200">
                             <Text className="text-xs font-bold uppercase tracking-widest text-red-300 mb-4 ml-1">Danger Zone</Text>
