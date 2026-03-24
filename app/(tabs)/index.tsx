@@ -12,11 +12,11 @@ import {
     fetchDailyNewsSynopsis,
     fetchDailyPrayers,
     fetchGeneralDevotional,
-    fetchRandomPrayer, // <-- Using the new API function!
+    fetchRandomPrayer,
     fetchRecommendedVideos,
     fetchUserStreak,
     generateContent,
-    logUserActivity, // <-- Using the generic activity logger!
+    logUserActivity,
 } from '@/lib/api';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
@@ -24,6 +24,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Link, useRouter } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import {
+    AlertCircle,
     BookOpen,
     Check,
     ChevronRight,
@@ -110,29 +111,30 @@ export default function HomeScreen() {
     const viewShotRef = useRef<ViewShot>(null);
 
     // --- STATE ---
+    const [dailyScripture, setDailyScripture] = useState<string | null>(null); // NEW: Extracted Scripture
     const [dailyNews, setDailyNews] = useState<any>(null);
     const [todaysDevotional, setTodaysDevotional] = useState<any>(null);
     const [todaysPrayer, setTodaysPrayer] = useState<any>(null);
     const [streak, setStreak] = useState(0);
     const [communityStats, setCommunityStats] = useState({ totalPrayedForYou: 0 });
     const [adviceLimitReached, setAdviceLimitReached] = useState(false);
+    const [recommendedVideos, setRecommendedVideos] = useState<any[]>([]);
 
     // Community Interaction State
     const [communityPrayer, setCommunityPrayer] = useState<any>(null);
     const [prayingState, setPrayingState] = useState<'idle' | 'sending' | 'sent'>('idle');
     const [loadingCommunityPrayer, setLoadingCommunityPrayer] = useState(false);
 
-    // UI State
+    // UI & Sync State
     const [refreshing, setRefreshing] = useState(false);
     const [isGenerating, setIsGenerating] = useState(false);
-
-    // bible version
-    const userBibleVersion = profile?.preferred_translation || 'NIV';
-
-    //polling ref state
+    const [devotionalFailed, setDevotionalFailed] = useState(false);
+    
+    // REFS FOR RACE CONDITIONS
     const pollingRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+    const generationTriggeredRef = useRef(false);
 
-    const [recommendedVideos, setRecommendedVideos] = useState<any[]>([]);
+    const userBibleVersion = profile?.preferred_translation || 'NIV';
 
     const handleShareVerse = async () => {
         try {
@@ -151,6 +153,15 @@ export default function HomeScreen() {
         };
     }, []);
 
+    const isToday = (dateString: string) => {
+        if (!dateString) return false;
+        const date = new Date(dateString);
+        const now = new Date();
+        return date.getFullYear() === now.getFullYear() &&
+            date.getMonth() === now.getMonth() &&
+            date.getDate() === now.getDate();
+    };
+
     // --- DATA LOADING ---
     const loadData = useCallback(async (forceRefresh = false) => {
         if (!user) {
@@ -160,9 +171,10 @@ export default function HomeScreen() {
                 fetchGeneralDevotional()
             ]);
             setDailyNews(news);
-            //console.log("Recommended Videos:", videos);
             setRecommendedVideos(videos);
             if (generalData) {
+                // Instantly set scripture for Verse Card
+                setDailyScripture(generalData.devotional.scripture);
                 setTodaysDevotional(generalData.devotional);
                 setTodaysPrayer(generalData.prayer);
             }
@@ -170,14 +182,21 @@ export default function HomeScreen() {
             return;
         }
         
-        const [news, streakData, stats, adviceLimit, videos] = await Promise.all([
+        // Fetch ALL core data concurrently, including the general devotional curriculum
+        const [news, streakData, stats, adviceLimit, videos, generalData] = await Promise.all([
             fetchDailyNewsSynopsis(),
             fetchUserStreak(user.id, 'daily_devotional'),
             fetchCommunityStats(),
             checkAdviceLimit(user.id),
             fetchRecommendedVideos(),
+            fetchGeneralDevotional() // <-- We fetch this immediately for everyone now
         ]);
         
+        // 1. Immediately set the global Daily Scripture so the top card renders instantly
+        if (generalData) {
+            setDailyScripture(generalData.devotional.scripture);
+        }
+
         const isPro = profile?.subscription_tier === 'pro';
 
         setDailyNews(news);
@@ -189,27 +208,17 @@ export default function HomeScreen() {
         setAdviceLimitReached(!isPro && adviceLimit?.limitReached || false);
         setRecommendedVideos(videos);
 
+        // 2. Handle Non-Pro Users (Use general devotional)
         if (!isPro) {
-            const generalData = await fetchGeneralDevotional();
             if (generalData) {
                 setTodaysDevotional(generalData.devotional);
                 setTodaysPrayer(generalData.prayer);
                 setIsGenerating(false);
-            } else {
-                console.warn("No general content.");
             }
             return;
         }
         
-        const now = new Date();
-        const isToday = (dateString: string) => {
-            if (!dateString) return false;
-            const date = new Date(dateString);
-            return date.getFullYear() === now.getFullYear() &&
-                date.getMonth() === now.getMonth() &&
-                date.getDate() === now.getDate();
-        };
-
+        // 3. Handle Pro Users (Personalized Devotional)
         const [allDevotionals, allPrayers] = await Promise.all([
             fetchDailyDevotionals(user.id),
             fetchDailyPrayers(user.id)
@@ -218,19 +227,29 @@ export default function HomeScreen() {
         let todayDevo = allDevotionals.find((d: any) => isToday(d.created_at));
         let todayPrayer = allPrayers.find((p: any) => isToday(p.created_at));
 
-        if (todayDevo?.status === 'failed') {
-            await deleteDevotional(todayDevo.devotional_id || todayDevo.id);
-            todayDevo = null;
-        }
-        if (todayPrayer?.status === 'failed') {
-            await deletePrayer(todayPrayer.prayer_id || todayPrayer.id);
-            todayPrayer = null;
+        // FAILED STATE: Show General Fallback & allow manual retry.
+        if (todayDevo?.status === 'failed' || todayPrayer?.status === 'failed') {
+            setDevotionalFailed(true);
+            setIsGenerating(false);
+            
+            if (generalData) {
+                setTodaysDevotional(generalData.devotional);
+                setTodaysPrayer(generalData.prayer);
+            }
+            
+            if (pollingRef.current) {
+                clearInterval(pollingRef.current);
+                pollingRef.current = null;
+            }
+            return;
         }
 
+        // SUCCESS STATE
         if (todayDevo?.status === 'completed' && todayPrayer?.status === 'completed') {
             setTodaysDevotional(todayDevo);
             setTodaysPrayer(todayPrayer);
             setIsGenerating(false);
+            setDevotionalFailed(false);
 
             if (pollingRef.current) {
                 clearInterval(pollingRef.current);
@@ -239,7 +258,9 @@ export default function HomeScreen() {
             return;
         }
 
-        if (!todayDevo) {
+        // GENERATION TRIGGER
+        if (!todayDevo && !generationTriggeredRef.current) {
+            generationTriggeredRef.current = true; 
             setIsGenerating(true);
             try {
                 await generateContent('/generate-devotional', {
@@ -250,12 +271,14 @@ export default function HomeScreen() {
                 });
             } catch (err) {
                 console.error("Generation trigger failed", err);
+                generationTriggeredRef.current = false; 
             }
-        } else {
+        } else if (todayDevo?.status === 'pending' || generationTriggeredRef.current) {
             setIsGenerating(true);
         }
 
-        if (!pollingRef.current) {
+        // POLLING FOR GENERATION
+        if (!pollingRef.current && (todayDevo?.status === 'pending' || generationTriggeredRef.current)) {
             pollingRef.current = setInterval(async () => {
                 const updatedDevos = await fetchDailyDevotionals(user.id);
                 const updatedPrayers = await fetchDailyPrayers(user.id);
@@ -263,14 +286,17 @@ export default function HomeScreen() {
                 const newDevo = updatedDevos.find((d: any) => isToday(d.created_at));
                 const newPrayer = updatedPrayers.find((p: any) => isToday(p.created_at));
 
-                if (newDevo?.status === 'completed' && newPrayer?.status === 'completed') {
+                if (newDevo?.status === 'failed' || newPrayer?.status === 'failed') {
+                    if (pollingRef.current) clearInterval(pollingRef.current);
+                    pollingRef.current = null;
+                    loadData(); // Re-trigger to fetch fallback
+                } else if (newDevo?.status === 'completed' && newPrayer?.status === 'completed') {
                     setTodaysDevotional(newDevo);
                     setTodaysPrayer(newPrayer);
                     setIsGenerating(false);
-                    if (pollingRef.current) {
-                        clearInterval(pollingRef.current);
-                        pollingRef.current = null;
-                    }
+                    setDevotionalFailed(false);
+                    if (pollingRef.current) clearInterval(pollingRef.current);
+                    pollingRef.current = null;
                 }
             }, 3000); 
         }
@@ -286,7 +312,38 @@ export default function HomeScreen() {
         setRefreshing(false);
     };
 
-    // --- ACTIONS ---
+    // --- RETRY PERSONALIZATION ---
+    const handleRetryPersonalization = async () => {
+        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        setDevotionalFailed(false);
+        setIsGenerating(true);
+        generationTriggeredRef.current = true; 
+        
+        try {
+            const allDevotionals = await fetchDailyDevotionals(user?.id);
+            const allPrayers = await fetchDailyPrayers(user?.id);
+            
+            const failedDevo = allDevotionals.find((d: any) => isToday(d.created_at) && d.status === 'failed');
+            const failedPrayer = allPrayers.find((p: any) => isToday(p.created_at) && p.status === 'failed');
+            
+            if (failedDevo) await deleteDevotional(failedDevo.devotional_id || failedDevo.id);
+            if (failedPrayer) await deletePrayer(failedPrayer.prayer_id || failedPrayer.id);
+
+            await generateContent('/generate-devotional', {
+                userId: user?.id,
+                focusAreas: profile?.user_preferences?.focusAreas || [],
+                improvementAreas: profile?.user_preferences?.improvementAreas || [],
+                recentDevotionals: allDevotionals.slice(0, 10),
+            });
+            
+            loadData();
+        } catch (error) {
+            console.error("Retry failed", error);
+            setDevotionalFailed(true);
+            setIsGenerating(false);
+            generationTriggeredRef.current = false;
+        }
+    };
 
     const handlePrayForOthers = async () => {
         setLoadingCommunityPrayer(true);
@@ -312,7 +369,6 @@ export default function HomeScreen() {
         setPrayingState('sending');
 
         setTimeout(async () => {
-            // Log the activity to feed the Pastor's CRM dashboard
             if (user && communityPrayer) {
                 await logUserActivity(
                     user.id,
@@ -378,20 +434,22 @@ export default function HomeScreen() {
                     )}
                 </View>
 
-                {todaysDevotional && (
+                {/* --- SCRIPTURE OF THE DAY (Renders Instantly) --- */}
+                {dailyScripture && (
                     <VerseOfTheDayCard
-                        reference={todaysDevotional.scripture}
+                        reference={dailyScripture}
                         version={userBibleVersion}
                         backgroundImage={verseBackground}
                     />
                 )}
+
                 {/* --- 1. DAILY DEVOTIONAL --- */}
                 <View className="mb-4 flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2">
                         <BookOpen size={16} color="#94A3B8" />
                         <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Daily Devotional</Text>
                     </View>
-                    {todaysDevotional && (
+                    {todaysDevotional && !isGenerating && (
                         <View className={`px-2 py-0.5 rounded-full flex-row items-center gap-1 ${todaysDevotional.type === 'general' ? 'bg-slate-100' : 'bg-[#D4A373]/10'}`}>
                             {todaysDevotional.type === 'general' ? <BookOpen size={10} color="#64748B" /> : <Sparkles size={10} color="#D4A373" />}
                             <Text className={`text-[10px] font-bold ${todaysDevotional.type === 'general' ? 'text-slate-500' : 'text-[#D4A373]'}`}>
@@ -404,7 +462,7 @@ export default function HomeScreen() {
                 {isGenerating ? (
                     <GeneratingState />
                 ) : todaysDevotional ? (
-                    <Link href={`/devotional/${todaysDevotional.devotional_id}`} asChild>
+                    <Link href={`/devotional/${todaysDevotional.devotional_id || todaysDevotional.id}`} asChild>
                         <Pressable className="rounded-2xl border border-slate-100 dark:border-slate-800 mb-10 overflow-hidden active:scale-[0.99] transition-transform" style={{ backgroundColor: theme.card }}>
                             <View className="p-6">
                                 <Text className="text-xl font-serif mb-3 leading-tight font-medium" numberOfLines={2} style={{ color: theme.text }}>
@@ -421,7 +479,7 @@ export default function HomeScreen() {
                                 </View>
 
                                 {/* UPSELL FOR GENERAL */}
-                                {todaysDevotional.type === 'general' && (
+                                {todaysDevotional.type === 'general' && !devotionalFailed && (
                                     <Pressable
                                         onPress={(e) => { e.stopPropagation(); router.push('/profile'); }}
                                         className="mt-4 pt-4 border-t border-dashed border-slate-200 flex-row items-center justify-between"
@@ -430,6 +488,22 @@ export default function HomeScreen() {
                                         <View className="flex-row items-center gap-1">
                                             <Lock size={10} color="#64748B" />
                                             <Text className="text-[10px] font-bold text-slate-500">Unlock Pro</Text>
+                                        </View>
+                                    </Pressable>
+                                )}
+
+                                {/* RETRY PERSONALIZATION OPTION */}
+                                {devotionalFailed && (
+                                    <Pressable
+                                        onPress={(e) => { e.stopPropagation(); handleRetryPersonalization(); }}
+                                        className="mt-4 pt-4 border-t border-dashed border-red-200 dark:border-red-900/30 flex-row items-center justify-between"
+                                    >
+                                        <View className="flex-row items-center gap-2">
+                                            <AlertCircle size={14} color="#EF4444" />
+                                            <Text className="text-xs text-slate-500 dark:text-slate-400">Personalization failed.</Text>
+                                        </View>
+                                        <View className="flex-row items-center gap-1 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-full">
+                                            <Text className="text-[10px] font-bold text-red-600 dark:text-red-400">Retry Personalization</Text>
                                         </View>
                                     </Pressable>
                                 )}
@@ -445,7 +519,7 @@ export default function HomeScreen() {
                     </View>
                 )}
 
-                {/* --- 2. GUIDED PRAYER (New) --- */}
+                {/* --- 2. GUIDED PRAYER --- */}
                 {!isGenerating && todaysPrayer && (
                     <View className="mb-10">
                         <View className="mb-3 flex-row items-center gap-2">
@@ -461,6 +535,8 @@ export default function HomeScreen() {
                         </Pressable>
                     </View>
                 )}
+
+                {/* --- RECOMMENDED VIDEOS --- */}
                 {recommendedVideos.length > 0 && (
                     <View className="mt-10 px-4">
                         <Text className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: theme.mutedForeground }}>
@@ -490,6 +566,7 @@ export default function HomeScreen() {
                         </ScrollView>
                     </View>
                 )}
+
                 {/* --- 3. COMMUNITY STATS --- */}
                 {user && communityStats.totalPrayedForYou > 0 && (
                     <View className="bg-[#D4A373]/5 dark:bg-[#D4A373]/10 border border-[#D4A373]/20 dark:border-[#D4A373]/30 rounded-xl p-4 flex-row items-center gap-3 mb-10 mt-10">
@@ -634,7 +711,6 @@ export default function HomeScreen() {
                         </View>
 
                         <Pressable onPress={() => router.push('/news')} className="p-5 rounded-2xl border border-slate-100 dark:border-slate-800 active:scale-[0.99]" style={{ backgroundColor: theme.card }}>
-
                             <Text className="text-sm leading-relaxed" style={{ color: theme.mutedForeground }}>
                                 {dailyNews.synopsis || "Read today's Christian perspective on world events."}
                             </Text>
@@ -644,6 +720,7 @@ export default function HomeScreen() {
 
             </ScrollView>
 
+            {/* ViewShot for sharing verse - hidden from layout */}
             <View style={{ position: 'absolute', left: -9999, top: 0 }}>
                 <ViewShot ref={viewShotRef} options={{ format: "jpg", quality: 0.9 }}>
                     <View style={{ width: 1080, height: 1920, backgroundColor: '#1E293B', padding: 60, justifyContent: 'center', alignItems: 'center' }}>
@@ -651,7 +728,7 @@ export default function HomeScreen() {
                             VERSE OF THE DAY
                         </Text>
                         <Text style={{ fontFamily: 'Serif', color: 'white', fontSize: 60, textAlign: 'center', lineHeight: 90, marginBottom: 60 }}>
-                            "{todaysDevotional?.scripture || "Loading..."}"
+                            "{dailyScripture || "Loading..."}"
                         </Text>
                         <Text style={{ color: '#94A3B8', fontSize: 30 }}>
                             SANCTUARY
