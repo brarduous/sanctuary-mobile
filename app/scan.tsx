@@ -1,6 +1,6 @@
-import { useColorScheme } from '@/components/useColorScheme';
 import { useAuth } from '@/context/AuthContext';
 import { joinCongregation } from '@/lib/api';
+import { extractInviteToken } from '@/lib/inviteToken';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { QrCode, X } from 'lucide-react-native';
@@ -15,8 +15,6 @@ export default function ScanScreen() {
   
   const router = useRouter();
   const { user, setUserCongregationId } = useAuth();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
 
   useEffect(() => {
     if (!permission?.granted) {
@@ -24,19 +22,23 @@ export default function ScanScreen() {
     }
   }, [permission]);
 
-  const handleBarCodeScanned = async ({ type, data }: { type: string; data: string }) => {
+  const handleBarCodeScanned = async ({ data }: { type: string; data: string }) => {
     if (scanned || joining) return;
     setScanned(true);
 
     try {
-      // Safely extract the token from the URL (e.g., https://sanctuaryapp.com/join?token=UUID)
-      const tokenMatch = data.match(/token=([^&]+)/);
-      const token = tokenMatch ? tokenMatch[1] : null;
+      // Accept links like https://sanctuaryapp.us/join?token=UUID and raw token values.
+      const token = extractInviteToken(data);
 
       if (!token) {
         Alert.alert("Invalid QR Code", "This doesn't look like a valid Sanctuary Church invite.", [
           { text: "Try Again", onPress: () => setScanned(false) }
         ]);
+        return;
+      }
+
+      if (!user?.id) {
+        router.push(`/join?token=${encodeURIComponent(token)}` as any);
         return;
       }
 

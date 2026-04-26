@@ -42,12 +42,12 @@
             {
               "scheme": "https",
               "host": "sanctuaryapp.us",
-              "pathPrefix": "/"
+              "pathPrefix": "/join"
             },
             {
               "scheme": "https",
               "host": "www.sanctuaryapp.us",
-              "pathPrefix": "/"
+              "pathPrefix": "/join"
             }
           ],
           "category": [

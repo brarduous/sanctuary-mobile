@@ -410,7 +410,7 @@ export default function ProfileScreen() {
                                 </View>
                                 <View className="flex-1">
                                     <Text className="font-bold text-base dark:text-white">Join a Congregation</Text>
-                                    <Text className="text-xs text-slate-500">Scan your church's invite code</Text>
+                                    <Text className="text-xs text-slate-500">Scan a QR invite or open your church invite link</Text>
                                 </View>
                                 <ChevronRight size={20} color="#9ca3af" />
                             </Pressable>

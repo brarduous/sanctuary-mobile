@@ -76,8 +76,10 @@ function RootLayoutNav() {
   useEffect(() => {
     if (loading) return;
 
-    const inAuthGroup = segments[0] === '(tabs)';
-    const inOnboarding = segments[0] === 'onboarding';
+    const currentSegment = segments[0] as string | undefined;
+    const inAuthGroup = currentSegment === '(tabs)';
+    const inOnboarding = currentSegment === 'onboarding';
+    const inJoin = currentSegment === 'join';
 
     // 1. Guest Logic: If not logged in, they CAN stay in (tabs), but not onboarding
     if (!user) {
@@ -92,7 +94,7 @@ function RootLayoutNav() {
     // 2. User Logic: If logged in but NO preferences -> Force Onboarding
     const hasPreferences = profile?.user_preferences && Object.keys(profile.user_preferences).length > 0;
     
-    if (user && !inOnboarding && !hasPreferences) {
+    if (user && !inOnboarding && !inJoin && !hasPreferences) {
       router.replace('/onboarding');
     } else if (user && inOnboarding && hasPreferences) {
       router.replace('/(tabs)');
@@ -123,6 +125,7 @@ function RootLayoutNav() {
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="paywall" options={{ presentation: 'modal', headerShown: false }} />
+          <Stack.Screen name="join" options={{ headerShown: false }} />
           
           {/* Detail Screens */}
           <Stack.Screen name="news/[id]" options={{ headerShown: false }} />
