@@ -105,8 +105,7 @@ export const usePushNotifications = () => {
 
     const { error } = await supabase
         .from('profiles')
-        .update({ expo_push_token: token })
-        .eq('id', userId);
+        .upsert({ id: userId, expo_push_token: token }, { onConflict: 'id' });
 
     if (error) {
         console.error('Error saving push token to profile:', error);
