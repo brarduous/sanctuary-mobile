@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { AppState } from 'react-native';
 
 // Configure Google Sign-In (Get Web Client ID from Google Cloud Console)
 GoogleSignin.configure({
@@ -25,51 +26,93 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
-      if (session?.user) loadProfile(session.user.id);
-      else setLoading(false); // Ensure loading stops if no user
+      if (session?.user) {
+        setLoading(true);
+        loadProfile(session.user.id);
+      } else {
+        setProfile(null);
+        setUserCongregationId(null);
+        setLoading(false); // Ensure loading stops if no user
+      }
       void logActivityEvent({
         userId: session?.user?.id,
         activityType: 'auth_session_checked',
         description: session?.user ? 'Active session found' : 'No active session',
       });
-      setLoading(false);
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null);
       if (session?.user && event !== 'INITIAL_SESSION') {
+        setLoading(true);
         loadProfile(session.user.id);
       } else if (!session?.user) {
         setProfile(null);
+        setUserCongregationId(null);
         setLoading(false);
       }
-      else setProfile(null);
+      else {
+        setProfile(null);
+      }
       void logActivityEvent({
         userId: session?.user?.id,
         activityType: 'auth_state_changed',
         activityId: event,
         description: session?.user ? 'Signed in' : 'Signed out',
       });
-      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  const loadProfile = async (userId: string) => {
+  useEffect(() => {
+    if (!user?.id) {
+      return;
+    }
+
+    const refreshProfileQuietly = async () => {
+      try {
+        await loadProfile(user.id, { silent: true });
+      } catch (error) {
+        console.error('Background profile refresh failed:', error);
+      }
+    };
+
+    // Pull latest profile periodically so admin whitelist/tier DB edits are reflected in-app.
+    const interval = setInterval(() => {
+      refreshProfileQuietly();
+    }, 60000);
+
+    const appStateSubscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        refreshProfileQuietly();
+      }
+    });
+
+    return () => {
+      clearInterval(interval);
+      appStateSubscription.remove();
+    };
+  }, [user?.id]);
+
+  const loadProfile = async (userId: string, options?: { silent?: boolean }) => {
     try {
       const data = await fetchUserProfile(userId);
       setProfile(data);
       const congregationId = await fetchUserCongregation(userId);
       setUserCongregationId(congregationId);
-      await logActivityEvent({
-        userId,
-        activityType: 'profile_loaded',
-        description: data ? 'Profile loaded' : 'Profile missing',
-      });
+      if (!options?.silent) {
+        await logActivityEvent({
+          userId,
+          activityType: 'profile_loaded',
+          description: data ? 'Profile loaded' : 'Profile missing',
+        });
+      }
     } catch (error) {
-      await logErrorEvent('profile_load_error', error, { userId });
+      if (!options?.silent) {
+        await logErrorEvent('profile_load_error', error, { userId });
+      }
     }
     finally {
       setLoading(false);

@@ -2,7 +2,7 @@ import ScriptureLinkifier from '@/components/ScriptureLinkifier';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { fetchAdviceById } from '@/lib/api';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { ArrowLeft, Play, Share2, Square } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
@@ -20,17 +20,31 @@ export default function AdviceDetailScreen() {
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const pollIntervalRef = useRef<number | null>(null);
+    const pollAttemptsRef = useRef(0);
+    const MAX_POLL_ATTEMPTS = 120;
+
+    const isInProgressStatus = (status?: string) => status === 'generating' || status === 'pending' || status === 'queued';
+
+    const stopPolling = () => {
+        if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+        }
+    };
+
+    const refreshAdvice = async (adviceId: string) => {
+        const data = await fetchAdviceById(adviceId);
+        setAdvice(data);
+        return data;
+    };
 
     useEffect(() => {
         async function load() {
             if (id) {
-                const data = await fetchAdviceById(id as string);
-                setAdvice(data);
-                console.log(data);
+                const data = await refreshAdvice(id as string);
                 setLoading(false);
 
-                // Start polling if status is generating
-                if (data?.status === 'generating') {
+                if (isInProgressStatus(data?.status)) {
                     startPolling(id as string);
                 }
             }
@@ -38,34 +52,56 @@ export default function AdviceDetailScreen() {
         load();
 
         return () => {
-            // Cleanup polling on unmount
-            if (pollIntervalRef.current) {
-                clearInterval(pollIntervalRef.current);
-            }
+            stopPolling();
         };
     }, [id]);
 
-    const startPolling = (adviceId: string) => {
-        // Clear any existing interval
-        if (pollIntervalRef.current) {
-            clearInterval(pollIntervalRef.current);
-        }
+    useFocusEffect(
+        React.useCallback(() => {
+            if (!id) {
+                return;
+            }
 
-        // Poll every 2 seconds
+            const run = async () => {
+                const data = await refreshAdvice(id as string);
+                if (isInProgressStatus(data?.status)) {
+                    startPolling(id as string);
+                } else {
+                    stopPolling();
+                }
+            };
+
+            run();
+
+            return () => {
+                stopPolling();
+            };
+        }, [id])
+    );
+
+    const startPolling = (adviceId: string) => {
+        stopPolling();
+        pollAttemptsRef.current = 0;
+
         pollIntervalRef.current = setInterval(async () => {
             try {
+                pollAttemptsRef.current += 1;
                 const updatedData = await fetchAdviceById(adviceId);
                 setAdvice(updatedData);
 
-                // Stop polling if status is no longer generating
-                if (updatedData?.status !== 'generating') {
-                    if (pollIntervalRef.current) {
-                        clearInterval(pollIntervalRef.current);
-                        pollIntervalRef.current = null;
-                    }
+                if (!isInProgressStatus(updatedData?.status)) {
+                    stopPolling();
+                    return;
+                }
+
+                if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
+                    stopPolling();
                 }
             } catch (error) {
                 console.error('Error polling advice status:', error);
+                if (pollAttemptsRef.current >= MAX_POLL_ATTEMPTS) {
+                    stopPolling();
+                }
             }
         }, 2000);
     };
@@ -169,6 +205,9 @@ export default function AdviceDetailScreen() {
                         </Text>
                         <Text className="mt-2 text-sm text-center" style={{ color: Colors.gray }}>
                             Consulting Scripture for your guidance
+                        </Text>
+                        <Text className="mt-2 text-xs text-center" style={{ color: Colors.gray }}>
+                            This refreshes automatically.
                         </Text>
                     </View>
                 </ScrollView>

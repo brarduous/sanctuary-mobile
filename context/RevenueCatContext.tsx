@@ -17,7 +17,7 @@ interface RevenueCatContextType {
 const RevenueCatContext = createContext<RevenueCatContextType | undefined>(undefined);
 
 export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
-  const { user, profile } = useAuth();
+  const { user, profile, refreshProfile } = useAuth();
   const [isPro, setIsPro] = useState(false);
   const [customerInfo, setCustomerInfo] = useState<CustomerInfo | null>(null);
   const [packages, setPackages] = useState<PurchasesPackage[]>([]);
@@ -58,6 +58,19 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
     init();
   }, [user]);
 
+  useEffect(() => {
+    const onCustomerInfoUpdated = async (info: CustomerInfo) => {
+      setCustomerInfo(info);
+      await refreshProfile();
+    };
+
+    Purchases.addCustomerInfoUpdateListener(onCustomerInfoUpdated);
+
+    return () => {
+      Purchases.removeCustomerInfoUpdateListener(onCustomerInfoUpdated);
+    };
+  }, [refreshProfile]);
+
   const loadOfferings = async () => {
     setIsLoaded(false);
     try {
@@ -76,6 +89,7 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
     try {
       const { customerInfo } = await Purchases.purchasePackage(pack);
       setCustomerInfo(customerInfo);
+      await refreshProfile();
     } catch (e: any) {
       if (!e.userCancelled) {
         console.error("Purchase error", e);
@@ -87,6 +101,7 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
     try {
       const info = await Purchases.restorePurchases();
       setCustomerInfo(info);
+      await refreshProfile();
     } catch (e) {
         console.error("Restore error", e);
     }

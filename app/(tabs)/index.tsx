@@ -3,6 +3,7 @@ import GeneratingState from '@/components/GeneratingState';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
+import { useRevenueCat } from '@/context/RevenueCatContext';
 import {
     checkAdviceLimit,
     deleteDevotional,
@@ -104,7 +105,8 @@ async function scheduleStreakNotification(streak: number, userName: string) {
 }
 
 export default function HomeScreen() {
-    const { user, profile } = useAuth();
+    const { user, profile, loading: authLoading } = useAuth();
+    const { isPro, isLoaded: isRevenueLoaded } = useRevenueCat();
     const router = useRouter();
     const colorScheme = useColorScheme();
     const theme = Colors[colorScheme ?? 'light'];
@@ -164,6 +166,10 @@ export default function HomeScreen() {
 
     // --- DATA LOADING ---
     const loadData = useCallback(async (forceRefresh = false) => {
+        if (authLoading || (user && !isRevenueLoaded)) {
+            return;
+        }
+
         if (!user) {
             const [news, videos, generalData] = await Promise.all([
                 fetchDailyNewsSynopsis(),
@@ -196,8 +202,6 @@ export default function HomeScreen() {
         if (generalData) {
             setDailyScripture(generalData.devotional.scripture);
         }
-
-        const isPro = profile?.subscription_tier === 'pro';
 
         setDailyNews(news);
         setStreak(streakData?.current_streak || streakData?.streak || 0);
@@ -301,7 +305,7 @@ export default function HomeScreen() {
             }, 3000); 
         }
 
-    }, [user, profile]);
+    }, [authLoading, isPro, isRevenueLoaded, profile, user]);
 
     useEffect(() => { loadData(); }, [loadData]);
 
@@ -395,6 +399,19 @@ export default function HomeScreen() {
         if (hour < 18) return "Good Afternoon";
         return "Good Evening";
     };
+
+    if (authLoading || (user && !isRevenueLoaded)) {
+        return (
+            <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
+                <View className="flex-1 items-center justify-center">
+                    <ActivityIndicator size="large" color={theme.tint} />
+                    <Text className="mt-3 text-sm" style={{ color: theme.mutedForeground }}>
+                        Loading your Sanctuary...
+                    </Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>

@@ -2,9 +2,8 @@ import ChristianAdviceCard from '@/components/ChristianAdviceCard';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
-import { useRevenueCat } from '@/context/RevenueCatContext';
 import { deleteAdvice, fetchAdvice } from '@/lib/api';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Calendar, ChevronRight, Sparkles, Trash2 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
@@ -13,7 +12,6 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function AdviceScreen() {
     const { user } = useAuth();
     const router = useRouter();
-    const { isPro } = useRevenueCat();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
 
@@ -21,16 +19,42 @@ export default function AdviceScreen() {
     const [loading, setLoading] = useState(true);
     const [limitReached, setLimitReached] = useState(false);
 
-    useEffect(() => {
-        async function loadAdvice() {
-            if (user) {
-                const data = await fetchAdvice(user.id);
-                setAdviceList(data || []);
-            }
-            setLoading(false);
+    const loadAdvice = React.useCallback(async () => {
+        if (user) {
+            const data = await fetchAdvice(user.id);
+            setAdviceList(data || []);
         }
-        loadAdvice();
+        setLoading(false);
     }, [user]);
+
+    useEffect(() => {
+        loadAdvice();
+    }, [loadAdvice]);
+
+    useFocusEffect(
+        React.useCallback(() => {
+            loadAdvice();
+        }, [loadAdvice])
+    );
+
+    useEffect(() => {
+        if (!user) {
+            return;
+        }
+
+        const hasInProgressAdvice = adviceList.some((item) => item?.status === 'pending' || item?.status === 'generating' || item?.status === 'queued');
+        if (!hasInProgressAdvice) {
+            return;
+        }
+
+        const interval = setInterval(() => {
+            loadAdvice();
+        }, 3000);
+
+        return () => {
+            clearInterval(interval);
+        };
+    }, [adviceList, loadAdvice, user]);
 
     const handleDelete = async (id: string) => {
         Alert.alert("Delete Advice", "Are you sure you want to delete this?", [

@@ -21,9 +21,16 @@ export default function ChurchTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!userCongregationId) return;
+    if (!userCongregationId) {
+      setChurch(null);
+      setStudies([]);
+      setMessages([]);
+      setLoading(false);
+      return;
+    }
 
     async function loadChurchData() {
+      setLoading(true);
       try {
         const data = await fetchChurchContent(userCongregationId as number);
         setChurch(data.church);
