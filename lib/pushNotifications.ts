@@ -64,6 +64,8 @@ function handleRegistrationError(errorMessage: string) {
   throw new Error(errorMessage);
 }
 
+const isExpoPushToken = (value: string) => value.startsWith('ExponentPushToken[') || value.startsWith('ExpoPushToken[');
+
 // 3. Hook to use in the app
 export const usePushNotifications = () => {
     const [expoPushToken, setExpoPushToken] = useState('');
@@ -76,7 +78,10 @@ export const usePushNotifications = () => {
     useEffect(() => {
       registerForPushNotificationsAsync()
         .then(token => setExpoPushToken(token ?? ''))
-        .catch((error: any) => setExpoPushToken(`${error}`));
+        .catch((error: unknown) => {
+          console.error('Push notification registration failed:', error);
+          setExpoPushToken('');
+        });
   
       notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
         setNotification(notification);
@@ -101,13 +106,19 @@ export const usePushNotifications = () => {
   };
 
   export const savePushTokenToProfile = async (userId: string, token: string) => {
-    if (!userId || !token) return;
+    if (!userId || !token || !isExpoPushToken(token)) return;
 
     const { error } = await supabase
         .from('profiles')
-        .upsert({ id: userId, expo_push_token: token }, { onConflict: 'id' });
+        .update({ expo_push_token: token })
+        .eq('id', userId);
 
     if (error) {
-        console.error('Error saving push token to profile:', error);
+        console.error('Error saving push token to profile:', {
+          code: error.code,
+          message: error.message,
+          details: error.details,
+          hint: error.hint,
+        });
     }
   };

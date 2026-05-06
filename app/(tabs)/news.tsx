@@ -322,6 +322,7 @@ export default function NewsScreen() {
             <Stack.Screen options={{ headerShown: false }} />
 
             <FlatList
+                style={{ paddingVertical: 2 }}
                 data={listData}
                 keyExtractor={(item) => item.id.toString()}
                 renderItem={({ item, index }) => {

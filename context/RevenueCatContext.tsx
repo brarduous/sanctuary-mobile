@@ -4,6 +4,8 @@ import { Platform } from 'react-native';
 import Purchases, { CustomerInfo, PurchasesPackage } from 'react-native-purchases';
 import { useAuth } from './AuthContext';
 
+let configuredRevenueCatKey: string | null = null;
+
 interface RevenueCatContextType {
   isPro: boolean;
   packages: PurchasesPackage[];
@@ -36,15 +38,24 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     const init = async () => {
+      const apiKey = Platform.OS === 'ios' ? API_KEYS.apple : API_KEYS.google;
+
+      if (!apiKey) {
+        setPackages([]);
+        setIsLoaded(true);
+        return;
+      }
+
       try {
-        if (Platform.OS === 'ios') {
-          Purchases.configure({ apiKey: API_KEYS.apple });
-        } else if (Platform.OS === 'android') {
-          Purchases.configure({ apiKey: API_KEYS.google });
+        if (configuredRevenueCatKey !== apiKey) {
+          Purchases.configure({ apiKey });
+          configuredRevenueCatKey = apiKey;
         }
 
         if (user?.id) {
             await Purchases.logIn(user.id);
+        } else {
+            await Purchases.logOut();
         }
 
         const info = await Purchases.getCustomerInfo();
@@ -56,7 +67,7 @@ export const RevenueCatProvider = ({ children }: { children: ReactNode }) => {
       }
     };
     init();
-  }, [user]);
+  }, [user?.id]);
 
   useEffect(() => {
     const onCustomerInfoUpdated = async (info: CustomerInfo) => {

@@ -173,7 +173,7 @@ export default function HomeScreen() {
         if (!user) {
             const [news, videos, generalData] = await Promise.all([
                 fetchDailyNewsSynopsis(),
-                fetchRecommendedVideos(),
+                Promise.resolve([]),
                 fetchGeneralDevotional()
             ]);
             setDailyNews(news);
@@ -194,7 +194,7 @@ export default function HomeScreen() {
             fetchUserStreak(user.id, 'daily_devotional'),
             fetchCommunityStats(),
             checkAdviceLimit(user.id),
-            fetchRecommendedVideos(),
+            user ? fetchRecommendedVideos() : Promise.resolve([]),
             fetchGeneralDevotional() // <-- We fetch this immediately for everyone now
         ]);
         
@@ -591,7 +591,9 @@ export default function HomeScreen() {
                             <Users size={18} color="#D4A373" />
                         </View>
                         <Text className="text-sm text-slate-700 dark:text-slate-300 flex-1">
-                            <Text className="font-bold">{communityStats.totalPrayedForYou} people</Text> in your community have prayed for you this week.
+                            <Text className="font-bold">
+                                {communityStats.totalPrayedForYou} {communityStats.totalPrayedForYou === 1 ? 'person' : 'people'}
+                            </Text> in your community have prayed for you this week.
                         </Text>
                     </View>
                 )}

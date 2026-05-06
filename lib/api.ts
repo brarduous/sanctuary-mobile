@@ -502,21 +502,12 @@ export const submitPrayerRequest = async (params: {
     visibility: 'public_anonymous' | 'congregation' | 'pastor';
     congregationId?: number | null;
 }) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const response = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/prayers/request`, {
-        method: 'POST',
-        headers: {
-            'Authorization': `Bearer ${session?.access_token}`,
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(params)
-    });
-
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Failed to submit prayer request');
+    try {
+      const response = await apiClient.post('/request', params);
+      return response.data;
+    } catch (error: any) {
+      throw new Error(error.response?.data?.error || error.message || 'Failed to submit prayer request');
     }
-    return response.json();
 };
 
 export const deleteDevotional = async (devotionalId: string) => {
@@ -541,7 +532,12 @@ export const deletePrayer = async (prayerId: string) => {
 
 export const fetchRecommendedVideos = async () => {
   try {
-    // Assuming 'apiClient' is your axios/fetch instance with auth headers
+    const { data: { session } } = await supabase.auth.getSession();
+
+    if (!session) {
+      return [];
+    }
+
     const response = await apiClient.get('/recommended');
     return response.data;
   } catch (error) {
@@ -614,23 +610,14 @@ export const fetchMessageDetail = async (messageId: string) => {
 };
 
 export const fetchRandomPrayer = async (congregationId?: number | null) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    
-    // Safely append query param if it exists
-    const url = new URL(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/prayers/random`);
-    if (congregationId) {
-        url.searchParams.append('congregationId', congregationId.toString());
+    try {
+        const response = await apiClient.get('/random', {
+            params: congregationId ? { congregationId } : undefined,
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.error || error.message || 'Failed to fetch prayer');
     }
-
-    const response = await fetch(url.toString(), {
-        headers: { 'Authorization': `Bearer ${session?.access_token}` }
-    });
-
-    if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Failed to fetch prayer');
-    }
-    return response.json();
 };
 // Leave the current digital congregation
 export const leaveCongregation = async () => {
