@@ -9,6 +9,7 @@ const apiClient = axios.create({
   baseURL: BACKEND_API_URL,
   headers: {
     'Content-Type': 'application/json',
+    'Accept': 'application/json',
   },
 });
 
@@ -506,7 +507,29 @@ export const submitPrayerRequest = async (params: {
       const response = await apiClient.post('/request', params);
       return response.data;
     } catch (error: any) {
-      throw new Error(error.response?.data?.error || error.message || 'Failed to submit prayer request');
+      const responseData = error.response?.data;
+      const contentType = error.response?.headers?.['content-type'];
+
+      if (typeof responseData === 'string' && responseData.trim().startsWith('<')) {
+        console.error('Prayer request endpoint returned HTML instead of JSON', {
+          status: error.response?.status,
+          contentType,
+          baseURL: BACKEND_API_URL,
+          path: '/request',
+        });
+        throw new Error('The prayer request service returned an unexpected page instead of JSON. Please try again in a moment.');
+      }
+
+      if (error.message?.includes('JSON Parse error')) {
+        console.error('Prayer request response could not be parsed as JSON', {
+          message: error.message,
+          baseURL: BACKEND_API_URL,
+          path: '/request',
+        });
+        throw new Error('The prayer request service sent an invalid response. Please try again in a moment.');
+      }
+
+      throw new Error(responseData?.error || error.message || 'Failed to submit prayer request');
     }
 };
 

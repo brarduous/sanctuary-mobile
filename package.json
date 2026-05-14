@@ -4,7 +4,10 @@
   "version": "1.1.0",
   "scripts": {
     "start": "expo start",
+    "dev": "expo start --dev-client",
     "android": "expo run:android",
+    "android:dev": "expo run:android",
+    "android:dev:device": "expo run:android --device",
     "ios": "expo run:ios",
     "web": "expo start --web"
   },
