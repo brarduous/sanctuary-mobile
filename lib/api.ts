@@ -27,6 +27,18 @@ const processQueue = (error: any, token: string | null = null) => {
   failedQueue = [];
 };
 
+const normalizeShortForm = (shortForm: any) => {
+  if (!shortForm) return null;
+  if (typeof shortForm === 'string') {
+    try {
+      return JSON.parse(shortForm);
+    } catch {
+      return null;
+    }
+  }
+  return shortForm;
+};
+
 export const setAuthToken = (token: string | null) => {
   if (token) {
     apiClient.defaults.headers.common['Authorization'] = `Bearer ${token}`;
@@ -138,6 +150,7 @@ export const fetchGeneralDevotional = async () => {
           title: data.title,
           content: data.content,
           scripture: data.scripture_reference,
+          short_form: normalizeShortForm(data.short_form),
           created_at: data.created_at,
           type: 'general',
         },
@@ -175,7 +188,11 @@ export const fetchCommunityStats = async () => {
 export const fetchDailyDevotionals = async (userId: string) => {
     try {
         const response = await apiClient.get(`/devotionals/${userId}`);
-        return response.data;
+    const devotionals = Array.isArray(response.data) ? response.data : [];
+    return devotionals.map((item: any) => ({
+      ...item,
+      short_form: normalizeShortForm(item.short_form),
+    }));
     } catch (error) {
         console.error('Error fetching devotionals:', error);
         return [];
@@ -359,6 +376,7 @@ export const fetchDevotionalById = async (id: string) => {
                 content: data.content,
                 scripture: data.scripture_reference,
                 prayer: data.prayer,
+              short_form: normalizeShortForm(data.short_form),
                 created_at: data.created_at,
                 type: 'general',
             };
@@ -370,7 +388,10 @@ export const fetchDevotionalById = async (id: string) => {
                 .single();
             
             if (error) throw error;
-            return data;
+            return {
+              ...data,
+              short_form: normalizeShortForm(data.short_form),
+            };
         }
     } catch (error) {
         console.error('Error fetching devotional by id:', error);
