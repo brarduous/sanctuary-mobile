@@ -7,13 +7,18 @@ import {
     fetchFavorites,
     fetchUserFollowedCategories,
     fetchUserProfile,
+    fetchVideoPreferences,
+    fetchYoutubeChannels,
     leaveCongregation,
+    searchSpotifyArtists,
+    SpotifyArtist,
     updateUserFollowedCategories,
     updateUserProfile
 } from '@/lib/api';
 import { Stack, useRouter } from 'expo-router';
 import {
     AlertTriangle,
+    Ban,
     Check,
     ChevronRight,
     Church,
@@ -25,17 +30,21 @@ import {
     Newspaper,
     QrCode,
     Save,
+    Search,
+    Star,
     Sun,
     Target,
     Trash2,
     TrendingUp,
-    User
+    User,
+    Video
 } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
     LayoutAnimation,
+    TextInput,
     Platform,
     Pressable,
     ScrollView,
@@ -66,11 +75,21 @@ export default function ProfileScreen() {
     const [focusOptions, setFocusOptions] = useState<string[]>([]);
     const [improveOptions, setImproveOptions] = useState<string[]>([]);
     const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
+    const [youtubeChannels, setYoutubeChannels] = useState<any[]>([]);
 
     // User Selections
     const [focusAreas, setFocusAreas] = useState<string[]>([]);
     const [improvementAreas, setImprovementAreas] = useState<string[]>([]);
     const [followedCategoryIds, setFollowedCategoryIds] = useState<number[]>([]);
+    const [preferredChannelIds, setPreferredChannelIds] = useState<string[]>([]);
+    const [blockedChannelIds, setBlockedChannelIds] = useState<string[]>([]);
+    const [preferredSpeakers, setPreferredSpeakers] = useState<string[]>([]);
+    const [channelSearch, setChannelSearch] = useState('');
+    const [channelFilter, setChannelFilter] = useState<'discover' | 'preferred' | 'blocked'>('discover');
+    const [favoriteArtists, setFavoriteArtists] = useState<SpotifyArtist[]>([]);
+    const [artistSearch, setArtistSearch] = useState('');
+    const [artistResults, setArtistResults] = useState<SpotifyArtist[]>([]);
+    const [artistSearching, setArtistSearching] = useState(false);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -111,11 +130,13 @@ export default function ProfileScreen() {
                 return;
             }
             try {
-                const [userProfile, appOptions, cats, userCats] = await Promise.all([
+                const [userProfile, appOptions, cats, userCats, videoPrefs, channels] = await Promise.all([
                     fetchUserProfile(user.id).catch(e => { console.error('Profile fetch error:', e); return null; }),
                     fetchAppOptions().catch(e => { console.error('App options error:', e); return null; }),
                     fetchCategories().catch(e => { console.error('Categories error:', e); return []; }),
-                    fetchUserFollowedCategories(user.id).catch(e => { console.error('User cats error:', e); return []; })
+                    fetchUserFollowedCategories(user.id).catch(e => { console.error('User cats error:', e); return []; }),
+                    fetchVideoPreferences().catch(e => { console.error('Video preferences error:', e); return null; }),
+                    fetchYoutubeChannels({ limit: 200 }).catch(e => { console.error('YouTube channels error:', e); return []; })
                 ]);
 
                 if (appOptions && Array.isArray(appOptions)) {
@@ -138,11 +159,24 @@ export default function ProfileScreen() {
                     setFollowedCategoryIds(userCats.map((uc: any) => Number(uc.id || uc)).filter(id => !isNaN(id)));
                 }
 
+                if (videoPrefs) {
+                    setPreferredChannelIds(Array.isArray(videoPrefs.preferredChannelIds) ? videoPrefs.preferredChannelIds : []);
+                    setBlockedChannelIds(Array.isArray(videoPrefs.blockedChannelIds) ? videoPrefs.blockedChannelIds : []);
+                    setPreferredSpeakers(Array.isArray(videoPrefs.preferredSpeakers) ? videoPrefs.preferredSpeakers : []);
+                }
+
+                if (channels && Array.isArray(channels)) {
+                    setYoutubeChannels(channels);
+                }
+
                 if (userProfile) {
                     setProfile(userProfile);
                     if (userProfile.user_preferences) {
                         setFocusAreas(Array.isArray(userProfile.user_preferences.focusAreas) ? userProfile.user_preferences.focusAreas : []);
                         setImprovementAreas(Array.isArray(userProfile.user_preferences.improvementAreas) ? userProfile.user_preferences.improvementAreas : []);
+                        setFavoriteArtists(Array.isArray(userProfile.user_preferences.musicPreferences?.favoriteGospelArtists)
+                            ? userProfile.user_preferences.musicPreferences.favoriteGospelArtists
+                            : []);
                     }
                 }
             } catch (error) {
@@ -164,6 +198,22 @@ export default function ProfileScreen() {
         }
     }, [activeSection, user]);
 
+    useEffect(() => {
+        const handle = setTimeout(async () => {
+            if (!artistSearch.trim()) {
+                setArtistResults([]);
+                return;
+            }
+
+            setArtistSearching(true);
+            const results = await searchSpotifyArtists(`${artistSearch} gospel christian`);
+            setArtistResults(results);
+            setArtistSearching(false);
+        }, 350);
+
+        return () => clearTimeout(handle);
+    }, [artistSearch]);
+
     // Handlers
     const toggleString = (list: string[], item: string, setFn: any) => {
         if (!Array.isArray(list) || !item) return;
@@ -175,6 +225,43 @@ export default function ProfileScreen() {
         setFn(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
     };
 
+    const setChannelPreference = (channelId: string, preference: 'preferred' | 'blocked' | 'neutral') => {
+        if (!channelId) return;
+
+        setPreferredChannelIds((current) => {
+            const withoutChannel = current.filter(id => id !== channelId);
+            return preference === 'preferred' ? [...withoutChannel, channelId] : withoutChannel;
+        });
+
+        setBlockedChannelIds((current) => {
+            const withoutChannel = current.filter(id => id !== channelId);
+            return preference === 'blocked' ? [...withoutChannel, channelId] : withoutChannel;
+        });
+    };
+
+    const toggleFavoriteArtist = (artist: SpotifyArtist) => {
+        setFavoriteArtists((current) => {
+            if (current.some((item) => item.id === artist.id || item.name === artist.name)) {
+                return current.filter((item) => item.id !== artist.id && item.name !== artist.name);
+            }
+            return [...current, artist].slice(0, 5);
+        });
+    };
+
+    const filteredYoutubeChannels = youtubeChannels.filter((channel) => {
+        const channelId = String(channel.channel_id || '');
+        const name = String(channel.channel_name || '');
+        const handle = String(channel.handle || '');
+        const matchesSearch = !channelSearch.trim()
+            || name.toLowerCase().includes(channelSearch.trim().toLowerCase())
+            || handle.toLowerCase().includes(channelSearch.trim().toLowerCase());
+
+        if (!matchesSearch) return false;
+        if (channelFilter === 'preferred') return preferredChannelIds.includes(channelId);
+        if (channelFilter === 'blocked') return blockedChannelIds.includes(channelId);
+        return true;
+    });
+
     const handleSave = async () => {
         if (!user) return;
         setSaving(true);
@@ -182,9 +269,18 @@ export default function ProfileScreen() {
             await Promise.all([
                 updateUserProfile(user.id, {
                     user_preferences: {
+                        ...(profile?.user_preferences || {}),
                         focusAreas,
                         improvementAreas,
-                        onboardingCompleted: true
+                        onboardingCompleted: true,
+                        videoPreferences: {
+                            preferredChannelIds,
+                            blockedChannelIds,
+                            preferredSpeakers
+                        },
+                        musicPreferences: {
+                            favoriteGospelArtists: favoriteArtists
+                        }
                     }
                 }),
                 updateUserFollowedCategories(user.id, followedCategoryIds)
@@ -485,6 +581,180 @@ export default function ProfileScreen() {
                                         </Text>
                                     </Pressable>
                                 ))}
+                            </View>
+                        </View>
+
+                        {/* Video Creator Preferences */}
+                        <View>
+                            <View className="flex-row items-center justify-between mb-3 ml-1">
+                                <View className="flex-row items-center gap-2">
+                                    <Video size={16} color="#D4A373" />
+                                    <Text className="text-sm font-bold uppercase tracking-widest text-slate-400">Video Creators</Text>
+                                </View>
+                                <Text className="text-[10px] font-bold text-slate-400">
+                                    {preferredChannelIds.length} yes / {blockedChannelIds.length} no
+                                </Text>
+                            </View>
+
+                            <View className="flex-row p-1 bg-slate-100/80 rounded-xl mb-3">
+                                {[
+                                    { key: 'discover', label: 'Discover' },
+                                    { key: 'preferred', label: 'Preferred' },
+                                    { key: 'blocked', label: 'Blocked' }
+                                ].map((item) => (
+                                    <Pressable
+                                        key={item.key}
+                                        onPress={() => setChannelFilter(item.key as 'discover' | 'preferred' | 'blocked')}
+                                        className={`flex-1 py-2 items-center rounded-lg ${channelFilter === item.key ? 'bg-white' : ''}`}
+                                    >
+                                        <Text
+                                            className={`text-xs font-bold ${channelFilter === item.key ? 'text-slate-800' : 'text-slate-500'}`}
+                                        >
+                                            {item.label}
+                                        </Text>
+                                    </Pressable>
+                                ))}
+                            </View>
+
+                            <View className="flex-row items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 mb-3" style={{ backgroundColor: theme.card }}>
+                                <Search size={16} color="#94A3B8" />
+                                <TextInput
+                                    value={channelSearch}
+                                    onChangeText={setChannelSearch}
+                                    placeholder="Search channels"
+                                    placeholderTextColor="#94A3B8"
+                                    autoCapitalize="none"
+                                    className="flex-1 text-sm"
+                                    style={{ color: theme.text }}
+                                />
+                            </View>
+
+                            <View className="gap-3">
+                                {filteredYoutubeChannels.slice(0, 12).map((channel) => {
+                                    const channelId = String(channel.channel_id || '');
+                                    const isPreferred = preferredChannelIds.includes(channelId);
+                                    const isBlocked = blockedChannelIds.includes(channelId);
+
+                                    return (
+                                        <View
+                                            key={channelId}
+                                            className={`p-4 rounded-xl border ${isBlocked ? 'border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-900/30' : isPreferred ? 'border-[#D4A373] bg-[#D4A373]/10' : 'border-slate-200'}`}
+                                            style={!isBlocked && !isPreferred ? { backgroundColor: theme.card } : undefined}
+                                        >
+                                            <View className="flex-row items-start justify-between gap-3">
+                                                <View className="flex-1">
+                                                    <Text className="font-bold text-sm mb-1" numberOfLines={1} style={{ color: theme.text }}>
+                                                        {channel.channel_name || 'YouTube Channel'}
+                                                    </Text>
+                                                    {!!channel.handle && (
+                                                        <Text className="text-xs mb-2" numberOfLines={1} style={{ color: theme.mutedForeground }}>
+                                                            {channel.handle}
+                                                        </Text>
+                                                    )}
+                                                </View>
+
+                                                {(isPreferred || isBlocked) && (
+                                                    <Pressable
+                                                        onPress={() => setChannelPreference(channelId, 'neutral')}
+                                                        className="px-3 py-1.5 rounded-lg bg-white/80 border border-slate-200"
+                                                    >
+                                                        <Text className="text-[10px] font-bold text-slate-500">Reset</Text>
+                                                    </Pressable>
+                                                )}
+                                            </View>
+
+                                            <View className="flex-row gap-2 mt-2">
+                                                <Pressable
+                                                    onPress={() => setChannelPreference(channelId, isPreferred ? 'neutral' : 'preferred')}
+                                                    className={`flex-1 py-2 rounded-lg flex-row items-center justify-center gap-2 ${isPreferred ? 'bg-[#D4A373]' : 'bg-slate-100 dark:bg-slate-800'}`}
+                                                >
+                                                    <Star size={14} color={isPreferred ? 'white' : '#64748B'} />
+                                                    <Text className={`text-xs font-bold ${isPreferred ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>
+                                                        Preferred
+                                                    </Text>
+                                                </Pressable>
+
+                                                <Pressable
+                                                    onPress={() => setChannelPreference(channelId, isBlocked ? 'neutral' : 'blocked')}
+                                                    className={`flex-1 py-2 rounded-lg flex-row items-center justify-center gap-2 ${isBlocked ? 'bg-red-500' : 'bg-slate-100 dark:bg-slate-800'}`}
+                                                >
+                                                    <Ban size={14} color={isBlocked ? 'white' : '#64748B'} />
+                                                    <Text className={`text-xs font-bold ${isBlocked ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>
+                                                        Block
+                                                    </Text>
+                                                </Pressable>
+                                            </View>
+                                        </View>
+                                    );
+                                })}
+
+                                {filteredYoutubeChannels.length === 0 && (
+                                    <View className="py-8 items-center rounded-xl border border-dashed border-slate-200" style={{ backgroundColor: theme.card }}>
+                                        <Text className="text-sm font-bold text-slate-500">No channels here yet.</Text>
+                                        <Text className="text-xs text-slate-400 mt-1">Try another search or tab.</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </View>
+
+                        {/* Gospel Artist Preferences */}
+                        <View>
+                            <View className="flex-row items-center justify-between mb-3 ml-1">
+                                <View className="flex-row items-center gap-2">
+                                    <Star size={16} color="#D4A373" />
+                                    <Text className="text-sm font-bold uppercase tracking-widest text-slate-400">Gospel Artists</Text>
+                                </View>
+                                <Text className="text-[10px] font-bold text-slate-400">
+                                    {favoriteArtists.length}/5 selected
+                                </Text>
+                            </View>
+
+                            <View className="flex-row items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 mb-3" style={{ backgroundColor: theme.card }}>
+                                <Search size={16} color="#94A3B8" />
+                                <TextInput
+                                    value={artistSearch}
+                                    onChangeText={setArtistSearch}
+                                    placeholder="Search gospel artists"
+                                    placeholderTextColor="#94A3B8"
+                                    autoCapitalize="words"
+                                    className="flex-1 text-sm"
+                                    style={{ color: theme.text }}
+                                />
+                                {artistSearching && <ActivityIndicator size="small" color="#D4A373" />}
+                            </View>
+
+                            {favoriteArtists.length > 0 && (
+                                <View className="flex-row flex-wrap gap-2 mb-3">
+                                    {favoriteArtists.map((artist) => (
+                                        <Pressable
+                                            key={artist.id || artist.name}
+                                            onPress={() => toggleFavoriteArtist(artist)}
+                                            className="px-3 py-2 rounded-full bg-emerald-50 border border-emerald-200"
+                                        >
+                                            <Text className="text-xs font-bold text-emerald-700">{artist.name}</Text>
+                                        </Pressable>
+                                    ))}
+                                </View>
+                            )}
+
+                            <View className="gap-2">
+                                {artistResults.slice(0, 8).map((artist) => {
+                                    const selected = favoriteArtists.some((item) => item.id === artist.id || item.name === artist.name);
+
+                                    return (
+                                        <Pressable
+                                            key={artist.id || artist.name}
+                                            onPress={() => toggleFavoriteArtist(artist)}
+                                            className={`p-4 rounded-xl border flex-row items-center justify-between ${selected ? 'bg-emerald-50 border-emerald-300' : 'border-slate-200'}`}
+                                            style={!selected ? { backgroundColor: theme.card } : undefined}
+                                        >
+                                            <Text className="font-bold text-sm flex-1" numberOfLines={1} style={{ color: theme.text }}>
+                                                {artist.name}
+                                            </Text>
+                                            {selected && <Check size={16} color="#059669" />}
+                                        </Pressable>
+                                    );
+                                })}
                             </View>
                         </View>
 

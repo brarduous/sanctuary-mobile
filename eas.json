@@ -29,6 +29,12 @@
       "ios": {
         "ascAppId": "6757966099"
       }
+    },
+    "open-testing": {
+      "android": {
+        "track": "beta",
+        "releaseStatus": "completed"
+      }
     }
   }
 }

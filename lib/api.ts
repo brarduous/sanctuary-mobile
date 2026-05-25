@@ -590,6 +590,104 @@ export const fetchRecommendedVideos = async () => {
   }
 };
 
+export const fetchYoutubeChannels = async (params: { q?: string; limit?: number } = {}) => {
+  try {
+    const response = await apiClient.get('/youtube-channels', {
+      params: {
+        q: params.q,
+        limit: params.limit || 100,
+      },
+    });
+    return response.data || [];
+  } catch (error) {
+    console.error('[API] Error fetching YouTube channels:', error);
+    return [];
+  }
+};
+
+export const fetchVideoPreferences = async () => {
+  try {
+    const response = await apiClient.get('/videos/preferences');
+    return response.data || {
+      preferredChannelIds: [],
+      blockedChannelIds: [],
+      preferredSpeakers: [],
+    };
+  } catch (error) {
+    console.error('[API] Error fetching video preferences:', error);
+    return {
+      preferredChannelIds: [],
+      blockedChannelIds: [],
+      preferredSpeakers: [],
+    };
+  }
+};
+
+export const updateVideoPreferences = async (preferences: {
+  preferredChannelIds: string[];
+  blockedChannelIds: string[];
+  preferredSpeakers?: string[];
+}) => {
+  try {
+    const response = await apiClient.post('/videos/preferences', {
+      preferredChannelIds: preferences.preferredChannelIds,
+      blockedChannelIds: preferences.blockedChannelIds,
+      preferredSpeakers: preferences.preferredSpeakers || [],
+    });
+    return response.data;
+  } catch (error) {
+    console.error('[API] Error updating video preferences:', error);
+    throw error;
+  }
+};
+
+export type SpotifyArtist = {
+  id?: string;
+  name: string;
+  imageUrl?: string | null;
+  spotifyUrl?: string | null;
+};
+
+export type SpotifyTrack = {
+  id: string;
+  title: string;
+  artist: string;
+  album?: string | null;
+  imageUrl?: string | null;
+  spotifyUrl?: string | null;
+  previewUrl?: string | null;
+  provider: 'spotify';
+};
+
+export const searchSpotifyArtists = async (q: string) => {
+  try {
+    if (!q.trim()) return [];
+    const response = await apiClient.get('/api/music/spotify/artists', {
+      params: { q, limit: 8 },
+    });
+    return response.data || [];
+  } catch (error) {
+    console.error('[API] Error searching Spotify artists:', error);
+    return [];
+  }
+};
+
+export const recommendSpotifyTrack = async (params: {
+  query?: string;
+  title?: string;
+  scripture?: string;
+  content?: string;
+  prayer?: string;
+}) => {
+  try {
+    const response = await apiClient.post('/api/music/spotify/recommend-track', params);
+    return response.data?.track || null;
+  } catch (error) {
+    console.error('[API] Error recommending Spotify track:', error);
+    return null;
+  }
+};
+
 export const fetchUserCongregation = async (userId: string) => {
     try {
         const response = await apiClient.get('/api/congregations/membership/me');

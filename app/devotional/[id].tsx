@@ -1,7 +1,8 @@
 import ScriptureLinkifier from '@/components/ScriptureLinkifier';
+import SpotifyTrackCard from '@/components/SpotifyTrackCard';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { fetchDevotionalById } from '@/lib/api';
+import { fetchDevotionalById, recommendSpotifyTrack, SpotifyTrack } from '@/lib/api';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
@@ -28,6 +29,7 @@ export default function DevotionalDetailScreen() {
     const storyRefs = useRef<Array<ViewShot | null>>([]);
 
     const [devotional, setDevotional] = useState<any>(null);
+    const [recommendedTrack, setRecommendedTrack] = useState<SpotifyTrack | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSpeaking, setIsSpeaking] = useState(false);
 
@@ -54,6 +56,16 @@ export default function DevotionalDetailScreen() {
                 }
                 setDevotional(data);
                 setLoading(false);
+
+                if (data) {
+                    const track = await recommendSpotifyTrack({
+                        query: data.song_title || undefined,
+                        title: data.title,
+                        scripture: data.scripture,
+                        content: data.content,
+                    });
+                    setRecommendedTrack(track);
+                }
             }
         }
         load();
@@ -267,6 +279,8 @@ export default function DevotionalDetailScreen() {
                         </Text>
                    </Pressable>
                 </View>
+
+                <SpotifyTrackCard track={recommendedTrack} theme={theme} />
 
                 {/* Content */}
                 <View className="mb-10">

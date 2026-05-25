@@ -2,11 +2,11 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/context/RevenueCatContext';
-import { fetchAppOptions, fetchCategories, updateUserFollowedCategories, updateUserProfile } from '@/lib/api';
+import { fetchAppOptions, fetchCategories, searchSpotifyArtists, SpotifyArtist, updateUserFollowedCategories, updateUserProfile } from '@/lib/api';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
-import { Bell, BellRing, BookOpen, Check, ChevronLeft, ChevronRight, Crown, Info, Megaphone, User } from 'lucide-react-native';
+import { Bell, BellRing, BookOpen, Check, ChevronLeft, ChevronRight, Crown, Info, Megaphone, Music, Search, User } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
 import Animated, { FadeInRight, FadeOutLeft } from 'react-native-reanimated';
@@ -35,6 +35,10 @@ export default function OnboardingScreen() {
   const [selectedFocus, setSelectedFocus] = useState<string[]>([]);
   const [selectedImprove, setSelectedImprove] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+  const [favoriteArtists, setFavoriteArtists] = useState<SpotifyArtist[]>([]);
+  const [artistSearch, setArtistSearch] = useState('');
+  const [artistResults, setArtistResults] = useState<SpotifyArtist[]>([]);
+  const [artistSearching, setArtistSearching] = useState(false);
   
   // Notification State
   const [pushDevotionals, setPushDevotionals] = useState(true);
@@ -44,8 +48,8 @@ export default function OnboardingScreen() {
 
   const [modalData, setModalData] = useState<{ title: string, description: string } | null>(null);
 
-  // Step 1: Profile, Step 2: Focus, Step 3: Improve, Step 4: Categories, Step 5: Notifications, Step 6: Paywall
-  const totalSteps = isPro ? 5 : 6;
+  // Step 1: Profile, Step 2: Focus, Step 3: Improve, Step 4: Music, Step 5: Categories, Step 6: Notifications, Step 7: Paywall
+  const totalSteps = isPro ? 6 : 7;
 
   // Extract name from Apple/Google metadata automatically
   useEffect(() => {
@@ -98,6 +102,31 @@ export default function OnboardingScreen() {
     }
   };
 
+  useEffect(() => {
+    const handle = setTimeout(async () => {
+      if (!artistSearch.trim()) {
+        setArtistResults([]);
+        return;
+      }
+
+      setArtistSearching(true);
+      const results = await searchSpotifyArtists(`${artistSearch} gospel christian`);
+      setArtistResults(results);
+      setArtistSearching(false);
+    }, 350);
+
+    return () => clearTimeout(handle);
+  }, [artistSearch]);
+
+  const toggleFavoriteArtist = (artist: SpotifyArtist) => {
+    setFavoriteArtists((current) => {
+      if (current.some((item) => item.id === artist.id || item.name === artist.name)) {
+        return current.filter((item) => item.id !== artist.id && item.name !== artist.name);
+      }
+      return [...current, artist].slice(0, 5);
+    });
+  };
+
   const registerForPushNotificationsAsync = async () => {
     let token;
     if (Platform.OS === 'android') {
@@ -134,7 +163,15 @@ export default function OnboardingScreen() {
       const token = await registerForPushNotificationsAsync();
       if (token) setExpoPushToken(token);
       setSaving(false);
-      handleNextStep(); 
+      handleNotificationsComplete();
+  };
+
+  const handleNotificationsComplete = () => {
+      if (isPro) {
+        handleFinish();
+        return;
+      }
+      handleNextStep();
   };
 
   const savePreferences = async () => {
@@ -146,6 +183,9 @@ export default function OnboardingScreen() {
           devotionals: pushDevotionals,
           announcements: pushAnnouncements,
           bibleStudies: pushStudies
+      },
+      musicPreferences: {
+          favoriteGospelArtists: favoriteArtists
       },
       onboardingCompleted: true
     };
@@ -350,8 +390,67 @@ export default function OnboardingScreen() {
                         </Animated.View>
                     )}
 
-                    {/* STEP 4: CHRISTIAN OUTLOOK */}
+                    {/* STEP 4: GOSPEL ARTISTS */}
                     {step === 4 && (
+                        <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={{ flex: 1 }}>
+                            <Text style={{ color: theme.tint }} className="text-3xl font-serif mb-2 text-center">Gospel Artists</Text>
+                            <Text style={{ color: Colors.gray }} className="text-center mb-6">Pick a few artists to shape worship track recommendations.</Text>
+
+                            <View className="flex-row items-center gap-2 p-4 rounded-2xl border mb-4" style={{ backgroundColor: theme.card, borderColor: colorScheme === 'dark' ? '#333' : '#e5e7eb' }}>
+                                <Search size={18} color={Colors.gray} />
+                                <TextInput
+                                    value={artistSearch}
+                                    onChangeText={setArtistSearch}
+                                    placeholder="Search gospel artists"
+                                    placeholderTextColor={theme.text === '#FFFFFF' ? '#475569' : '#CBD5E1'}
+                                    autoCapitalize="words"
+                                    style={{ color: theme.text, flex: 1 }}
+                                />
+                                {artistSearching && <ActivityIndicator size="small" color={theme.tint} />}
+                            </View>
+
+                            {favoriteArtists.length > 0 && (
+                                <View className="flex-row flex-wrap gap-2 mb-4">
+                                    {favoriteArtists.map((artist) => (
+                                        <Pressable
+                                            key={artist.id || artist.name}
+                                            onPress={() => toggleFavoriteArtist(artist)}
+                                            className="px-3 py-2 rounded-full bg-emerald-50 border border-emerald-200"
+                                        >
+                                            <Text className="text-xs font-bold text-emerald-700">{artist.name}</Text>
+                                        </Pressable>
+                                    ))}
+                                </View>
+                            )}
+
+                            <ScrollView showsVerticalScrollIndicator={false}>
+                                <View className="gap-3 pb-8">
+                                    {artistResults.map((artist) => {
+                                        const selected = favoriteArtists.some((item) => item.id === artist.id || item.name === artist.name);
+                                        return (
+                                            <Pressable
+                                                key={artist.id || artist.name}
+                                                onPress={() => toggleFavoriteArtist(artist)}
+                                                className="p-4 rounded-2xl border flex-row items-center justify-between"
+                                                style={{ backgroundColor: selected ? '#ecfdf5' : theme.card, borderColor: selected ? '#10b981' : (colorScheme === 'dark' ? '#333' : '#e5e7eb') }}
+                                            >
+                                                <View className="flex-row items-center flex-1">
+                                                    <View className="w-10 h-10 rounded-full bg-emerald-50 items-center justify-center mr-3">
+                                                        <Music size={18} color="#059669" />
+                                                    </View>
+                                                    <Text style={{ color: theme.text, fontWeight: '700', flex: 1 }}>{artist.name}</Text>
+                                                </View>
+                                                {selected && <Check size={18} color="#059669" />}
+                                            </Pressable>
+                                        );
+                                    })}
+                                </View>
+                            </ScrollView>
+                        </Animated.View>
+                    )}
+
+                    {/* STEP 5: CHRISTIAN OUTLOOK */}
+                    {step === 5 && (
                         <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={{ flex: 1 }}>
                              <Text style={{ color: theme.tint }} className="text-3xl font-serif mb-2 text-center">Christian Outlook</Text>
                              <Text style={{ color: Colors.gray }} className="text-center mb-6">Which topics in the news matter most to you?</Text>
@@ -385,8 +484,8 @@ export default function OnboardingScreen() {
                         </Animated.View>
                     )}
 
-                    {/* STEP 5: STAY CONNECTED (NOTIFICATIONS) */}
-                    {step === 5 && (
+                    {/* STEP 6: STAY CONNECTED (NOTIFICATIONS) */}
+                    {step === 6 && (
                         <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={{ flex: 1, justifyContent: 'center' }}>
                             <View className="items-center mb-6">
                                 <View className="w-16 h-16 bg-indigo-50 dark:bg-indigo-900/30 rounded-full items-center justify-center mb-6">
@@ -436,14 +535,14 @@ export default function OnboardingScreen() {
                                 {saving ? <ActivityIndicator color="white" /> : <Text className="text-white font-bold text-lg">Enable Notifications</Text>}
                             </Pressable>
                             
-                            <Pressable onPress={handleNextStep} disabled={saving} className="items-center py-2">
+                            <Pressable onPress={handleNotificationsComplete} disabled={saving} className="items-center py-2">
                                 <Text style={{ color: Colors.gray, fontSize: 14, fontWeight: '600' }}>Skip for now</Text>
                             </Pressable>
                         </Animated.View>
                     )}
 
-                    {/* STEP 6: PAYWALL */}
-                    {step === 6 && !isPro && (
+                    {/* STEP 7: PAYWALL */}
+                    {step === 7 && !isPro && (
                          <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
                              <View className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-full mb-6">
                                 <Crown size={48} color={theme.tint} />
@@ -471,20 +570,20 @@ export default function OnboardingScreen() {
                      <Pressable
                         onPress={() => setStep(s => Math.max(1, s - 1))}
                         disabled={step === 1 || saving}
-                        style={{ opacity: (step === 1 || step === 5) ? 0 : 1 }} 
+                        style={{ opacity: (step === 1 || step === 6) ? 0 : 1 }} 
                         className="flex-row items-center p-3"
                      >
                         <ChevronLeft size={20} color={Colors.gray} />
                         <Text style={{ color: Colors.gray, fontWeight: '600', marginLeft: 4 }}>Back</Text>
                      </Pressable>
 
-                     {step < 5 ? (
+                     {step < 6 ? (
                         <Pressable onPress={handleNextStep} style={{ backgroundColor: theme.tint }} className="flex-row items-center px-6 py-3 rounded-full">
                             <Text className="text-white font-bold mr-2">Next</Text>
                             <ChevronRight size={18} color="white" />
                         </Pressable>
-                     ) : step === 5 ? (
-                        null /* Handled by the big buttons in the center of step 5 */
+                     ) : step === 6 ? (
+                        null /* Handled by the big buttons in the center of step 6 */
                      ) : (
                          <View className="flex-1">
                              <Pressable onPress={goToPaywall} disabled={saving} style={{ backgroundColor: theme.tint }} className="w-full py-4 rounded-xl items-center justify-center flex-row mb-3">

@@ -1,6 +1,7 @@
+import SpotifyTrackCard from '@/components/SpotifyTrackCard';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { fetchPrayerById } from '@/lib/api';
+import { fetchPrayerById, recommendSpotifyTrack, SpotifyTrack } from '@/lib/api';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { ArrowLeft, Calendar, Play, Share2, Sparkles, Square } from 'lucide-react-native';
@@ -15,6 +16,7 @@ export default function PrayerDetailScreen() {
     const theme = Colors[colorScheme];
 
     const [prayer, setPrayer] = useState<any>(null);
+    const [recommendedTrack, setRecommendedTrack] = useState<SpotifyTrack | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSpeaking, setIsSpeaking] = useState(false);
 
@@ -24,6 +26,14 @@ export default function PrayerDetailScreen() {
                 const data = await fetchPrayerById(id as string);
                 setPrayer(data);
                 setLoading(false);
+
+                if (data) {
+                    const track = await recommendSpotifyTrack({
+                        title: data.title || 'Daily Prayer',
+                        prayer: data.content || data.generated_prayer,
+                    });
+                    setRecommendedTrack(track);
+                }
             }
         }
         load();
@@ -135,6 +145,8 @@ export default function PrayerDetailScreen() {
                         </Text>
                    </Pressable>
                 </View>
+
+                <SpotifyTrackCard track={recommendedTrack} theme={theme} />
 
                 {/* Content */}
                 <View className="mb-10 p-8 rounded-[24px] border border-slate-100 dark:border-slate-800" style={{ backgroundColor: theme.card }}>
