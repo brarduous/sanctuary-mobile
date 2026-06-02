@@ -69,6 +69,13 @@ apiClient.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     if (error.response?.status === 401 && !originalRequest._retry) {
+      const { data: { session } } = await supabase.auth.getSession();
+
+      if (!session?.refresh_token) {
+        setAuthToken(null);
+        return Promise.reject(error);
+      }
+
       if (isRefreshing) {
         return new Promise(function(resolve, reject) {
           failedQueue.push({ resolve, reject });
@@ -121,9 +128,12 @@ export const fetchUserProfile = async (userId: string) => {
     try {
       const response = await apiClient.get(`/user-profile/${userId}`);
       return response.data.data;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching user profile:', error);
-      return null;
+      if (error.response?.status === 404) {
+        return null;
+      }
+      throw error;
     }
 };
 
@@ -611,6 +621,7 @@ export const fetchVideoPreferences = async () => {
     return response.data || {
       preferredChannelIds: [],
       blockedChannelIds: [],
+      blockedSpeakers: [],
       preferredSpeakers: [],
     };
   } catch (error) {
@@ -618,6 +629,7 @@ export const fetchVideoPreferences = async () => {
     return {
       preferredChannelIds: [],
       blockedChannelIds: [],
+      blockedSpeakers: [],
       preferredSpeakers: [],
     };
   }
@@ -626,12 +638,14 @@ export const fetchVideoPreferences = async () => {
 export const updateVideoPreferences = async (preferences: {
   preferredChannelIds: string[];
   blockedChannelIds: string[];
+  blockedSpeakers?: string[];
   preferredSpeakers?: string[];
 }) => {
   try {
     const response = await apiClient.post('/videos/preferences', {
       preferredChannelIds: preferences.preferredChannelIds,
       blockedChannelIds: preferences.blockedChannelIds,
+      blockedSpeakers: preferences.blockedSpeakers || [],
       preferredSpeakers: preferences.preferredSpeakers || [],
     });
     return response.data;

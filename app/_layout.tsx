@@ -61,7 +61,7 @@ export default function RootLayout() {
 
 function RootLayoutNav() {
   const colorScheme = useColorScheme();
-  const { user, profile, loading } = useAuth();
+  const { user, profile, profileLoadError, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
   const theme = Colors[colorScheme ?? 'light'];
@@ -91,15 +91,19 @@ function RootLayoutNav() {
         return;
     }
 
-    // 2. User Logic: If logged in but NO preferences -> Force Onboarding
-    const hasPreferences = profile?.user_preferences && Object.keys(profile.user_preferences).length > 0;
+    if (profileLoadError) {
+      return;
+    }
+
+    // 2. User Logic: If logged in but onboarding is incomplete -> Force Onboarding
+    const hasCompletedOnboarding = profile?.user_preferences?.onboardingCompleted === true;
     
-    if (user && !inOnboarding && !inJoin && !hasPreferences) {
+    if (user && !inOnboarding && !inJoin && !hasCompletedOnboarding) {
       router.replace('/onboarding');
-    } else if (user && inOnboarding && hasPreferences) {
+    } else if (user && inOnboarding && hasCompletedOnboarding) {
       router.replace('/(tabs)');
     }
-  }, [user, loading, segments, profile]);
+  }, [user, loading, segments, profile, profileLoadError]);
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>

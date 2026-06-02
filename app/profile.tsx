@@ -39,7 +39,7 @@ import {
     User,
     Video
 } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -59,8 +59,16 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
+function SettingsSection({ children, separated = true }: { children: React.ReactNode; separated?: boolean }) {
+    return (
+        <View className={separated ? 'pt-8 border-t border-slate-200 dark:border-slate-800' : ''}>
+            {children}
+        </View>
+    );
+}
+
 export default function ProfileScreen() {
-    const { user, profile: authProfile, signOut, userCongregationId, setUserCongregationId } = useAuth();
+    const { user, profile: authProfile, signOut, refreshProfile, userCongregationId, setUserCongregationId } = useAuth();
     const [isLeavingChurch, setIsLeavingChurch] = useState(false);
     const colorScheme = useColorScheme();
     const theme = Colors[colorScheme ?? 'light'];
@@ -73,19 +81,22 @@ export default function ProfileScreen() {
 
     // Options
     const [focusOptions, setFocusOptions] = useState<string[]>([]);
-    const [improveOptions, setImproveOptions] = useState<string[]>([]);
+    const [improveOptions, setImproveOptions] = useState<any[]>([]);
     const [categoryOptions, setCategoryOptions] = useState<any[]>([]);
     const [youtubeChannels, setYoutubeChannels] = useState<any[]>([]);
 
     // User Selections
     const [focusAreas, setFocusAreas] = useState<string[]>([]);
     const [improvementAreas, setImprovementAreas] = useState<string[]>([]);
+    const [otherImprovement, setOtherImprovement] = useState('');
     const [followedCategoryIds, setFollowedCategoryIds] = useState<number[]>([]);
     const [preferredChannelIds, setPreferredChannelIds] = useState<string[]>([]);
     const [blockedChannelIds, setBlockedChannelIds] = useState<string[]>([]);
+    const [blockedSpeakers, setBlockedSpeakers] = useState<string[]>([]);
     const [preferredSpeakers, setPreferredSpeakers] = useState<string[]>([]);
     const [channelSearch, setChannelSearch] = useState('');
     const [channelFilter, setChannelFilter] = useState<'discover' | 'preferred' | 'blocked'>('discover');
+    const [newsInterestSearch, setNewsInterestSearch] = useState('');
     const [favoriteArtists, setFavoriteArtists] = useState<SpotifyArtist[]>([]);
     const [artistSearch, setArtistSearch] = useState('');
     const [artistResults, setArtistResults] = useState<SpotifyArtist[]>([]);
@@ -139,6 +150,8 @@ export default function ProfileScreen() {
                     fetchYoutubeChannels({ limit: 200 }).catch(e => { console.error('YouTube channels error:', e); return []; })
                 ]);
 
+                let loadedImproveOptions: any[] = [];
+
                 if (appOptions && Array.isArray(appOptions)) {
                     const focusOpt = appOptions.find((o: any) => o.name === 'focus_areas');
                     const improveOpt = appOptions.find((o: any) => o.name === 'improvement_areas');
@@ -147,7 +160,8 @@ export default function ProfileScreen() {
                         setFocusOptions(focusOpt.options.map((x: any) => x.title).filter(Boolean));
                     }
                     if (improveOpt?.options && Array.isArray(improveOpt.options)) {
-                        setImproveOptions(improveOpt.options.map((x: any) => x.title).filter(Boolean));
+                        loadedImproveOptions = improveOpt.options.filter((x: any) => x?.title);
+                        setImproveOptions(loadedImproveOptions);
                     }
                 }
 
@@ -162,6 +176,7 @@ export default function ProfileScreen() {
                 if (videoPrefs) {
                     setPreferredChannelIds(Array.isArray(videoPrefs.preferredChannelIds) ? videoPrefs.preferredChannelIds : []);
                     setBlockedChannelIds(Array.isArray(videoPrefs.blockedChannelIds) ? videoPrefs.blockedChannelIds : []);
+                    setBlockedSpeakers(Array.isArray(videoPrefs.blockedSpeakers) ? videoPrefs.blockedSpeakers : []);
                     setPreferredSpeakers(Array.isArray(videoPrefs.preferredSpeakers) ? videoPrefs.preferredSpeakers : []);
                 }
 
@@ -173,7 +188,10 @@ export default function ProfileScreen() {
                     setProfile(userProfile);
                     if (userProfile.user_preferences) {
                         setFocusAreas(Array.isArray(userProfile.user_preferences.focusAreas) ? userProfile.user_preferences.focusAreas : []);
-                        setImprovementAreas(Array.isArray(userProfile.user_preferences.improvementAreas) ? userProfile.user_preferences.improvementAreas : []);
+                        const savedImprovementAreas = Array.isArray(userProfile.user_preferences.improvementAreas) ? userProfile.user_preferences.improvementAreas : [];
+                        setImprovementAreas(normalizeSavedImprovementAreas(savedImprovementAreas, loadedImproveOptions));
+                        const savedOther = savedImprovementAreas.find((item: string) => item.startsWith('Other: '));
+                        setOtherImprovement(savedOther ? savedOther.replace(/^Other:\s*/, '') : '');
                         setFavoriteArtists(Array.isArray(userProfile.user_preferences.musicPreferences?.favoriteGospelArtists)
                             ? userProfile.user_preferences.musicPreferences.favoriteGospelArtists
                             : []);
@@ -220,6 +238,61 @@ export default function ProfileScreen() {
         setFn(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
     };
 
+    const getImprovementValue = (category: string, subIssue?: string) => (
+        subIssue ? `${category}: ${subIssue}` : category
+    );
+
+    const normalizeSavedImprovementAreas = (savedAreas: string[], options: any[]) => {
+        const validValues = new Set<string>();
+        const legacyMap = new Map<string, string>();
+
+        options.forEach((option) => {
+            const subIssues = Array.isArray(option.subIssues) ? option.subIssues : [];
+            if (option.title === 'Other') return;
+
+            if (subIssues.length === 0) {
+                validValues.add(option.title);
+                legacyMap.set(option.title, option.title);
+                return;
+            }
+
+            subIssues.forEach((subIssue: string) => {
+                const value = getImprovementValue(option.title, subIssue);
+                validValues.add(value);
+                legacyMap.set(subIssue, value);
+            });
+        });
+
+        const legacyFallbacks: Record<string, string> = {
+            Anxiety: 'Mental Health: Anxiety',
+            Depression: 'Mental Health: Emotional exhaustion',
+            Stress: 'Mental Health: Emotional exhaustion',
+            Loneliness: 'Mental Health: Loneliness',
+            Anger: 'Habitual Sin & Guilt: Anger and self-control',
+            Temptation: 'Habitual Sin & Guilt: Repeated sin patterns',
+            'Guilt & Shame': 'Habitual Sin & Guilt: Receiving grace after failure',
+            'Self-Control': 'Habitual Sin & Guilt: Anger and self-control',
+            Laziness: 'Daily Discipline: Building consistent habits',
+            Doubt: 'Apologetics & Doubt: Is it a sin to doubt?',
+            Forgiveness: 'Church & Culture: Forgiveness and trust',
+        };
+
+        return Array.from(new Set(
+            savedAreas.flatMap((area) => {
+                if (!area || area.startsWith('Other: ')) return [];
+                if (validValues.has(area)) return [area];
+                const mapped = legacyMap.get(area) || legacyFallbacks[area];
+                return mapped && validValues.has(mapped) ? [mapped] : [];
+            })
+        ));
+    };
+
+    const getNextImprovementCheckInAt = () => {
+        const nextDate = new Date();
+        nextDate.setDate(nextDate.getDate() + 30);
+        return nextDate.toISOString();
+    };
+
     const toggleId = (list: number[], item: number, setFn: any) => {
         if (!Array.isArray(list) || typeof item !== 'number' || isNaN(item)) return;
         setFn(list.includes(item) ? list.filter(i => i !== item) : [...list, item]);
@@ -262,29 +335,55 @@ export default function ProfileScreen() {
         return true;
     });
 
+    const visibleNewsInterests = useMemo(() => {
+        const selectedIds = new Set(followedCategoryIds.map((id) => Number(id)));
+        const selected = categoryOptions.filter((cat) => selectedIds.has(Number(cat.id)));
+        const unselected = categoryOptions.filter((cat) => !selectedIds.has(Number(cat.id)));
+        const query = newsInterestSearch.trim().toLowerCase();
+
+        if (query) {
+            const matches = unselected
+                .filter((cat) => String(cat.name || '').toLowerCase().includes(query))
+                .slice(0, 12);
+            return [...selected, ...matches];
+        }
+
+        return [...selected, ...unselected.slice(0, 6)];
+    }, [categoryOptions, followedCategoryIds, newsInterestSearch]);
+
     const handleSave = async () => {
         if (!user) return;
         setSaving(true);
         try {
+            const userPreferences = {
+                ...(profile?.user_preferences || {}),
+                focusAreas,
+                improvementAreas: [
+                    ...improvementAreas,
+                    ...(otherImprovement.trim() ? [`Other: ${otherImprovement.trim()}`] : [])
+                ],
+                improvementAreasUpdatedAt: new Date().toISOString(),
+                improvementAreasCheckInAt: getNextImprovementCheckInAt(),
+                onboardingCompleted: true,
+                videoPreferences: {
+                    preferredChannelIds,
+                    blockedChannelIds,
+                    blockedSpeakers,
+                    preferredSpeakers
+                },
+                musicPreferences: {
+                    favoriteGospelArtists: favoriteArtists
+                }
+            };
+
             await Promise.all([
                 updateUserProfile(user.id, {
-                    user_preferences: {
-                        ...(profile?.user_preferences || {}),
-                        focusAreas,
-                        improvementAreas,
-                        onboardingCompleted: true,
-                        videoPreferences: {
-                            preferredChannelIds,
-                            blockedChannelIds,
-                            preferredSpeakers
-                        },
-                        musicPreferences: {
-                            favoriteGospelArtists: favoriteArtists
-                        }
-                    }
+                    user_preferences: userPreferences
                 }),
                 updateUserFollowedCategories(user.id, followedCategoryIds)
             ]);
+            setProfile((current: any) => current ? { ...current, user_preferences: userPreferences } : current);
+            await refreshProfile?.();
             Alert.alert("Success", "Preferences updated successfully.");
         } catch (error) {
             Alert.alert("Error", "Failed to save preferences.");
@@ -451,6 +550,7 @@ export default function ProfileScreen() {
                 {activeSection === 'settings' && (
                     <View className="gap-8">
                         {/* User Info */}
+                        <SettingsSection separated={false}>
                         <View className="flex-row items-center gap-4 p-4 rounded-2xl border " style={{ backgroundColor: theme.card }}>
                             <View className="w-12 h-12 bg-[#D4A373]/10 rounded-full items-center justify-center">
                                 <User size={24} color="#D4A373" />
@@ -462,8 +562,10 @@ export default function ProfileScreen() {
                                 <Text className="text-xs" style={{ color: theme.mutedForeground }}>{user?.email || ''}</Text>
                             </View>
                         </View>
+                        </SettingsSection>
 
                         {/* Subscription */}
+                        <SettingsSection>
                         <View className="bg-gradient-to-br from-[#D4A373]/20 to-slate-100 border border-[#D4A373]/30 rounded-xl p-5">
                             <View className="flex-row items-center gap-3 mb-2">
                                 <View className="p-2 bg-[#D4A373]/20 rounded-full">
@@ -496,6 +598,9 @@ export default function ProfileScreen() {
                                 </View>
                             )}
                         </View>
+                        </SettingsSection>
+
+                        <SettingsSection>
                         {!userCongregationId ? (
                             <Pressable
                                 onPress={() => router.push('/scan')}
@@ -521,7 +626,10 @@ export default function ProfileScreen() {
                                 </View>
                             </View>
                         )}
+                        </SettingsSection>
+
                         {/* App Settings */}
+                        <SettingsSection>
                         <View>
                             <Text className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3 ml-1">App Settings</Text>
                             <View className="border  rounded-xl p-4 flex-row justify-between items-center" style={{ backgroundColor: theme.card }}>
@@ -539,8 +647,10 @@ export default function ProfileScreen() {
                                 </View>
                             </View>
                         </View>
+                        </SettingsSection>
 
                         {/* Focus Areas */}
+                        <SettingsSection>
                         <View>
                             <View className="flex-row items-center gap-2 mb-3 ml-1">
                                 <Target size={16} color="#D4A373" />
@@ -561,30 +671,69 @@ export default function ProfileScreen() {
                                 ))}
                             </View>
                         </View>
+                        </SettingsSection>
 
                         {/* Improvement Areas */}
+                        <SettingsSection>
                         <View>
                             <View className="flex-row items-center gap-2 mb-3 ml-1">
                                 <TrendingUp size={16} color="#D4A373" />
                                 <Text className="text-sm font-bold uppercase tracking-widest text-slate-400">Areas for Growth</Text>
                             </View>
-                            <View className="flex-row flex-wrap gap-2">
-                                {(improveOptions || []).map(opt => (
-                                    <Pressable
-                                        key={opt}
-                                        onPress={() => toggleString(improvementAreas, opt, setImprovementAreas)}
-                                        className={`px-4 py-2 rounded-full border ${improvementAreas.includes(opt) ? 'bg-slate-900 border-slate-900' : 'border-slate-200'}`}
-                                        style={!improvementAreas.includes(opt) ? { backgroundColor: theme.card } : undefined}
-                                    >
-                                        <Text className={`text-xs font-bold ${improvementAreas.includes(opt) ? 'text-white' : ''}`} style={!improvementAreas.includes(opt) ? { color: theme.text } : undefined}>
-                                            {opt}
-                                        </Text>
-                                    </Pressable>
-                                ))}
+                            <View className="gap-3">
+                                {(improveOptions || []).map((opt: any) => {
+                                    const subIssues = Array.isArray(opt.subIssues) ? opt.subIssues : [];
+                                    const isOther = opt.title === 'Other';
+
+                                    if (isOther) {
+                                        return (
+                                            <View key={opt.title} className="p-4 rounded-xl border border-slate-200" style={{ backgroundColor: theme.card }}>
+                                                <Text className="font-bold text-sm mb-1" style={{ color: theme.text }}>{opt.title}</Text>
+                                                <Text className="text-xs mb-3" style={{ color: theme.mutedForeground }}>{opt.description}</Text>
+                                                <TextInput
+                                                    value={otherImprovement}
+                                                    onChangeText={setOtherImprovement}
+                                                    placeholder="Write a few words"
+                                                    placeholderTextColor="#94A3B8"
+                                                    className="w-full p-3 rounded-xl border border-slate-200 text-sm"
+                                                    style={{ color: theme.text, backgroundColor: colorScheme === 'dark' ? '#0f172a' : '#ffffff' }}
+                                                />
+                                            </View>
+                                        );
+                                    }
+
+                                    return (
+                                        <View key={opt.title} className="p-4 rounded-xl border border-slate-200" style={{ backgroundColor: theme.card }}>
+                                            <Text className="font-bold text-sm mb-1" style={{ color: theme.text }}>{opt.title}</Text>
+                                            <Text className="text-xs mb-3" style={{ color: theme.mutedForeground }}>{opt.description}</Text>
+                                            <View className="flex-row flex-wrap gap-2">
+                                                {(subIssues.length > 0 ? subIssues : [opt.title]).map((subIssue: string) => {
+                                                    const value = getImprovementValue(opt.title, subIssues.length > 0 ? subIssue : undefined);
+                                                    const selected = improvementAreas.includes(value);
+
+                                                    return (
+                                                        <Pressable
+                                                            key={value}
+                                                            onPress={() => toggleString(improvementAreas, value, setImprovementAreas)}
+                                                            className={`px-4 py-2 rounded-full border ${selected ? 'bg-slate-900 border-slate-900' : 'border-slate-200'}`}
+                                                            style={!selected ? { backgroundColor: colorScheme === 'dark' ? '#0f172a' : '#ffffff' } : undefined}
+                                                        >
+                                                            <Text className={`text-xs font-bold ${selected ? 'text-white' : ''}`} style={!selected ? { color: theme.text } : undefined}>
+                                                                {subIssue}
+                                                            </Text>
+                                                        </Pressable>
+                                                    );
+                                                })}
+                                            </View>
+                                        </View>
+                                    );
+                                })}
                             </View>
                         </View>
+                        </SettingsSection>
 
                         {/* Video Creator Preferences */}
+                        <SettingsSection>
                         <View>
                             <View className="flex-row items-center justify-between mb-3 ml-1">
                                 <View className="flex-row items-center gap-2">
@@ -696,8 +845,10 @@ export default function ProfileScreen() {
                                 )}
                             </View>
                         </View>
+                        </SettingsSection>
 
                         {/* Gospel Artist Preferences */}
+                        <SettingsSection>
                         <View>
                             <View className="flex-row items-center justify-between mb-3 ml-1">
                                 <View className="flex-row items-center gap-2">
@@ -729,9 +880,16 @@ export default function ProfileScreen() {
                                         <Pressable
                                             key={artist.id || artist.name}
                                             onPress={() => toggleFavoriteArtist(artist)}
-                                            className="px-3 py-2 rounded-full bg-emerald-50 border border-emerald-200"
+                                            className="px-3 py-2 rounded-full bg-emerald-50 border border-emerald-200 max-w-full"
                                         >
-                                            <Text className="text-xs font-bold text-emerald-700">{artist.name}</Text>
+                                            <Text
+                                                className="text-xs font-bold text-emerald-700"
+                                                numberOfLines={1}
+                                                adjustsFontSizeToFit
+                                                minimumFontScale={0.75}
+                                            >
+                                                {artist.name}
+                                            </Text>
                                         </Pressable>
                                     ))}
                                 </View>
@@ -757,35 +915,75 @@ export default function ProfileScreen() {
                                 })}
                             </View>
                         </View>
+                        </SettingsSection>
 
                         {/* News Interests */}
+                        <SettingsSection>
                         <View>
-                            <View className="flex-row items-center gap-2 mb-3 ml-1">
-                                <Newspaper size={16} color="#D4A373" />
-                                <Text className="text-sm font-bold uppercase tracking-widest text-slate-400">News Interests</Text>
+                            <View className="flex-row items-center justify-between mb-3 ml-1">
+                                <View className="flex-row items-center gap-2">
+                                    <Newspaper size={16} color="#D4A373" />
+                                    <Text className="text-sm font-bold uppercase tracking-widest text-slate-400">News Interests</Text>
+                                </View>
+                                <Text className="text-[10px] font-bold text-slate-400">
+                                    {followedCategoryIds.length} selected
+                                </Text>
                             </View>
+
+                            <View className="flex-row items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 mb-3" style={{ backgroundColor: theme.card }}>
+                                <Search size={16} color="#94A3B8" />
+                                <TextInput
+                                    value={newsInterestSearch}
+                                    onChangeText={setNewsInterestSearch}
+                                    placeholder="Search news topics"
+                                    placeholderTextColor="#94A3B8"
+                                    autoCapitalize="words"
+                                    className="flex-1 text-sm"
+                                    style={{ color: theme.text }}
+                                />
+                            </View>
+
                             <View className="flex-row flex-wrap gap-2">
-                                {(categoryOptions || []).map(cat => (
-                                    <Pressable
-                                        key={cat.id}
-                                        onPress={() => toggleId(followedCategoryIds, cat.id, setFollowedCategoryIds)}
-                                        className={`flex-row items-center gap-2 px-4 py-3 rounded-xl border w-[48%] mb-1 ${followedCategoryIds.includes(cat.id)
-                                            ? 'bg-[#D4A373]/10 border-[#D4A373] border'
-                                            : 'border-slate-200'
-                                            }`}
-                                        style={!followedCategoryIds.includes(cat.id) ? { backgroundColor: theme.card } : undefined}
-                                    >
-                                        <Text className={`text-xs font-bold flex-1 ${followedCategoryIds.includes(cat.id) ? 'text-[#D4A373]' : ''
-                                            }`} numberOfLines={1} style={!followedCategoryIds.includes(cat.id) ? { color: theme.text } : undefined}>
-                                            {cat.name}
-                                        </Text>
-                                        {followedCategoryIds.includes(cat.id) && <Check size={14} color="#D4A373" />}
-                                    </Pressable>
-                                ))}
+                                {(visibleNewsInterests || []).map(cat => {
+                                    const categoryId = Number(cat.id);
+                                    const selected = followedCategoryIds.includes(categoryId);
+
+                                    return (
+                                        <Pressable
+                                            key={cat.id}
+                                            onPress={() => toggleId(followedCategoryIds, categoryId, setFollowedCategoryIds)}
+                                            className={`flex-row items-center gap-2 px-4 py-3 rounded-xl border w-[48%] mb-1 ${selected
+                                                ? 'bg-[#D4A373]/10 border-[#D4A373] border'
+                                                : 'border-slate-200'
+                                                }`}
+                                            style={!selected ? { backgroundColor: theme.card } : undefined}
+                                        >
+                                            <Text className={`text-xs font-bold flex-1 ${selected ? 'text-[#D4A373]' : ''
+                                                }`} numberOfLines={1} style={!selected ? { color: theme.text } : undefined}>
+                                                {cat.name}
+                                            </Text>
+                                            {selected && <Check size={14} color="#D4A373" />}
+                                        </Pressable>
+                                    );
+                                })}
                             </View>
+
+                            {!newsInterestSearch.trim() && categoryOptions.length > visibleNewsInterests.length && (
+                                <Text className="text-xs text-slate-400 mt-3 ml-1">
+                                    Showing your selections plus the most active topics. Search to find more.
+                                </Text>
+                            )}
+
+                            {newsInterestSearch.trim() && visibleNewsInterests.length === followedCategoryIds.length && (
+                                <View className="py-6 items-center rounded-xl border border-dashed border-slate-200" style={{ backgroundColor: theme.card }}>
+                                    <Text className="text-sm font-bold text-slate-500">No matching topics found.</Text>
+                                </View>
+                            )}
                         </View>
+                        </SettingsSection>
 
                         {userCongregationId && (
+                            <SettingsSection>
                             <View className="mb-8">
                                 <Text className="text-xs font-bold uppercase tracking-widest text-red-500 mb-3 px-1">
                                     Danger Zone
@@ -813,9 +1011,11 @@ export default function ProfileScreen() {
                                     </TouchableOpacity>
                                 </View>
                             </View>
+                            </SettingsSection>
                         )}
                         {/* Delete Account */}
-                        <View className="pt-8 mt-4 border-t border-slate-200">
+                        <SettingsSection>
+                        <View>
                             <Text className="text-xs font-bold uppercase tracking-widest text-red-300 mb-4 ml-1">Danger Zone</Text>
                             <Pressable
                                 onPress={() => Alert.alert("Delete Account", "Please email support@sanctuaryapp.us to delete your account.")}
@@ -825,6 +1025,7 @@ export default function ProfileScreen() {
                                 <Trash2 size={16} color="#F87171" />
                             </Pressable>
                         </View>
+                        </SettingsSection>
 
                     </View>
                 )}

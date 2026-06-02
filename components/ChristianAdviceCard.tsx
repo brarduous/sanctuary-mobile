@@ -1,5 +1,6 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { getRandomAdvicePromptSample } from '@/constants/AdvicePrompts';
 import { useAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/context/RevenueCatContext';
 import { checkAdviceLimit, generateContent } from '@/lib/api';
@@ -13,9 +14,10 @@ import AudioMicButton from './AudioMicButton';
 
 interface ChristianAdviceCardProps {
     limitReached?: boolean;
+    samplePrompt?: string;
 }
 
-export default function ChristianAdviceCard({ limitReached: initialLimitReached }: ChristianAdviceCardProps) {
+export default function ChristianAdviceCard({ limitReached: initialLimitReached, samplePrompt: providedSamplePrompt }: ChristianAdviceCardProps) {
     const { user } = useAuth();
     const router = useRouter();
     const { isPro } = useRevenueCat();
@@ -28,6 +30,7 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached 
     // Input State
     const [situation, setSituation] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [samplePrompt] = useState(() => providedSamplePrompt || getRandomAdvicePromptSample());
 
     useEffect(() => {
         async function check() {
@@ -76,7 +79,7 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached 
             <View className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 items-center">
                 <Sparkles size={32} color={theme.tint} style={{ marginBottom: 12 }} />
                 <Text style={{ color: theme.text }} className="text-lg font-serif font-bold text-center mb-2">Spiritual Guidance</Text>
-                <Text style={{ color: Colors.gray }} className="text-center text-sm mb-4">Sign in to get personalized biblical advice.</Text>
+                <Text style={{ color: Colors.gray }} className="text-center text-sm mb-4">Bring a real situation, question, or struggle and receive Scripture-shaped guidance.</Text>
                 <Pressable 
                     onPress={() => router.push('/profile' as any)}
                     style={{ backgroundColor: theme.tint }}
@@ -137,10 +140,20 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached 
                 </View>
             ) : (
                 <View>
+                    <View className="px-4 pt-4 pb-2">
+                        <View className="flex-row items-center mb-1">
+                            <Sparkles size={16} color={theme.tint} />
+                            <Text style={{ color: theme.text }} className="text-lg font-serif font-bold ml-2">Ask for Scriptural Advice</Text>
+                        </View>
+                        <Text style={{ color: Colors.gray }} className="text-sm leading-5">
+                            Describe what you are facing. Sanctuary will help you think through it with biblical wisdom, prayer, and practical next steps.
+                        </Text>
+                    </View>
+
                     <TextInput
                         value={situation}
                         onChangeText={setSituation}
-                        placeholder="Type or hold the mic to speak..."
+                        placeholder="What are you walking through?"
                         placeholderTextColor={Colors.gray}
                         editable={!isSubmitting}
                         multiline
@@ -152,6 +165,22 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached 
                             textAlignVertical: 'top'
                         }}
                     />
+
+                    {samplePrompt && !situation.trim() && (
+                        <View className="px-4 pb-4">
+                            <Text style={{ color: Colors.gray }} className="text-xs font-bold uppercase tracking-widest mb-2">
+                                Try asking
+                            </Text>
+                            <Pressable
+                                onPress={() => setSituation(samplePrompt)}
+                                className="p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                            >
+                                <Text style={{ color: theme.text }} className="text-sm leading-5">
+                                    {samplePrompt}
+                                </Text>
+                            </Pressable>
+                        </View>
+                    )}
                     
                     {/* The Footer with Mic and Send Button */}
                     <View className="flex-row justify-between items-center p-4 border-t border-slate-100 dark:border-slate-700">

@@ -19,41 +19,60 @@ const AuthContext = createContext<any>(null);
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [profileLoadError, setProfileLoadError] = useState<unknown>(null);
   const [userCongregationId, setUserCongregationId] = useState<number | null>(null); // <-- NEW
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        setLoading(true);
-        loadProfile(session.user.id);
-      } else {
-        setProfile(null);
-        setUserCongregationId(null);
-        setLoading(false); // Ensure loading stops if no user
-      }
-      void logActivityEvent({
-        userId: session?.user?.id,
-        activityType: 'auth_session_checked',
-        description: session?.user ? 'Active session found' : 'No active session',
-      });
-    });
+    let mounted = true;
 
-    // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null);
-      if (session?.user && event !== 'INITIAL_SESSION') {
-        setLoading(true);
-        loadProfile(session.user.id);
-      } else if (!session?.user) {
+    const restoreSession = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+
+        setUser(session?.user ?? null);
+        if (session?.user) {
+          setLoading(true);
+          await loadProfile(session.user.id);
+        } else {
+          setProfile(null);
+          setProfileLoadError(null);
+          setUserCongregationId(null);
+          setLoading(false);
+        }
+        void logActivityEvent({
+          userId: session?.user?.id,
+          activityType: 'auth_session_checked',
+          description: session?.user ? 'Active session found' : 'No active session',
+        });
+      } catch (error) {
+        if (!mounted) return;
+        setUser(null);
         setProfile(null);
+        setProfileLoadError(error);
         setUserCongregationId(null);
         setLoading(false);
       }
-      else {
+    };
+
+    restoreSession();
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'INITIAL_SESSION') {
+        return;
+      }
+
+      setUser(session?.user ?? null);
+      if (session?.user) {
+        setLoading(true);
+        await loadProfile(session.user.id);
+      } else if (!session?.user) {
         setProfile(null);
+        setProfileLoadError(null);
+        setUserCongregationId(null);
+        setLoading(false);
       }
       void logActivityEvent({
         userId: session?.user?.id,
@@ -63,7 +82,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
@@ -98,6 +120,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const loadProfile = async (userId: string, options?: { silent?: boolean }) => {
     try {
+      setProfileLoadError(null);
       const data = await fetchUserProfile(userId);
       setProfile(data);
       const congregationId = await fetchUserCongregation(userId);
@@ -110,6 +133,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
       }
     } catch (error) {
+      setProfileLoadError(error);
       if (!options?.silent) {
         await logErrorEvent('profile_load_error', error, { userId });
       }
@@ -235,7 +259,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, profile, userCongregationId, setUserCongregationId, loading, signInWithApple, signInWithGoogle, signOut, refreshProfile}}>
+    <AuthContext.Provider value={{ user, profile, profileLoadError, userCongregationId, setUserCongregationId, loading, signInWithApple, signInWithGoogle, signOut, refreshProfile}}>
       {children}
     </AuthContext.Provider>
   );

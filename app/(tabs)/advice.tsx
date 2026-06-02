@@ -1,16 +1,18 @@
 import ChristianAdviceCard from '@/components/ChristianAdviceCard';
 import { useColorScheme } from '@/components/useColorScheme';
+import { getRandomAdvicePromptSample } from '@/constants/AdvicePrompts';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { deleteAdvice, fetchAdvice } from '@/lib/api';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Calendar, ChevronRight, Sparkles, Trash2 } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function AdviceScreen() {
     const { user } = useAuth();
+    const userId = user?.id;
     const router = useRouter();
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
@@ -18,18 +20,27 @@ export default function AdviceScreen() {
     const [adviceList, setAdviceList] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [limitReached, setLimitReached] = useState(false);
+    const [advicePromptSample] = useState(() => getRandomAdvicePromptSample());
+    const adviceSignatureRef = useRef('');
 
     const loadAdvice = React.useCallback(async () => {
-        if (user) {
-            const data = await fetchAdvice(user.id);
-            setAdviceList(data || []);
+        if (userId) {
+            const data = await fetchAdvice(userId);
+            const nextAdviceList = data || [];
+            const nextSignature = nextAdviceList
+                .map((item: any) => `${item.advice_id}:${item.status}:${item.updated_at}`)
+                .join('|');
+
+            if (nextSignature !== adviceSignatureRef.current) {
+                adviceSignatureRef.current = nextSignature;
+                setAdviceList(nextAdviceList);
+            }
+        } else if (adviceSignatureRef.current) {
+            adviceSignatureRef.current = '';
+            setAdviceList([]);
         }
         setLoading(false);
-    }, [user]);
-
-    useEffect(() => {
-        loadAdvice();
-    }, [loadAdvice]);
+    }, [userId]);
 
     useFocusEffect(
         React.useCallback(() => {
@@ -37,15 +48,13 @@ export default function AdviceScreen() {
         }, [loadAdvice])
     );
 
-    useEffect(() => {
-        if (!user) {
-            return;
-        }
+    const hasInProgressAdvice = useMemo(
+        () => adviceList.some((item) => item?.status === 'pending' || item?.status === 'generating' || item?.status === 'queued'),
+        [adviceList],
+    );
 
-        const hasInProgressAdvice = adviceList.some((item) => item?.status === 'pending' || item?.status === 'generating' || item?.status === 'queued');
-        if (!hasInProgressAdvice) {
-            return;
-        }
+    React.useEffect(() => {
+        if (!userId || !hasInProgressAdvice) return;
 
         const interval = setInterval(() => {
             loadAdvice();
@@ -54,7 +63,23 @@ export default function AdviceScreen() {
         return () => {
             clearInterval(interval);
         };
-    }, [adviceList, loadAdvice, user]);
+    }, [hasInProgressAdvice, loadAdvice, userId]);
+
+    const listHeader = useMemo(() => (
+        <View className="mb-6">
+            <Text className="text-3xl font-serif font-bold mb-6" style={{ color: theme.text }}>
+                Spiritual Guidance
+            </Text>
+
+            <View className="mb-8">
+                <ChristianAdviceCard limitReached={limitReached} samplePrompt={advicePromptSample} />
+            </View>
+
+            {adviceList.length > 0 && (
+                <Text className="text-xl font-bold mb-4" style={{ color: theme.text }}>Previous Guidance</Text>
+            )}
+        </View>
+    ), [adviceList.length, advicePromptSample, limitReached, theme.text]);
 
     const handleDelete = async (id: string) => {
         Alert.alert("Delete Advice", "Are you sure you want to delete this?", [
@@ -85,22 +110,7 @@ export default function AdviceScreen() {
                     data={adviceList}
                     keyExtractor={(item) => item.advice_id}
                     contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
-                    ListHeaderComponent={() => (
-                        <View className="mb-6">
-                            <Text className="text-3xl font-serif font-bold mb-6" style={{ color: theme.text }}>
-                                Spiritual Guidance
-                            </Text>
-
-                            {/* Input Card */}
-                            <View className="mb-8">
-                                <ChristianAdviceCard limitReached={limitReached} />
-                            </View>
-
-                            {adviceList.length > 0 && (
-                                <Text className="text-xl font-bold mb-4" style={{ color: theme.text }}>Previous Guidance</Text>
-                            )}
-                        </View>
-                    )}
+                    ListHeaderComponent={listHeader}
                     renderItem={({ item }) => (
                         <Pressable
                             onPress={() => router.push(`/advice/${item.advice_id}` as any)}

@@ -34,6 +34,7 @@ export default function OnboardingScreen() {
   
   const [selectedFocus, setSelectedFocus] = useState<string[]>([]);
   const [selectedImprove, setSelectedImprove] = useState<string[]>([]);
+  const [otherImprovement, setOtherImprovement] = useState('');
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
   const [favoriteArtists, setFavoriteArtists] = useState<SpotifyArtist[]>([]);
   const [artistSearch, setArtistSearch] = useState('');
@@ -100,6 +101,16 @@ export default function OnboardingScreen() {
     } else {
       setList([...list, item]);
     }
+  };
+
+  const getImprovementValue = (category: string, subIssue?: string) => (
+    subIssue ? `${category}: ${subIssue}` : category
+  );
+
+  const getNextImprovementCheckInAt = () => {
+    const nextDate = new Date();
+    nextDate.setDate(nextDate.getDate() + 30);
+    return nextDate.toISOString();
   };
 
   useEffect(() => {
@@ -176,9 +187,16 @@ export default function OnboardingScreen() {
 
   const savePreferences = async () => {
     if (!user) return;
+    const improvementAreas = [
+      ...selectedImprove,
+      ...(otherImprovement.trim() ? [`Other: ${otherImprovement.trim()}`] : []),
+    ];
+
     const userPreferences = {
       focusAreas: selectedFocus,
-      improvementAreas: selectedImprove,
+      improvementAreas,
+      improvementAreasUpdatedAt: new Date().toISOString(),
+      improvementAreasCheckInAt: getNextImprovementCheckInAt(),
       notifications: {
           devotionals: pushDevotionals,
           announcements: pushAnnouncements,
@@ -356,35 +374,80 @@ export default function OnboardingScreen() {
                     {step === 3 && (
                         <Animated.View entering={FadeInRight} exiting={FadeOutLeft} style={{ flex: 1 }}>
                             <Text style={{ color: theme.tint }} className="text-3xl font-serif mb-2 text-center">Areas for Growth</Text>
-                            <Text style={{ color: Colors.gray }} className="text-center mb-6">What specific challenges would you like guidance on?</Text>
-                            <Text style={{ color: Colors.gray }} className="text-center mb-4 text-sm">(Long press for more info on each topic)</Text>
+                            <Text style={{ color: Colors.gray }} className="text-center mb-6">What are you hoping to work through right now?</Text>
                             
                             <ScrollView showsVerticalScrollIndicator={false}>
-                                <View className="flex-row flex-wrap gap-3 pb-8">
-                                    {improveOptions.map((opt) => (
-                                        <View key={opt.title} style={{ width: '48%' }}>
-                                            <Pressable
-                                                onPress={() => handleToggle(selectedImprove, setSelectedImprove, opt.title)}
-                                                onLongPress={() => setModalData(opt)}
-                                                delayLongPress={500}
+                                <View className="gap-4 pb-8">
+                                    {improveOptions.map((opt: any) => {
+                                        const subIssues = Array.isArray(opt.subIssues) ? opt.subIssues : [];
+                                        const isOther = opt.title === 'Other';
+
+                                        if (isOther) {
+                                            return (
+                                                <View
+                                                    key={opt.title}
+                                                    style={{
+                                                        padding: 16,
+                                                        borderRadius: 12,
+                                                        borderWidth: 1,
+                                                        borderColor: otherImprovement.trim() ? theme.tint : (colorScheme === 'dark' ? '#333' : '#e5e7eb'),
+                                                        backgroundColor: theme.card,
+                                                    }}
+                                                >
+                                                    <Text style={{ fontWeight: '700', color: theme.text, marginBottom: 6 }}>{opt.title}</Text>
+                                                    <Text style={{ color: Colors.gray, fontSize: 12, lineHeight: 16, marginBottom: 12 }}>{opt.description}</Text>
+                                                    <TextInput
+                                                        value={otherImprovement}
+                                                        onChangeText={setOtherImprovement}
+                                                        placeholder="Write a few words"
+                                                        placeholderTextColor={theme.text === '#FFFFFF' ? '#475569' : '#CBD5E1'}
+                                                        className="w-full p-3 border rounded-xl text-sm"
+                                                        style={{ backgroundColor: colorScheme === 'dark' ? '#0f172a' : '#ffffff', borderColor: colorScheme === 'dark' ? '#333' : '#e5e7eb', color: theme.text }}
+                                                    />
+                                                </View>
+                                            );
+                                        }
+
+                                        return (
+                                            <View
+                                                key={opt.title}
                                                 style={{
                                                     padding: 16,
                                                     borderRadius: 12,
                                                     borderWidth: 1,
-                                                    borderColor: selectedImprove.includes(opt.title) ? theme.tint : (colorScheme === 'dark' ? '#333' : '#e5e7eb'),
-                                                    backgroundColor: selectedImprove.includes(opt.title) ? (colorScheme === 'dark' ? '#112244' : '#eff6ff') : theme.card,
+                                                    borderColor: (colorScheme === 'dark' ? '#333' : '#e5e7eb'),
+                                                    backgroundColor: theme.card,
                                                 }}
                                             >
                                                 <View className="flex-row justify-between items-start mb-2">
-                                                     <Text style={{ fontWeight: '600', color: theme.text, flex: 1 }}>{opt.title}</Text>
-                                                     {selectedImprove.includes(opt.title) && <Check size={16} color={theme.tint} />}
+                                                    <Text style={{ fontWeight: '700', color: theme.text, flex: 1 }}>{opt.title}</Text>
+                                                    <Pressable onPress={() => setModalData(opt)} className="opacity-50">
+                                                        <Info size={14} color={Colors.gray} />
+                                                    </Pressable>
                                                 </View>
-                                                <View className="opacity-50">
-                                                    <Info size={14} color={Colors.gray} />
+                                                <Text style={{ color: Colors.gray, fontSize: 12, lineHeight: 16, marginBottom: 12 }}>{opt.description}</Text>
+                                                <View className="flex-row flex-wrap gap-2">
+                                                    {(subIssues.length > 0 ? subIssues : [opt.title]).map((subIssue: string) => {
+                                                        const value = getImprovementValue(opt.title, subIssues.length > 0 ? subIssue : undefined);
+                                                        const selected = selectedImprove.includes(value);
+
+                                                        return (
+                                                            <Pressable
+                                                                key={value}
+                                                                onPress={() => handleToggle(selectedImprove, setSelectedImprove, value)}
+                                                                className={`px-4 py-2 rounded-full border ${selected ? 'bg-slate-900 border-slate-900' : 'border-slate-200'}`}
+                                                                style={!selected ? { backgroundColor: colorScheme === 'dark' ? '#0f172a' : '#ffffff' } : undefined}
+                                                            >
+                                                                <Text className={`text-xs font-bold ${selected ? 'text-white' : ''}`} style={!selected ? { color: theme.text } : undefined}>
+                                                                    {subIssue}
+                                                                </Text>
+                                                            </Pressable>
+                                                        );
+                                                    })}
                                                 </View>
-                                            </Pressable>
-                                        </View>
-                                    ))}
+                                            </View>
+                                        );
+                                    })}
                                 </View>
                             </ScrollView>
                         </Animated.View>
@@ -415,9 +478,16 @@ export default function OnboardingScreen() {
                                         <Pressable
                                             key={artist.id || artist.name}
                                             onPress={() => toggleFavoriteArtist(artist)}
-                                            className="px-3 py-2 rounded-full bg-emerald-50 border border-emerald-200"
+                                            className="px-3 py-2 rounded-full bg-emerald-50 border border-emerald-200 max-w-full"
                                         >
-                                            <Text className="text-xs font-bold text-emerald-700">{artist.name}</Text>
+                                            <Text
+                                                className="text-xs font-bold text-emerald-700"
+                                                numberOfLines={1}
+                                                adjustsFontSizeToFit
+                                                minimumFontScale={0.75}
+                                            >
+                                                {artist.name}
+                                            </Text>
                                         </Pressable>
                                     ))}
                                 </View>

@@ -19,6 +19,7 @@ import {
     generateContent,
     logUserActivity,
 } from '@/lib/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -154,6 +155,34 @@ export default function HomeScreen() {
             if (pollingRef.current) clearInterval(pollingRef.current);
         };
     }, []);
+
+    useEffect(() => {
+        const maybePromptForImprovementCheckIn = async () => {
+            if (!user || authLoading) return;
+
+            const checkInAt = profile?.user_preferences?.improvementAreasCheckInAt;
+            if (!checkInAt || new Date(checkInAt).getTime() > Date.now()) return;
+
+            const today = new Date().toISOString().split('T')[0];
+            const storageKey = `improvement-check-in:${user.id}:${today}`;
+            const alreadyPrompted = await AsyncStorage.getItem(storageKey);
+            if (alreadyPrompted) return;
+
+            await AsyncStorage.setItem(storageKey, 'true');
+            Alert.alert(
+                'Still the right focus?',
+                'You have had some time with these devotionals. Would you like to update the areas you are working through?',
+                [
+                    { text: 'Later', style: 'cancel' },
+                    { text: 'Update', onPress: () => router.push('/profile' as any) },
+                ],
+            );
+        };
+
+        maybePromptForImprovementCheckIn().catch((error) => {
+            console.error('Improvement check-in prompt failed:', error);
+        });
+    }, [authLoading, profile?.user_preferences?.improvementAreasCheckInAt, router, user]);
 
     const isToday = (dateString: string) => {
         if (!dateString) return false;
@@ -707,8 +736,13 @@ export default function HomeScreen() {
                 {user && !adviceLimitReached && (
                     <>
                         <View className="mb-10">
-                            <View className="flex-row items-end justify-between mb-3 px-1">
-                                <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Scriptural Advice</Text>
+                            <View className="flex-row items-start justify-between mb-3 px-1">
+                                <View className="flex-1 pr-4">
+                                    <Text className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Scriptural Advice</Text>
+                                    <Text className="text-sm leading-5" style={{ color: theme.mutedForeground }}>
+                                        Bring a real question, struggle, or decision and get guidance shaped by Scripture.
+                                    </Text>
+                                </View>
                                 <Pressable onPress={() => router.push('/advice')}>
                                     <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: theme.text }}>View All</Text>
                                 </Pressable>
