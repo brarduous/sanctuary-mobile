@@ -79,7 +79,8 @@
           "color": "#ffffff"
         }
       ],
-      "expo-video"
+      "expo-video",
+      "./plugins/withAndroidPhoneOnly"
     ],
     "experiments": {
       "typedRoutes": true
