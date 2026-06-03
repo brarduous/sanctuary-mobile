@@ -80,6 +80,7 @@ function RootLayoutNav() {
     const inAuthGroup = currentSegment === '(tabs)';
     const inOnboarding = currentSegment === 'onboarding';
     const inJoin = currentSegment === 'join';
+    const inLogin = currentSegment === 'login';
 
     // 1. Guest Logic: If not logged in, they CAN stay in (tabs), but not onboarding
     if (!user) {
@@ -98,7 +99,9 @@ function RootLayoutNav() {
     // 2. User Logic: If logged in but onboarding is incomplete -> Force Onboarding
     const hasCompletedOnboarding = profile?.user_preferences?.onboardingCompleted === true;
     
-    if (user && !inOnboarding && !inJoin && !hasCompletedOnboarding) {
+    if (user && inLogin && hasCompletedOnboarding) {
+      router.replace('/(tabs)');
+    } else if (user && !inOnboarding && !inJoin && !hasCompletedOnboarding) {
       router.replace('/onboarding');
     } else if (user && inOnboarding && hasCompletedOnboarding) {
       router.replace('/(tabs)');

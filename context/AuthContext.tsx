@@ -147,10 +147,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await loadProfile(user.id);
     }
   };
+
+  const applySession = async (session: any) => {
+    setUser(session?.user ?? null);
+
+    if (session?.user) {
+      await loadProfile(session.user.id);
+      return;
+    }
+
+    setProfile(null);
+    setProfileLoadError(null);
+    setUserCongregationId(null);
+    setLoading(false);
+  };
+
   // --- APPLE SIGN IN ---
   const signInWithApple = async () => {
     await logActivityEvent({ activityType: 'apple_sign_in_started', description: 'User tapped Apple sign-in' });
     try {
+      setLoading(true);
       const credential = await AppleAuthentication.signInAsync({
         requestedScopes: [
           AppleAuthentication.AppleAuthenticationScope.FULL_NAME,
@@ -165,15 +181,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (credential.identityToken) {
-        const { error } = await supabase.auth.signInWithIdToken({
+        const { data: signInData, error } = await supabase.auth.signInWithIdToken({
           provider: 'apple',
           token: credential.identityToken,
         });
         if (error) throw error;
 
-        const { data } = await supabase.auth.getSession();
+        const session = signInData.session ?? (await supabase.auth.getSession()).data.session;
+        await applySession(session);
         await logActivityEvent({
-          userId: data.session?.user?.id,
+          userId: session?.user?.id,
           activityType: 'apple_sign_in_success',
           description: 'Supabase session created via Apple',
         });
@@ -182,13 +199,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           activityType: 'apple_sign_in_no_token',
           description: 'Apple credential did not include identity token',
         });
+        setLoading(false);
       }
     } catch (e: any) {
       if (e?.code === 'ERR_REQUEST_CANCELED') {
+        setLoading(false);
         await logActivityEvent({ activityType: 'apple_sign_in_cancelled', description: 'User cancelled Apple sign-in' });
         return;
       }
 
+      setLoading(false);
       await logErrorEvent('apple_sign_in_error', e);
       if (e.code === 'ERR_REQUEST_CANCELED') {
         // handle that the user canceled the sign-in flow
@@ -202,6 +222,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signInWithGoogle = async () => {
     await logActivityEvent({ activityType: 'google_sign_in_started', description: 'User tapped Google sign-in' });
     try {
+      setLoading(true);
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
 
@@ -211,15 +232,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (userInfo.data?.idToken) {
-        const { error } = await supabase.auth.signInWithIdToken({
+        const { data: signInData, error } = await supabase.auth.signInWithIdToken({
           provider: 'google',
           token: userInfo.data.idToken,
         });
         if (error) throw error;
 
-        const { data } = await supabase.auth.getSession();
+        const session = signInData.session ?? (await supabase.auth.getSession()).data.session;
+        await applySession(session);
         await logActivityEvent({
-          userId: data.session?.user?.id,
+          userId: session?.user?.id,
           activityType: 'google_sign_in_success',
           description: 'Supabase session created via Google',
         });
@@ -228,8 +250,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           activityType: 'google_sign_in_no_token',
           description: 'Google sign-in succeeded but no ID token returned',
         });
+        setLoading(false);
       }
     } catch (error: any) {
+      setLoading(false);
       console.error("Google Sign In Error", error);
 
       // Enhanced error diagnostics for DEVELOPER_ERROR (Android)

@@ -140,14 +140,12 @@ export const fetchUserProfile = async (userId: string) => {
 export const fetchGeneralDevotional = async () => {
     // Using supabase directly for this as per web app
     const today = new Date().toISOString().split('T')[0];
-    
-    // Simplistic query for today's generic devotional
-    // In web app it queries 'general_devotionals' by date or ID
+
     try {
       const { data, error } = await supabase
         .from('general_devotionals')
         .select('*')
-         // Logic to get "today's" or latest
+        .lte('date', today)
         .limit(1)
         .order('date', { ascending: false })
         .maybeSingle();
