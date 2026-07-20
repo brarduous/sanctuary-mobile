@@ -1,8 +1,8 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import { useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AppState, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from './supabase';
 
@@ -20,7 +20,7 @@ Notifications.setNotificationHandler({
 // 2. Register for push notifications function
 async function registerForPushNotificationsAsync() {
   if (Platform.OS === 'android') {
-    Notifications.setNotificationChannelAsync('default', {
+    await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
       importance: Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
@@ -45,12 +45,16 @@ async function registerForPushNotificationsAsync() {
       handleRegistrationError('Project ID not found');
     }
     try {
+      // Fetch the native APNs/FCM token explicitly. Besides making failures easier
+      // to diagnose, this ensures Expo refreshes its mapping after a reinstall.
+      const devicePushToken = await Notifications.getDevicePushTokenAsync();
       const pushTokenString = (
         await Notifications.getExpoPushTokenAsync({
           projectId,
+          devicePushToken,
         })
       ).data;
-      console.log(pushTokenString);
+      console.log('Push notification registration succeeded');
       return pushTokenString;
     } catch (e: unknown) {
       handleRegistrationError(`${e}`);
@@ -75,14 +79,34 @@ export const usePushNotifications = () => {
     );
     const notificationListener = useRef<Notifications.EventSubscription | null>(null);
     const responseListener = useRef<Notifications.EventSubscription | null>(null);
+    const tokenListener = useRef<Notifications.EventSubscription | null>(null);
+    const registrationInProgress = useRef(false);
+
+    const refreshPushToken = useCallback(async () => {
+      if (registrationInProgress.current) return;
+      registrationInProgress.current = true;
+
+      try {
+        const token = await registerForPushNotificationsAsync();
+        setExpoPushToken(token ?? '');
+      } catch (error: unknown) {
+        console.error('Push notification registration failed:', error);
+        setExpoPushToken('');
+      } finally {
+        registrationInProgress.current = false;
+      }
+    }, []);
   
     useEffect(() => {
-      registerForPushNotificationsAsync()
-        .then(token => setExpoPushToken(token ?? ''))
-        .catch((error: unknown) => {
-          console.error('Push notification registration failed:', error);
-          setExpoPushToken('');
-        });
+      void refreshPushToken();
+
+      const appStateListener = AppState.addEventListener('change', state => {
+        if (state === 'active') void refreshPushToken();
+      });
+
+      tokenListener.current = Notifications.addPushTokenListener(() => {
+        void refreshPushToken();
+      });
   
       notificationListener.current = Notifications.addNotificationReceivedListener(notification => {
         setNotification(notification);
@@ -96,12 +120,14 @@ export const usePushNotifications = () => {
       });
   
       return () => {
+        appStateListener.remove();
+        tokenListener.current?.remove();
         notificationListener.current &&
           notificationListener.current.remove();
         responseListener.current &&
           responseListener.current.remove();
       };
-    }, []);
+    }, [refreshPushToken]);
   
     return {
       expoPushToken,
@@ -112,10 +138,12 @@ export const usePushNotifications = () => {
   export const savePushTokenToProfile = async (userId: string, token: string) => {
     if (!userId || !token || !isExpoPushToken(token)) return;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
         .from('user_profiles')
         .update({ expo_push_token: token })
-        .eq('user_id', userId);
+        .eq('user_id', userId)
+        .select('user_id')
+        .single();
 
     if (error) {
         console.error('Error saving push token to profile:', {
@@ -124,5 +152,8 @@ export const usePushNotifications = () => {
           details: error.details,
           hint: error.hint,
         });
+        return;
     }
+
+    console.log('Push token saved to profile:', data.user_id);
   };
