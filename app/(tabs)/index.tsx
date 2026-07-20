@@ -70,83 +70,6 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-const DAILY_NOTIFICATION_ID_KEY = 'notification-id:daily-devotional';
-const ADVICE_NOTIFICATION_ID_KEY = 'notification-id:advice-nudge';
-
-async function replaceScheduledNotification(
-    storageKey: string,
-    request: Parameters<typeof import('expo-notifications').scheduleNotificationAsync>[0],
-) {
-    const Notifications = await import('expo-notifications');
-    const previousId = await AsyncStorage.getItem(storageKey);
-    if (previousId) {
-        await Notifications.cancelScheduledNotificationAsync(previousId).catch(() => undefined);
-    }
-    const id = await Notifications.scheduleNotificationAsync(request);
-    await AsyncStorage.setItem(storageKey, id);
-}
-
-async function scheduleEngagementNotifications(
-    devotional: any,
-    userName: string,
-    preferences?: Record<string, boolean>,
-) {
-    if (Platform.OS === 'web') return;
-
-    const Notifications = await import('expo-notifications');
-
-    const { status } = await Notifications.getPermissionsAsync();
-    if (status !== 'granted') {
-        const { status: newStatus } = await Notifications.requestPermissionsAsync();
-        if (newStatus !== 'granted') return;
-    }
-
-    const devotionalTitle = devotional?.title?.trim();
-    const scripture = (devotional?.scripture_reference || devotional?.scripture)?.trim();
-    const firstName = userName || 'Friend';
-
-    if (preferences?.devotionals !== false) {
-        const body = devotionalTitle && scripture
-            ? `${devotionalTitle} — reflecting on ${scripture}.`
-            : devotionalTitle
-                ? `Today's reflection: ${devotionalTitle}.`
-                : scripture
-                    ? `Today's Scripture focus is ${scripture}.`
-                    : 'Your daily devotional is ready.';
-
-        await replaceScheduledNotification(DAILY_NOTIFICATION_ID_KEY, {
-            content: {
-                title: `${firstName}, today's devotional is ready`,
-                body,
-                sound: true,
-                data: { url: '/(tabs)' },
-            },
-            trigger: {
-                type: Notifications.SchedulableTriggerInputTypes.DAILY,
-                hour: 8,
-                minute: 0,
-            },
-        });
-    }
-
-    if (preferences?.advice !== false) {
-        await replaceScheduledNotification(ADVICE_NOTIFICATION_ID_KEY, {
-            content: {
-                title: 'Need a little wisdom?',
-                body: 'What decision or relationship could use a prayerful, scriptural perspective?',
-                sound: true,
-                data: { url: '/(tabs)/advice' },
-            },
-            trigger: {
-                type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-                weekday: 4,
-                hour: 19,
-                minute: 0,
-            },
-        });
-    }
-}
-
 export default function HomeScreen() {
     const { user, profile, loading: authLoading } = useAuth();
     const { isPro, isLoaded: isRevenueLoaded } = useRevenueCat();
@@ -276,13 +199,6 @@ export default function HomeScreen() {
 
         setDailyNews(news);
         setStreak(streakData?.current_streak || streakData?.streak || 0);
-        if (user && generalData?.devotional) {
-            scheduleEngagementNotifications(
-                generalData.devotional,
-                profile?.first_name || user.user_metadata?.given_name,
-                profile?.user_preferences?.notifications,
-            ).catch(error => console.error('Notification scheduling failed', error));
-        }
         setCommunityStats(stats || { totalPrayedForYou: 0 });
         setAdviceLimitReached(!isPro && adviceLimit?.limitReached || false);
         setRecommendedVideos(videos);
