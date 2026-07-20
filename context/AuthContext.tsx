@@ -1,5 +1,5 @@
 import { logActivityEvent, logErrorEvent } from '@/lib/activityLogger';
-import { fetchUserCongregation, fetchUserProfile } from '@/lib/api';
+import { fetchUserCongregation, fetchUserProfile, setAuthToken } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
@@ -31,6 +31,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const { data: { session } } = await supabase.auth.getSession();
         if (!mounted) return;
 
+        setAuthToken(session?.access_token ?? null);
         setUser(session?.user ?? null);
         if (session?.user) {
           setLoading(true);
@@ -59,7 +60,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     restoreSession();
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setAuthToken(session?.access_token ?? null);
+
       if (event === 'INITIAL_SESSION') {
         return;
       }
@@ -67,19 +70,34 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setUser(session?.user ?? null);
       if (session?.user) {
         setLoading(true);
-        await loadProfile(session.user.id);
+        // Supabase invokes auth listeners while holding its auth lock. Defer any
+        // work that may call another auth method until after this callback returns.
+        setTimeout(() => {
+          if (!mounted) return;
+
+          void loadProfile(session.user.id);
+          void logActivityEvent({
+            userId: session.user.id,
+            activityType: 'auth_state_changed',
+            activityId: event,
+            description: 'Signed in',
+          });
+        }, 0);
       } else if (!session?.user) {
         setProfile(null);
         setProfileLoadError(null);
         setUserCongregationId(null);
         setLoading(false);
+        setTimeout(() => {
+          if (!mounted) return;
+
+          void logActivityEvent({
+            activityType: 'auth_state_changed',
+            activityId: event,
+            description: 'Signed out',
+          });
+        }, 0);
       }
-      void logActivityEvent({
-        userId: session?.user?.id,
-        activityType: 'auth_state_changed',
-        activityId: event,
-        description: session?.user ? 'Signed in' : 'Signed out',
-      });
     });
 
     return () => {
