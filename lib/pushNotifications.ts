@@ -113,9 +113,9 @@ export const usePushNotifications = () => {
     if (!userId || !token || !isExpoPushToken(token)) return;
 
     const { error } = await supabase
-        .from('profiles')
+        .from('user_profiles')
         .update({ expo_push_token: token })
-        .eq('id', userId);
+        .eq('user_id', userId);
 
     if (error) {
         console.error('Error saving push token to profile:', {
