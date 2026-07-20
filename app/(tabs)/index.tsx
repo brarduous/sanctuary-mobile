@@ -70,7 +70,27 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
     UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-async function scheduleStreakNotification(streak: number, userName: string) {
+const DAILY_NOTIFICATION_ID_KEY = 'notification-id:daily-devotional';
+const ADVICE_NOTIFICATION_ID_KEY = 'notification-id:advice-nudge';
+
+async function replaceScheduledNotification(
+    storageKey: string,
+    request: Parameters<typeof import('expo-notifications').scheduleNotificationAsync>[0],
+) {
+    const Notifications = await import('expo-notifications');
+    const previousId = await AsyncStorage.getItem(storageKey);
+    if (previousId) {
+        await Notifications.cancelScheduledNotificationAsync(previousId).catch(() => undefined);
+    }
+    const id = await Notifications.scheduleNotificationAsync(request);
+    await AsyncStorage.setItem(storageKey, id);
+}
+
+async function scheduleEngagementNotifications(
+    devotional: any,
+    userName: string,
+    preferences?: Record<string, boolean>,
+) {
     if (Platform.OS === 'web') return;
 
     const Notifications = await import('expo-notifications');
@@ -81,28 +101,50 @@ async function scheduleStreakNotification(streak: number, userName: string) {
         if (newStatus !== 'granted') return;
     }
 
-    await Notifications.cancelAllScheduledNotificationsAsync();
+    const devotionalTitle = devotional?.title?.trim();
+    const scripture = (devotional?.scripture_reference || devotional?.scripture)?.trim();
+    const firstName = userName || 'Friend';
 
-    let title = "Good Morning, " + (userName || "Friend");
-    let body = "Start your day with Sanctuary.";
+    if (preferences?.devotionals !== false) {
+        const body = devotionalTitle && scripture
+            ? `${devotionalTitle} — reflecting on ${scripture}.`
+            : devotionalTitle
+                ? `Today's reflection: ${devotionalTitle}.`
+                : scripture
+                    ? `Today's Scripture focus is ${scripture}.`
+                    : 'Your daily devotional is ready.';
 
-    if (streak > 0) {
-        title = "Keep it going! 🔥";
-        body = `You're on a ${streak}-day streak. Don't break the chain!`;
+        await replaceScheduledNotification(DAILY_NOTIFICATION_ID_KEY, {
+            content: {
+                title: `${firstName}, today's devotional is ready`,
+                body,
+                sound: true,
+                data: { url: '/(tabs)' },
+            },
+            trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DAILY,
+                hour: 8,
+                minute: 0,
+            },
+        });
     }
 
-    await Notifications.scheduleNotificationAsync({
-        content: {
-            title,
-            body,
-            sound: true,
-        },
-        trigger: {
-            type: Notifications.SchedulableTriggerInputTypes.DAILY,
-            hour: 8,
-            minute: 0,
-        },
-    });
+    if (preferences?.advice !== false) {
+        await replaceScheduledNotification(ADVICE_NOTIFICATION_ID_KEY, {
+            content: {
+                title: 'Need a little wisdom?',
+                body: 'What decision or relationship could use a prayerful, scriptural perspective?',
+                sound: true,
+                data: { url: '/(tabs)/advice' },
+            },
+            trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+                weekday: 4,
+                hour: 19,
+                minute: 0,
+            },
+        });
+    }
 }
 
 export default function HomeScreen() {
@@ -234,8 +276,12 @@ export default function HomeScreen() {
 
         setDailyNews(news);
         setStreak(streakData?.current_streak || streakData?.streak || 0);
-        if (user) {
-            scheduleStreakNotification(streakData?.current_streak || streakData?.streak || 0, user.user_metadata?.given_name);
+        if (user && generalData?.devotional) {
+            scheduleEngagementNotifications(
+                generalData.devotional,
+                profile?.first_name || user.user_metadata?.given_name,
+                profile?.user_preferences?.notifications,
+            ).catch(error => console.error('Notification scheduling failed', error));
         }
         setCommunityStats(stats || { totalPrayedForYou: 0 });
         setAdviceLimitReached(!isPro && adviceLimit?.limitReached || false);

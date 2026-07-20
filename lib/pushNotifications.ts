@@ -3,6 +3,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
+import { router } from 'expo-router';
 import { supabase } from './supabase';
 
 // 1. Setup notification handler logic 
@@ -88,7 +89,10 @@ export const usePushNotifications = () => {
       });
   
       responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
-        console.log(response);
+        const url = response.notification.request.content.data?.url;
+        if (typeof url === 'string' && url.startsWith('/')) {
+          router.push(url as never);
+        }
       });
   
       return () => {

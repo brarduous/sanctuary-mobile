@@ -199,6 +199,8 @@ export default function OnboardingScreen() {
       improvementAreasCheckInAt: getNextImprovementCheckInAt(),
       notifications: {
           devotionals: pushDevotionals,
+          advice: true,
+          news: true,
           announcements: pushAnnouncements,
           bibleStudies: pushStudies
       },
