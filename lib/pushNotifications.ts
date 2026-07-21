@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from './supabase';
+import { recordNotificationOpen } from './api';
 
 // 1. Setup notification handler logic 
 Notifications.setNotificationHandler({
@@ -114,6 +115,8 @@ export const usePushNotifications = () => {
   
       responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
         const url = response.notification.request.content.data?.url;
+        const deliveryId = response.notification.request.content.data?.notificationDeliveryId;
+        if (typeof deliveryId === 'string') void recordNotificationOpen(deliveryId);
         if (typeof url === 'string' && url.startsWith('/')) {
           router.push(url as never);
         }

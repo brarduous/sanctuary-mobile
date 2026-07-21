@@ -27,6 +27,7 @@ import { AuthProvider } from '@/context/AuthContext';
 import { RevenueCatProvider } from '@/context/RevenueCatContext';
 import { savePushTokenToProfile, usePushNotifications } from '@/lib/pushNotifications';
 import { ActionSheetProvider } from '@expo/react-native-action-sheet';
+import { updateNotificationTimeZone } from '@/lib/api';
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -66,12 +67,23 @@ function RootLayoutNav() {
   const router = useRouter();
   const theme = Colors[colorScheme ?? 'light'];
   const { expoPushToken } = usePushNotifications();
+  const userId = user?.id;
 
   useEffect(() => {
     if (user && expoPushToken) {
       savePushTokenToProfile(user.id, expoPushToken);
     }
   }, [user, expoPushToken]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (timeZone) {
+      void updateNotificationTimeZone(timeZone).catch(error => {
+        console.error('Notification timezone update failed:', error);
+      });
+    }
+  }, [userId]);
 
   useEffect(() => {
     if (loading) return;

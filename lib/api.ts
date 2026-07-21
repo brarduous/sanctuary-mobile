@@ -47,6 +47,14 @@ export const setAuthToken = (token: string | null) => {
   }
 };
 
+export const updateNotificationTimeZone = async (timeZone: string) => {
+  await apiClient.post('/api/notifications/timezone', { timeZone });
+};
+
+export const recordNotificationOpen = async (deliveryId: string) => {
+  await apiClient.post('/api/notifications/open', { deliveryId });
+};
+
 apiClient.interceptors.request.use(async (config) => {
   if (apiClient.defaults.headers.common['Authorization']) {
     return config;
