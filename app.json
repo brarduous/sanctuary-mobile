@@ -82,7 +82,8 @@
         }
       ],
       "expo-video",
-      "./plugins/withAndroidPhoneOnly"
+      "./plugins/withAndroidPhoneOnly",
+      "./plugins/withIosModularHeaders"
     ],
     "experiments": {
       "typedRoutes": true
