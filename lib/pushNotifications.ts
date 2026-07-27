@@ -1,11 +1,14 @@
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from './supabase';
 import { recordNotificationOpen } from './api';
+
+const LEGACY_NOTIFICATION_CLEANUP_KEY = 'notification-migration:server-scheduling-v1';
 
 // 1. Setup notification handler logic 
 Notifications.setNotificationHandler({
@@ -72,6 +75,14 @@ function handleRegistrationError(errorMessage: string) {
 
 const isExpoPushToken = (value: string) => value.startsWith('ExponentPushToken[') || value.startsWith('ExpoPushToken[');
 
+async function cancelLegacyScheduledNotifications() {
+  if (Platform.OS === 'web') return;
+  if (await AsyncStorage.getItem(LEGACY_NOTIFICATION_CLEANUP_KEY)) return;
+
+  await Notifications.cancelAllScheduledNotificationsAsync();
+  await AsyncStorage.setItem(LEGACY_NOTIFICATION_CLEANUP_KEY, 'complete');
+}
+
 // 3. Hook to use in the app
 export const usePushNotifications = () => {
     const [expoPushToken, setExpoPushToken] = useState('');
@@ -99,6 +110,9 @@ export const usePushNotifications = () => {
     }, []);
   
     useEffect(() => {
+      void cancelLegacyScheduledNotifications().catch(error => {
+        console.error('Legacy notification cleanup failed:', error);
+      });
       void refreshPushToken();
 
       const appStateListener = AppState.addEventListener('change', state => {
