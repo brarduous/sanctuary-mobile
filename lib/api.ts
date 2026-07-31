@@ -153,9 +153,7 @@ export const fetchGeneralDevotional = async () => {
       const { data, error } = await supabase
         .from('general_devotionals')
         .select('*')
-        .lte('date', today)
-        .limit(1)
-        .order('date', { ascending: false })
+        .eq('date', today)
         .maybeSingle();
 
       if (error || !data) return null;
