@@ -151,6 +151,7 @@ function RootLayoutNav() {
           <Stack.Screen name="devotional/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="prayer/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="advice/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="church/journey/[id]" options={{ headerShown: false }} />
         </Stack>
       </View>
     </ThemeProvider>

@@ -1,10 +1,10 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
-import { fetchChurchContent } from '@/lib/api';
+import { ChurchJourneySummary, fetchChurchContent, fetchChurchJourneys } from '@/lib/api';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { BookOpen, ChevronRight, Users, VideoIcon } from 'lucide-react-native';
+import { BookOpen, CalendarDays, ChevronRight, Sparkles, Users, VideoIcon } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,6 +18,7 @@ export default function ChurchTab() {
   const [church, setChurch] = useState<any>(null);
   const [studies, setStudies] = useState<any[]>([]);
   const [messages, setMessages] = useState<any[]>([]);
+  const [journeys, setJourneys] = useState<ChurchJourneySummary[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export default function ChurchTab() {
       setChurch(null);
       setStudies([]);
       setMessages([]);
+      setJourneys([]);
       setLoading(false);
       return;
     }
@@ -32,10 +34,11 @@ export default function ChurchTab() {
     async function loadChurchData() {
       setLoading(true);
       try {
-        const data = await fetchChurchContent(userCongregationId as number);
+        const [data, journeyData] = await Promise.all([fetchChurchContent(userCongregationId as number), fetchChurchJourneys(userCongregationId as number)]);
         setChurch(data.church);
         setStudies(data.studies);
         setMessages(data.messages);
+        setJourneys(journeyData);
         //console.log("Fetched church data:", data);
       } catch (error) {
         console.error("Failed to load church data:", error);
@@ -67,6 +70,21 @@ export default function ChurchTab() {
           </View>
           <Text className="text-4xl font-serif font-bold dark:text-white leading-tight">{church.name}</Text>
         </View>
+
+        {/* Video Messages Row */}
+        {journeys.length > 0 && (
+          <View className="mb-8">
+            <View className="mb-4 flex-row items-center justify-between"><Text className="text-xl font-bold dark:text-white">Weekly Journeys</Text><Sparkles size={18} color={theme.tint}/></View>
+            <View className="gap-3">{journeys.map((journey, index) => (
+              <Pressable key={journey.id} onPress={() => router.push(`/church/journey/${journey.id}` as any)} className="rounded-2xl border border-indigo-100 bg-indigo-50 p-5 dark:border-indigo-900 dark:bg-indigo-950/30">
+                <View className="mb-2 flex-row items-center gap-2"><CalendarDays size={15} color={theme.tint}/><Text className="text-[10px] font-bold uppercase tracking-widest text-indigo-600 dark:text-indigo-300">{index === 0 ? 'Current journey' : 'Recent journey'}</Text></View>
+                <Text className="font-serif text-xl font-bold text-slate-950 dark:text-white">{journey.title}</Text>
+                {journey.description ? <Text className="mt-2 text-sm leading-5 text-slate-600 dark:text-slate-300" numberOfLines={2}>{journey.description}</Text> : null}
+                <View className="mt-4 flex-row items-center"><Text className="flex-1 text-sm font-bold text-indigo-700 dark:text-indigo-300">Continue journey</Text><ChevronRight size={18} color={theme.tint}/></View>
+              </Pressable>
+            ))}</View>
+          </View>
+        )}
 
         {/* Video Messages Row */}
         {messages.length > 0 && (

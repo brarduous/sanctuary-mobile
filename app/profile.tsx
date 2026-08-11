@@ -51,6 +51,7 @@ import {
     Text,
     TouchableOpacity,
     UIManager,
+    Switch,
     View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -101,6 +102,9 @@ export default function ProfileScreen() {
     const [artistSearch, setArtistSearch] = useState('');
     const [artistResults, setArtistResults] = useState<SpotifyArtist[]>([]);
     const [artistSearching, setArtistSearching] = useState(false);
+    const [announcementNotifications, setAnnouncementNotifications] = useState(true);
+    const [journeyNotifications, setJourneyNotifications] = useState(true);
+    const [journeyReminders, setJourneyReminders] = useState(true);
 
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
@@ -195,6 +199,10 @@ export default function ProfileScreen() {
                         setFavoriteArtists(Array.isArray(userProfile.user_preferences.musicPreferences?.favoriteGospelArtists)
                             ? userProfile.user_preferences.musicPreferences.favoriteGospelArtists
                             : []);
+                        const notifications = userProfile.user_preferences.notifications || {};
+                        setAnnouncementNotifications(notifications.announcements !== false);
+                        setJourneyNotifications(notifications.churchJourneys ?? notifications.announcements ?? true);
+                        setJourneyReminders(notifications.journeyReminders ?? notifications.announcements ?? true);
                     }
                 }
             } catch (error) {
@@ -373,6 +381,12 @@ export default function ProfileScreen() {
                 },
                 musicPreferences: {
                     favoriteGospelArtists: favoriteArtists
+                },
+                notifications: {
+                    ...(profile?.user_preferences?.notifications || {}),
+                    announcements: announcementNotifications,
+                    churchJourneys: journeyNotifications,
+                    journeyReminders
                 }
             };
 
@@ -626,6 +640,25 @@ export default function ProfileScreen() {
                                 </View>
                             </View>
                         )}
+                        </SettingsSection>
+
+                        {/* App Settings */}
+                        <SettingsSection>
+                        <View>
+                            <Text className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3 ml-1">Church Notifications</Text>
+                            <View className="rounded-xl border border-slate-200 dark:border-slate-800" style={{ backgroundColor: theme.card }}>
+                                {[
+                                    ['Church announcements', 'Updates sent by your church', announcementNotifications, setAnnouncementNotifications],
+                                    ['New weekly journeys', 'Know when your pastor publishes a journey', journeyNotifications, setJourneyNotifications],
+                                    ['Daily journey reminders', 'Reminders for released journey steps', journeyReminders, setJourneyReminders],
+                                ].map(([label, description, value, setter], index) => (
+                                    <View key={String(label)} className={`flex-row items-center gap-3 p-4 ${index ? 'border-t border-slate-200 dark:border-slate-800' : ''}`}>
+                                        <View className="flex-1"><Text className="font-bold text-sm" style={{ color: theme.text }}>{String(label)}</Text><Text className="mt-1 text-xs" style={{ color: theme.mutedForeground }}>{String(description)}</Text></View>
+                                        <Switch value={Boolean(value)} onValueChange={setter as (value: boolean) => void} trackColor={{ true: '#4f46e5' }}/>
+                                    </View>
+                                ))}
+                            </View>
+                        </View>
                         </SettingsSection>
 
                         {/* App Settings */}

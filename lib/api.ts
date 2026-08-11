@@ -52,7 +52,12 @@ export const updateNotificationTimeZone = async (timeZone: string) => {
 };
 
 export const recordNotificationOpen = async (deliveryId: string) => {
-  await apiClient.post('/api/notifications/open', { deliveryId });
+  try {
+    await apiClient.post('/api/notifications/church-content/open', { deliveryId });
+  } catch (error: any) {
+    if (error.response?.status !== 404) throw error;
+    await apiClient.post('/api/notifications/open', { deliveryId });
+  }
 };
 
 apiClient.interceptors.request.use(async (config) => {
@@ -748,6 +753,29 @@ export const fetchChurchContent = async (congregationId: number) => {
     
     return response.data;
 };
+
+export type ChurchJourneySummary = {
+  id: string; slug: string; title: string; description?: string | null; starts_at: string; published_at?: string | null;
+};
+
+export type ChurchJourneyItem = {
+  id: string; item_type: string; sequence: number; title: string; content: { body?: string; [key: string]: unknown };
+  scripture_references?: string[]; releaseDay: number; progress?: { opened_at?: string | null; completed_at?: string | null; saved_at?: string | null } | null;
+};
+
+export type ChurchJourney = ChurchJourneySummary & {
+  congregation_id: number; items: ChurchJourneyItem[];
+  sermon_content_packs?: { sermons?: { title?: string; scripture?: string; illustration_image_url?: string; thumbnail_url?: string } };
+};
+
+export const fetchChurchJourneys = async (congregationId: number) =>
+  (await apiClient.get<{ data: ChurchJourneySummary[] }>(`/api/congregations/${congregationId}/journeys`)).data.data;
+
+export const fetchChurchJourney = async (journeyId: string) =>
+  (await apiClient.get<{ data: ChurchJourney }>(`/api/journeys/${encodeURIComponent(journeyId)}`)).data.data;
+
+export const updateChurchJourneyProgress = async (journeyId: string, itemId: string, payload: { opened?: boolean; completed?: boolean; saved?: boolean; response?: Record<string, unknown> }) =>
+  (await apiClient.put(`/api/journeys/${journeyId}/items/${itemId}/progress`, payload)).data.data;
 
 export const fetchStudyDetails = async (studyId: string) => {
     const { data: { session } } = await supabase.auth.getSession();

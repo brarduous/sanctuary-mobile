@@ -19,7 +19,7 @@ export default function AdviceDetailScreen() {
     const [loading, setLoading] = useState(true);
     const [isSpeaking, setIsSpeaking] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
-    const pollIntervalRef = useRef<number | null>(null);
+    const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const pollAttemptsRef = useRef(0);
     const MAX_POLL_ATTEMPTS = 120;
 
