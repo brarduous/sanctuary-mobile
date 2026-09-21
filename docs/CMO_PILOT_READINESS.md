@@ -10,7 +10,7 @@
 | First devotional completed | Missing | The native devotional page offers reading, audio, prayer, and sharing, but no user completion action or event. Backend `daily_devotionals.status = completed` means generation finished, not that a reader finished. |
 | Day-seven return | Missing | Define a distinct return event and cohort query after first devotional completion. |
 | Fresh store-install test | Pending | No connected Android device or booted iPhone simulator was available. Recruit unfamiliar testers using current App Store and Play builds. |
-| Studio founding creator route | Live after Studio deployment | `/studio/founding` explains no-card access, gives first-project steps, and invites feedback. The current Studio deployment does not force checkout. |
+| Studio founding creator route | Live | `/studio/founding` explains no-card access, gives first-project steps, and invites feedback. The current Studio deployment does not force checkout. |
 
 ## First-week test script
 
