@@ -15,9 +15,10 @@ import AudioMicButton from './AudioMicButton';
 interface ChristianAdviceCardProps {
     limitReached?: boolean;
     samplePrompt?: string;
+    featured?: boolean;
 }
 
-export default function ChristianAdviceCard({ limitReached: initialLimitReached, samplePrompt: providedSamplePrompt }: ChristianAdviceCardProps) {
+export default function ChristianAdviceCard({ limitReached: initialLimitReached, samplePrompt: providedSamplePrompt, featured = false }: ChristianAdviceCardProps) {
     const { user } = useAuth();
     const router = useRouter();
     const { isPro } = useRevenueCat();
@@ -107,7 +108,7 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
                 </View>
                 <Text className="font-bold text-base mb-1" style={{ color: theme.text }}>Monthly Limit Reached</Text>
                 <Text className="text-center text-gray-500 text-xs mb-4">
-                    You've used your free advice session. Upgrade for unlimited guidance.
+                    You've used your free guidance session. Upgrade for unlimited guidance.
                 </Text>
                 <Pressable 
                     onPress={() => router.push('/paywall' as any)}
@@ -123,13 +124,13 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
 
     return (
         <View 
-            className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 p-1"
+            className={`bg-white dark:bg-slate-900 rounded-2xl p-1 ${featured ? '' : 'border border-slate-100 dark:border-slate-800'}`}
             style={{ 
                 shadowColor: '#000', 
-                shadowOffset: { width: 0, height: 1 }, 
-                shadowOpacity: 0.1, 
-                shadowRadius: 2, 
-                elevation: 2 
+                shadowOffset: { width: 0, height: featured ? 8 : 1 },
+                shadowOpacity: featured ? 0.18 : 0.1,
+                shadowRadius: featured ? 18 : 2,
+                elevation: featured ? 7 : 2,
             }}
         >
             {isSubmitting ? (
@@ -143,7 +144,9 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
                     <View className="px-4 pt-4 pb-2">
                         <View className="flex-row items-center mb-1">
                             <Sparkles size={16} color={theme.tint} />
-                            <Text style={{ color: theme.text }} className="text-lg font-serif font-bold ml-2">Ask for Scriptural Advice</Text>
+                            <Text style={{ color: theme.text }} className="text-lg font-serif font-bold ml-2">
+                                {featured ? 'What are you facing today?' : 'Ask for Scriptural Guidance'}
+                            </Text>
                         </View>
                         <Text style={{ color: Colors.gray }} className="text-sm leading-5">
                             Describe what you are facing. Sanctuary will help you think through it with biblical wisdom, prayer, and practical next steps.
@@ -201,7 +204,7 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
                                 style={{ backgroundColor: theme.tint }}
                                 className="flex-row items-center px-4 py-3 rounded-full shadow-sm"
                             >
-                                <Text className="text-white font-bold mr-2 text-sm">Ask Advice</Text>
+                                <Text className="text-white font-bold mr-2 text-sm">Get Guidance</Text>
                                 <Send size={12} color="white" />
                             </Pressable>
                         )}

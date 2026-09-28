@@ -696,23 +696,42 @@ export default function HomeScreen() {
 
                 {/* --- 5. CHRISTIAN ADVICE --- */}
                 {user && !adviceLimitReached && (
-                    <>
-                        <View className="mb-10">
-                            <View className="flex-row items-start justify-between mb-3 px-1">
+                    <View className="-mx-5 mb-12 mt-2 overflow-hidden">
+                        <LinearGradient
+                            colors={colorScheme === 'dark' ? ['#263A30', '#16251E'] : ['#304D3E', '#1D3429']}
+                            start={{ x: 0, y: 0 }}
+                            end={{ x: 1, y: 1 }}
+                            className="px-5 py-8"
+                        >
+                            <View className="flex-row items-start justify-between mb-6">
                                 <View className="flex-1 pr-4">
-                                    <Text className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Scriptural Advice</Text>
-                                    <Text className="text-sm leading-5" style={{ color: theme.mutedForeground }}>
-                                        Bring a real question, struggle, or decision and get guidance shaped by Scripture.
+                                    <View className="flex-row items-center mb-3">
+                                        <View className="w-9 h-9 rounded-full bg-white/10 items-center justify-center mr-3">
+                                            <Sparkles size={18} color="#E8C77A" />
+                                        </View>
+                                        <Text className="text-xs font-bold uppercase tracking-widest" style={{ color: '#E8C77A' }}>
+                                            Personalized biblical guidance
+                                        </Text>
+                                    </View>
+                                    <Text className="text-3xl font-serif font-bold leading-9 text-white">
+                                        Guidance for real life
+                                    </Text>
+                                    <Text className="text-sm leading-6 text-white/75 mt-2">
+                                        Bring what is weighing on you. Receive three practical next steps, a Scripture reading, and a prayer.
                                     </Text>
                                 </View>
-                                <Pressable onPress={() => router.push('/advice')}>
-                                    <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: theme.text }}>View All</Text>
+                                <Pressable
+                                    accessibilityRole="button"
+                                    onPress={() => router.push('/advice')}
+                                    className="bg-white/10 border border-white/15 rounded-full px-3 py-2"
+                                >
+                                    <Text className="text-[10px] font-bold uppercase tracking-wider text-white">History</Text>
                                 </Pressable>
                             </View>
 
-                            <ChristianAdviceCard />
-                        </View>
-                    </>
+                            <ChristianAdviceCard featured />
+                        </LinearGradient>
+                    </View>
                 )}
 
                 {/* --- 6. NEWS CARD --- */}

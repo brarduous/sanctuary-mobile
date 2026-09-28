@@ -2,7 +2,7 @@ import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/context/RevenueCatContext';
-import { fetchAppOptions, fetchCategories, searchSpotifyArtists, SpotifyArtist, updateUserFollowedCategories, updateUserProfile } from '@/lib/api';
+import { fetchAppOptions, fetchCategories, searchSpotifyArtists, SpotifyArtist, updatePersonalGrowth, updateUserFollowedCategories, updateUserProfile } from '@/lib/api';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
@@ -193,8 +193,6 @@ export default function OnboardingScreen() {
     ];
 
     const userPreferences = {
-      focusAreas: selectedFocus,
-      improvementAreas,
       improvementAreasUpdatedAt: new Date().toISOString(),
       improvementAreasCheckInAt: getNextImprovementCheckInAt(),
       notifications: {
@@ -221,8 +219,9 @@ export default function OnboardingScreen() {
     }
 
     const profilePromise = updateUserProfile(user.id, updatePayload);
+    const growthPromise = updatePersonalGrowth(user.id, { focusAreas: selectedFocus, improvementAreas });
     const categoriesPromise = updateUserFollowedCategories(user.id, selectedCategories);
-    await Promise.all([profilePromise, categoriesPromise]);
+    await Promise.all([profilePromise, growthPromise, categoriesPromise]);
   };
 
   const handleFinish = async () => {

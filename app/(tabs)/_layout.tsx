@@ -53,7 +53,7 @@ export default function TabLayout() {
       <Tabs.Screen name="index" options={{ title: 'Sanctuary', tabBarLabel: 'Home', tabBarIcon: ({ color }) => <Home size={24} color={color} strokeWidth={2.5} /> }} />
       <Tabs.Screen name="bible" options={{ title: 'Scripture', tabBarLabel: 'Bible', tabBarIcon: ({ color }) => <Book size={24} color={color} strokeWidth={2.5} /> }} />
       <Tabs.Screen name="church" options={{ title: 'My Church', href: userCongregationId ? '/(tabs)/church' : null, tabBarIcon: ({ color }) => <Church size={24} color={color} strokeWidth={2.5} /> }} />
-      <Tabs.Screen name="advice" options={{ title: 'Guidance', tabBarLabel: 'Advice', tabBarIcon: ({ color }) => <MessageCircle size={24} color={color} strokeWidth={2.5} /> }} />
+      <Tabs.Screen name="advice" options={{ title: 'Guidance', tabBarLabel: 'Guidance', tabBarIcon: ({ color }) => <MessageCircle size={24} color={color} strokeWidth={2.5} /> }} />
       <Tabs.Screen name="news" options={{ title: 'Daily Briefing', tabBarLabel: 'News', tabBarIcon: ({ color }) => <Newspaper size={24} color={color} strokeWidth={2.5} /> }} />
     </Tabs>
   );

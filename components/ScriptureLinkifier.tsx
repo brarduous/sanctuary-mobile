@@ -83,12 +83,14 @@ export default function ScriptureLinkifier({ text, className, versionKey, textSt
               {part}
             </Text>
           ) : (
-            <Pressable
+            <Text
               key={part.key}
+              accessibilityRole="link"
               onPress={() => handlePress(part.ref)}
+              style={[...baseTextStyle, { color: theme.tint, fontWeight: 'bold' }]}
             >
-              <Text style={[...baseTextStyle, { color: theme.tint, fontWeight: 'bold' }]}>{part.ref}</Text>
-            </Pressable>
+              {part.ref}
+            </Text>
           )
         )}
       </Text>

@@ -1,5 +1,23 @@
 
-export const SCRIPTURE_REGEX = /(\b(?:[1-3]\s)?[A-Za-z]{2,}(?:\s+[A-Za-z]{2,})*\s+\d+(?::\d+(?:-\d+)?)?)/g;
+// Only match actual Bible book names. The previous expression accepted any words
+// before a number, so text such as "read this in John 3:16" could turn
+// "read this in John 3:16" into one large link.
+const BIBLE_BOOK_PATTERN = [
+  '[1-3]\\s*John', '[1-2]\\s*Chronicles', '[1-2]\\s*Corinthians', '[1-2]\\s*Kings',
+  '[1-2]\\s*Peter', '[1-2]\\s*Samuel', '[1-2]\\s*Thessalonians', '[1-2]\\s*Timothy',
+  'Song\\s+of\\s+(?:Solomon|Songs)',
+  'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy', 'Joshua', 'Judges', 'Ruth',
+  'Ezra', 'Nehemiah', 'Esther', 'Job', 'Psalms?', 'Proverbs', 'Ecclesiastes', 'Isaiah',
+  'Jeremiah', 'Lamentations', 'Ezekiel', 'Daniel', 'Hosea', 'Joel', 'Amos', 'Obadiah',
+  'Jonah', 'Micah', 'Nahum', 'Habakkuk', 'Zephaniah', 'Haggai', 'Zechariah', 'Malachi',
+  'Matthew', 'Mark', 'Luke', 'John', 'Acts', 'Romans', 'Galatians', 'Ephesians',
+  'Philippians', 'Colossians', 'Titus', 'Philemon', 'Hebrews', 'James', 'Jude', 'Revelation',
+].join('|');
+
+export const SCRIPTURE_REGEX = new RegExp(
+  `\\b(?:${BIBLE_BOOK_PATTERN})\\s+\\d+(?::\\d+(?:[–-]\\d+)?)?`,
+  'gi',
+);
 
 // Local Bible files (same as Bible screen)
 const BIBLE_FILES: Record<string, any> = {
@@ -19,7 +37,7 @@ export type ParsedReference = {
 const normalize = (s: string) => s.trim().replace(/\s+/g, ' ');
 
 export function parseScriptureReference(ref: string): ParsedReference | null {
-  const match = ref.trim().match(/^\s*([1-3]?\s?[A-Za-z\.\s]+?)\s+(\d+)(?::(\d+)(?:-(\d+))?)?\s*$/i);
+  const match = ref.trim().match(/^\s*([1-3]?\s?[A-Za-z\.\s]+?)\s+(\d+)(?::(\d+)(?:[–-](\d+))?)?\s*$/i);
   if (!match) return null;
   const [, rawBook, ch, start, end] = match;
   const chapter = parseInt(ch, 10);

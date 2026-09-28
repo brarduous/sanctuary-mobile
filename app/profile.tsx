@@ -5,6 +5,7 @@ import {
     fetchAppOptions,
     fetchCategories,
     fetchFavorites,
+    fetchPersonalGrowth,
     fetchUserFollowedCategories,
     fetchUserProfile,
     fetchVideoPreferences,
@@ -13,6 +14,7 @@ import {
     searchSpotifyArtists,
     SpotifyArtist,
     updateUserFollowedCategories,
+    updatePersonalGrowth,
     updateUserProfile
 } from '@/lib/api';
 import { Stack, useRouter } from 'expo-router';
@@ -145,8 +147,9 @@ export default function ProfileScreen() {
                 return;
             }
             try {
-                const [userProfile, appOptions, cats, userCats, videoPrefs, channels] = await Promise.all([
+                const [userProfile, personalGrowth, appOptions, cats, userCats, videoPrefs, channels] = await Promise.all([
                     fetchUserProfile(user.id).catch(e => { console.error('Profile fetch error:', e); return null; }),
+                    fetchPersonalGrowth(user.id).catch(e => { console.error('Personal growth fetch error:', e); return null; }),
                     fetchAppOptions().catch(e => { console.error('App options error:', e); return null; }),
                     fetchCategories().catch(e => { console.error('Categories error:', e); return []; }),
                     fetchUserFollowedCategories(user.id).catch(e => { console.error('User cats error:', e); return []; }),
@@ -191,8 +194,8 @@ export default function ProfileScreen() {
                 if (userProfile) {
                     setProfile(userProfile);
                     if (userProfile.user_preferences) {
-                        setFocusAreas(Array.isArray(userProfile.user_preferences.focusAreas) ? userProfile.user_preferences.focusAreas : []);
-                        const savedImprovementAreas = Array.isArray(userProfile.user_preferences.improvementAreas) ? userProfile.user_preferences.improvementAreas : [];
+                        setFocusAreas(Array.isArray(personalGrowth?.focus_areas) ? personalGrowth.focus_areas : (Array.isArray(userProfile.user_preferences.focusAreas) ? userProfile.user_preferences.focusAreas : []));
+                        const savedImprovementAreas = Array.isArray(personalGrowth?.improvement_areas) ? personalGrowth.improvement_areas : (Array.isArray(userProfile.user_preferences.improvementAreas) ? userProfile.user_preferences.improvementAreas : []);
                         setImprovementAreas(normalizeSavedImprovementAreas(savedImprovementAreas, loadedImproveOptions));
                         const savedOther = savedImprovementAreas.find((item: string) => item.startsWith('Other: '));
                         setOtherImprovement(savedOther ? savedOther.replace(/^Other:\s*/, '') : '');
@@ -365,11 +368,6 @@ export default function ProfileScreen() {
         try {
             const userPreferences = {
                 ...(profile?.user_preferences || {}),
-                focusAreas,
-                improvementAreas: [
-                    ...improvementAreas,
-                    ...(otherImprovement.trim() ? [`Other: ${otherImprovement.trim()}`] : [])
-                ],
                 improvementAreasUpdatedAt: new Date().toISOString(),
                 improvementAreasCheckInAt: getNextImprovementCheckInAt(),
                 onboardingCompleted: true,
@@ -393,6 +391,13 @@ export default function ProfileScreen() {
             await Promise.all([
                 updateUserProfile(user.id, {
                     user_preferences: userPreferences
+                }),
+                updatePersonalGrowth(user.id, {
+                    focusAreas,
+                    improvementAreas: [
+                        ...improvementAreas,
+                        ...(otherImprovement.trim() ? [`Other: ${otherImprovement.trim()}`] : [])
+                    ],
                 }),
                 updateUserFollowedCategories(user.id, followedCategoryIds)
             ]);

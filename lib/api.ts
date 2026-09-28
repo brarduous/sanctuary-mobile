@@ -309,6 +309,19 @@ export const updateUserProfile = async (userId: string, updates: any) => {
     }
 };
 
+export const fetchPersonalGrowth = async (userId: string) => {
+    const response = await apiClient.get(`/user-profile/${userId}/personal-growth`);
+    return response.data?.data || null;
+};
+
+export const updatePersonalGrowth = async (
+    userId: string,
+    growth: { focusAreas: string[]; improvementAreas: string[] },
+) => {
+    const response = await apiClient.put(`/user-profile/${userId}/personal-growth`, growth);
+    return response.data?.data || null;
+};
+
 export const updateUserFollowedCategories = async (userId: string, categoryIds: number[]) => {
     try {
       const response = await apiClient.post('/user-followed-categories/' + userId, { categoryIds });
