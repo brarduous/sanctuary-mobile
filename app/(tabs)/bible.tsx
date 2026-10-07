@@ -1,6 +1,8 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { parseScriptureReference } from '@/lib/bibleUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, ChevronLeft, ChevronRight, Menu, Type, X } from 'lucide-react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, useWindowDimensions, View } from 'react-native';
@@ -41,6 +43,7 @@ const AVAILABLE_TRANSLATIONS: Record<string, { key: string; longName: string; de
 };
 
 export default function BibleScreen() {
+  const { reference, version } = useLocalSearchParams<{ reference?: string; version?: string }>();
   const colorScheme = useColorScheme() ?? 'light';
   const { width } = useWindowDimensions();
   const theme = Colors[colorScheme];
@@ -86,6 +89,17 @@ export default function BibleScreen() {
     };
     loadSettings();
   }, []);
+
+  // A scripture card can deep-link directly into its full chapter.
+  useEffect(() => {
+    if (!reference) return;
+    const parsed = parseScriptureReference(reference);
+    if (!parsed) return;
+
+    setCurrentBookId(parsed.book);
+    setCurrentChapterNum(parsed.chapter);
+    if (version && AVAILABLE_TRANSLATIONS[version]) setVersionKey(version);
+  }, [reference, version]);
 
   // --- 2. LOAD DATA ---
   useEffect(() => {

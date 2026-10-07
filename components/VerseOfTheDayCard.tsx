@@ -1,11 +1,12 @@
 //
-import { useColorScheme } from '@/components/useColorScheme';
-import { getPassageText } from '@/lib/bibleUtils';
+import { getPassageText, parseScriptureReference } from '@/lib/bibleUtils';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
-import { Share as ShareIcon } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { ChevronRight, Share as ShareIcon } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ImageBackground, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ImageBackground, Platform, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import ViewShot from "react-native-view-shot";
 
 interface VerseOfTheDayCardProps {
@@ -14,9 +15,54 @@ interface VerseOfTheDayCardProps {
   backgroundImage: any;
 }
 
+const MIN_SCRIPTURE_FONT_SIZE = 15;
+const MAX_SCRIPTURE_FONT_SIZE = 26;
+const MAX_SCRIPTURE_LINES = 5;
+const MAX_SCRIPTURE_TEXT_HEIGHT = 108;
+const SCRIPTURE_LINE_HEIGHT_RATIO = 1.42;
+const AVERAGE_GLYPH_WIDTH_RATIO = 0.52;
+const CARD_HORIZONTAL_INSET = 80;
+
+export const getScriptureVisualLength = (text: string) => {
+  return Array.from(text.replace(/\s+/g, ' ').trim()).reduce((total, character) => {
+    if (/\s/.test(character)) return total + 0.45;
+    if (/[MW@#%&]/.test(character)) return total + 1.35;
+    if (/[A-Z]/.test(character)) return total + 1.08;
+    if (/[ilI1|'`.,:;!]/.test(character)) return total + 0.55;
+    if (/[mw]/.test(character)) return total + 1.2;
+    if (/[-–—()[\]{}]/.test(character)) return total + 0.75;
+    return total + 1;
+  }, 0);
+};
+
+export const getScriptureFontSize = (text: string, availableWidth: number) => {
+  const visualLength = Math.max(getScriptureVisualLength(text), 1);
+  const continuousSize = Math.sqrt(
+    (MAX_SCRIPTURE_TEXT_HEIGHT * availableWidth)
+    / (visualLength * SCRIPTURE_LINE_HEIGHT_RATIO * AVERAGE_GLYPH_WIDTH_RATIO)
+  );
+  const startingSize = Math.min(MAX_SCRIPTURE_FONT_SIZE, Math.floor(continuousSize));
+
+  for (let fontSize = startingSize; fontSize >= MIN_SCRIPTURE_FONT_SIZE; fontSize -= 1) {
+    const estimatedLines = Math.ceil(
+      (visualLength * fontSize * AVERAGE_GLYPH_WIDTH_RATIO) / availableWidth
+    );
+    const estimatedHeight = estimatedLines * getScriptureLineHeight(fontSize);
+
+    if (estimatedLines <= MAX_SCRIPTURE_LINES && estimatedHeight <= MAX_SCRIPTURE_TEXT_HEIGHT) {
+      return fontSize;
+    }
+  }
+
+  return MIN_SCRIPTURE_FONT_SIZE;
+};
+
+const getScriptureLineHeight = (fontSize: number) => Math.round(fontSize * SCRIPTURE_LINE_HEIGHT_RATIO);
+
 const VerseOfTheDayCard: React.FC<VerseOfTheDayCardProps> = ({ reference, version = 'NIV', backgroundImage }) => {
   const viewShotRef = useRef<ViewShot>(null);
-  const colorScheme = useColorScheme();
+  const router = useRouter();
+  const { width: windowWidth } = useWindowDimensions();
   const [verseData, setVerseData] = useState<{ text: string, reference: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -52,7 +98,26 @@ const VerseOfTheDayCard: React.FC<VerseOfTheDayCardProps> = ({ reference, versio
     }
   };
 
+  const handleReadPassage = async () => {
+    const parsed = parseScriptureReference(reference);
+    if (parsed) {
+      await AsyncStorage.multiSet([
+        ['bible_book', parsed.book],
+        ['bible_chapter', parsed.chapter.toString()],
+        ['bible_version', version],
+      ]);
+    }
+    router.push({ pathname: '/bible', params: { reference, version } });
+  };
+
   if (!verseData && !loading) return null;
+
+  const availableTextWidth = Math.max(windowWidth - CARD_HORIZONTAL_INSET, 1);
+  const scriptureFontSize = getScriptureFontSize(verseData?.text ?? '', availableTextWidth);
+  const scriptureTextStyle = {
+    fontSize: scriptureFontSize,
+    lineHeight: getScriptureLineHeight(scriptureFontSize),
+  };
 
   return (
     <View style={styles.container}>
@@ -84,14 +149,17 @@ const VerseOfTheDayCard: React.FC<VerseOfTheDayCardProps> = ({ reference, versio
 
                     {/* CENTER: Scripture */}
                     <View style={styles.centerContainer}>
-                        <Text style={styles.scriptureText} adjustsFontSizeToFit numberOfLines={12}>
+                        <Text style={[styles.scriptureText, scriptureTextStyle]} numberOfLines={MAX_SCRIPTURE_LINES} ellipsizeMode="tail">
                             "{verseData?.text}"
                         </Text>
                     </View>
                     
-                    {/* BOTTOM: Branding (Optional, adds nice touch to share) */}
+                    {/* BOTTOM: Full passage affordance */}
                     <View style={styles.bottomContainer}>
-                        <Text style={styles.brandingText}>SANCTUARY</Text>
+                        <TouchableOpacity onPress={handleReadPassage} style={styles.readPassageButton} activeOpacity={0.75}>
+                            <Text style={styles.readPassageText}>Read full passage</Text>
+                            <ChevronRight size={15} color="white" />
+                        </TouchableOpacity>
                     </View>
                 </>
             )}
@@ -125,7 +193,7 @@ const styles = StyleSheet.create({
   },
   cardSize: {
     width: '100%',
-    aspectRatio: 1/1, // Slightly shorter than full 9/16 to fit nicely on dashboard
+    height: 250,
     justifyContent: 'center',
   },
   imageStyle: {
@@ -135,13 +203,13 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.35)', // Darker overlay for text pop
     borderRadius: 20,
-    padding: 32,
+    padding: 20,
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   topContainer: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 2,
   },
   referenceText: {
     color: 'white',
@@ -161,12 +229,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 8,
   },
   scriptureText: {
     color: 'white',
-    fontSize: 18,
-    lineHeight: 28,
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.5)',
@@ -176,11 +242,21 @@ const styles = StyleSheet.create({
   bottomContainer: {
     marginBottom: 8,
   },
-  brandingText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-    letterSpacing: 3,
-    fontWeight: '600',
+  readPassageButton: {
+    minHeight: 36,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.38)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
+  readPassageText: {
+    color: 'white',
+    fontSize: 12,
+    fontWeight: '700',
   },
   floatingShareButton: {
     position: 'absolute',
