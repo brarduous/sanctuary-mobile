@@ -1,5 +1,6 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { Layout, Typography } from '@/constants/Layout';
 import { useAuth } from '@/context/AuthContext';
 import ScreenState from '@/components/ScreenState';
 import { fetchGivingStatus, createGivingCheckout } from '@/lib/api';
@@ -131,9 +132,10 @@ export default function GiveScreen() {
                             style={{ fontSize: 52, fontWeight: '700', color: theme.text, minWidth: 120, textAlign: 'center' }}
                         />
                     </View>
+                    <Text style={{ ...Typography.helper, color: amount && !Number.isFinite(Number(amount)) ? theme.error : theme.mutedForeground, marginTop: 12, textAlign: 'center' }}>{amount && !Number.isFinite(Number(amount)) ? 'Enter a valid dollar amount.' : 'Gifts start at $1.00 USD.'}</Text>
                 </View>
 
-                <Text style={{ color: theme.text, fontWeight: '600', fontSize: 16, marginBottom: 12 }}>Designated Fund</Text>
+                <Text accessibilityRole="header" style={{ color: theme.text, fontWeight: '600', fontSize: 16, marginBottom: 12 }}>Designated Fund</Text>
 
                 {/* Fund Selector */}
                 <View className="space-y-3 mb-8">
@@ -146,7 +148,7 @@ export default function GiveScreen() {
                                 onPress={() => setSelectedFund(fund.id)}
                                 accessibilityRole="radio"
                                 accessibilityState={{ checked: isSelected }}
-                                style={{ padding: 16, borderRadius: 16, borderWidth: 1, borderColor: isSelected ? theme.tint : theme.border, backgroundColor: isSelected ? theme.accentSoft : theme.card, flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 12 }}
+                                style={{ padding: 16, borderRadius: 16, borderWidth: 1, borderColor: isSelected ? theme.tint : theme.border, backgroundColor: isSelected ? theme.selection : theme.card, flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 12 }}
                             >
                                 <View style={{ padding: 10, borderRadius: 24, backgroundColor: isSelected ? theme.tint : theme.muted }}>
                                     <Icon size={18} color={isSelected ? theme.onTint : theme.text} />
@@ -173,10 +175,10 @@ export default function GiveScreen() {
                     disabled={!canContinue}
                     accessibilityRole="button"
                     accessibilityState={{ disabled: !canContinue, busy: isProcessing }}
-                    style={{ minHeight: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.action, opacity: canContinue || isProcessing ? 1 : 0.45 }}
+                    style={{ minHeight: Layout.actionHeight, paddingHorizontal: 16, paddingVertical: 12, borderRadius: Layout.controlRadius, alignItems: 'center', justifyContent: 'center', backgroundColor: canContinue || isProcessing ? theme.action : theme.disabled }}
                 >
                     {isProcessing ? <ActivityIndicator color={theme.onAction} /> :
-                        <Text style={{ color: theme.onAction, fontWeight: '700', fontSize: 17 }}>{amount && Number.isFinite(Number(amount)) ? `Continue with $${Number(amount).toFixed(2)}` : 'Continue to checkout'}</Text>}
+                        <Text style={{ ...Typography.action, color: canContinue ? theme.onAction : theme.onDisabled, textAlign: 'center' }}>{amount && Number.isFinite(Number(amount)) ? `Continue with $${Number(amount).toFixed(2)}` : 'Continue to checkout'}</Text>}
                 </TouchableOpacity>
             </View>
 

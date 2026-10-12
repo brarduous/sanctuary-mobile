@@ -4,6 +4,8 @@ import ChristianAdviceCard from '@/components/ChristianAdviceCard';
 import GeneratingState from '@/components/GeneratingState';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import useReducedMotion from '@/components/useReducedMotion';
+import { Layout, Typography } from '@/constants/Layout';
 import { useAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/context/RevenueCatContext';
 import {
@@ -76,6 +78,8 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 export default function HomeScreen() {
+    const reducedMotion = useReducedMotion();
+    const animateLayout = () => { if (!reducedMotion) LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); };
     const { user, profile, refreshProfile, loading: authLoading } = useAuth();
     const { isPro, isLoaded: isRevenueLoaded } = useRevenueCat();
     const router = useRouter();
@@ -315,14 +319,14 @@ export default function HomeScreen() {
 
     const onRefresh = async () => {
         setRefreshing(true);
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        if (!reducedMotion) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         await loadData(true);
         setRefreshing(false);
     };
 
     // --- RETRY PERSONALIZATION ---
     const handleRetryPersonalization = async () => {
-        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+        if (!reducedMotion) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium).catch(() => {});
         setDevotionalFailed(false);
         setIsGenerating(true);
         generationTriggeredRef.current = true; 
@@ -358,7 +362,7 @@ export default function HomeScreen() {
         try {
             const prayer = await fetchRandomPrayer(user?.congregation_id);
             if (prayer && !prayer.error) {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                animateLayout();
                 setCommunityPrayer(prayer);
             } else {
                 Alert.alert("Community Caught Up", "No new prayer requests right now. Check back later!");
@@ -373,7 +377,7 @@ export default function HomeScreen() {
     const handlePrayAction = async () => {
         if (!communityPrayer) return;
 
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        if (!reducedMotion) void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success).catch(() => {});
         setPrayingState('sending');
 
         setTimeout(async () => {
@@ -389,7 +393,7 @@ export default function HomeScreen() {
             setPrayingState('sent');
 
             setTimeout(() => {
-                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+                animateLayout();
                 setCommunityPrayer(null);
                 setPrayingState('idle');
             }, 1500);
@@ -420,18 +424,18 @@ export default function HomeScreen() {
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['left', 'right']}>
             <ScrollView
-                contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D4A373" />}
+                contentContainerStyle={{ padding: Layout.gutter, paddingBottom: Layout.bottomPadding }}
+                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.tint} />}
                 showsVerticalScrollIndicator={false}
             >
 
                 {/* --- HEADER --- */}
-                <View className="flex-row justify-between items-start mb-5 mt-1">
-                    <View>
-                        <Text className="font-serif italic text-xs mb-1" style={{ color: theme.mutedForeground }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: 12, marginBottom: 20, marginTop: 4 }}>
+                    <View style={{ flex: 1, minWidth: 210 }}>
+                        <Text style={{ ...Typography.metadata, fontFamily: Layout.serif, fontStyle: 'italic', color: theme.mutedForeground, marginBottom: 4 }}>
                             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                         </Text>
-                        <Text className="text-2xl font-serif leading-tight" style={{ color: theme.text }}>
+                        <Text accessibilityRole="header" style={{ ...Typography.editorialTitle, fontFamily: Layout.serif, color: theme.text }}>
                             {`${getGreeting()}, `}
                             <Text className="font-bold">
                                 {profile?.first_name?.trim() || user?.user_metadata?.given_name || 'Friend'}.
@@ -440,17 +444,17 @@ export default function HomeScreen() {
                     </View>
 
                     {user && streak > 1 && (
-                        <View className="flex-row items-center bg-slate-100 rounded-full px-3 py-1">
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flexShrink: 1, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, backgroundColor: theme.selection }}>
                             <Flame size={14} color="#F97316" fill="#F97316" />
-                            <Text className="ml-1 text-xs font-bold text-slate-600">
+                            <Text style={{ ...Typography.metadata, fontWeight: '600', color: theme.tint, marginLeft: 4, flexShrink: 1 }}>
                                 {streak} Day Streak
                             </Text>
                         </View>
                     )}
                     {/* Show Sign In for Guest */}
                     {!user && (
-                        <Pressable onPress={() => router.push('/login')} className="bg-slate-100 px-4 py-2 rounded-full">
-                            <Text className="font-bold text-slate-700">Sign In</Text>
+                        <Pressable onPress={() => router.push('/login')} accessibilityRole="button" style={{ minHeight: Layout.touchTarget, justifyContent: 'center', paddingHorizontal: 16, paddingVertical: 10, borderRadius: 22, backgroundColor: theme.muted }}>
+                            <Text style={{ ...Typography.action, color: theme.text }}>Sign in</Text>
                         </Pressable>
                     )}
                 </View>
@@ -465,15 +469,15 @@ export default function HomeScreen() {
                 )}
 
                 {/* --- 1. DAILY DEVOTIONAL --- */}
-                <View className="mb-4 flex-row items-center justify-between">
+                <View style={{ marginBottom: 12, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
                     <View className="flex-row items-center gap-2">
-                        <BookOpen size={16} color="#94A3B8" />
-                        <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Daily Devotional</Text>
+                        <BookOpen size={16} color={theme.mutedForeground} />
+                        <Text accessibilityRole="header" style={{ ...Typography.formLabel, color: theme.text }}>Daily reflection</Text>
                     </View>
                     {todaysDevotional && !isGenerating && (
-                        <View className={`px-2 py-0.5 rounded-full flex-row items-center gap-1 ${todaysDevotional.type === 'general' ? 'bg-slate-100' : 'bg-[#D4A373]/10'}`}>
-                            {todaysDevotional.type === 'general' ? <BookOpen size={10} color="#64748B" /> : <Sparkles size={10} color="#D4A373" />}
-                            <Text className={`text-xs font-bold ${todaysDevotional.type === 'general' ? 'text-slate-500' : 'text-[#D4A373]'}`}>
+                        <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: theme.selection }}>
+                            {todaysDevotional.type === 'general' ? <BookOpen size={12} color={theme.tint} /> : <Sparkles size={12} color={theme.tint} />}
+                            <Text style={{ ...Typography.metadata, fontWeight: '600', color: theme.tint }}>
                                 {todaysDevotional.type === 'general' ? 'General Edition' : 'For You'}
                             </Text>
                         </View>
@@ -483,46 +487,46 @@ export default function HomeScreen() {
                 {isGenerating ? (
                     <GeneratingState />
                 ) : todaysDevotional ? (
-                    <View className="rounded-3xl border border-slate-100 dark:border-slate-800 mb-7 overflow-hidden" style={{ backgroundColor: theme.card }}>
+                    <View style={{ borderRadius: Layout.cardRadius, borderWidth: 1, borderColor: theme.border, marginBottom: Layout.sectionGap, overflow: 'hidden', backgroundColor: theme.card }}>
                         <ImageBackground source={devotionalHero} className="h-28 justify-end" resizeMode="cover">
                             <LinearGradient colors={['transparent', 'rgba(10, 14, 12, 0.82)']} className="absolute inset-0" />
                             <View className="p-5 flex-row items-center justify-between">
                                 <View className="rounded-full bg-black/35 border border-white/20 px-3 py-1.5">
                                     <Text className="text-xs font-bold uppercase tracking-widest text-white">Today's focus</Text>
                                 </View>
-                                <Text className="text-xs font-semibold text-white/80">About 4 min</Text>
+                                <Text style={{ ...Typography.metadata, color: 'white', flexShrink: 1 }}>Daily reflection</Text>
                             </View>
                         </ImageBackground>
 
-                        <View className="p-5">
-                            <Text className="text-2xl font-serif mb-2 leading-tight font-semibold" numberOfLines={2} style={{ color: theme.text }}>
+                        <View style={{ padding: Layout.cardPadding }}>
+                            <Text accessibilityRole="header" style={{ ...Typography.editorialTitle, fontFamily: Layout.serif, marginBottom: 8, color: theme.text }}>
                                 {todaysDevotional.title}
                             </Text>
 
-                            <Text className="leading-6 text-sm mb-5" numberOfLines={3} style={{ color: theme.mutedForeground }}>
+                            <Text numberOfLines={3} style={{ ...Typography.helper, marginBottom: 20, color: theme.mutedForeground }}>
                                 {todaysDevotional.content?.replace(/<[^>]*>?/gm, '').replace(/[#*`]/g, '').replace(/\\n/g, ' ').trim()}
                             </Text>
 
                             <Pressable
                                 onPress={() => router.push(`/devotional/${todaysDevotional.devotional_id || todaysDevotional.id}`)}
-                                className="min-h-12 rounded-xl bg-[#D4A373] px-5 flex-row items-center justify-center active:opacity-90"
+                                style={{ minHeight: Layout.actionHeight, paddingHorizontal: 20, paddingVertical: 12, borderRadius: Layout.controlRadius, backgroundColor: theme.action, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                                 accessibilityRole="button"
                                 accessibilityLabel={`Read today's devotional: ${todaysDevotional.title}`}
                             >
-                                <Text className="font-bold text-sm text-[#17130F] mr-2">Begin today's devotional</Text>
-                                <ChevronRight size={18} color="#17130F" strokeWidth={2.5} />
+                                <Text style={{ ...Typography.action, color: theme.onAction, textAlign: 'center', flexShrink: 1 }}>Read today’s reflection</Text>
+                                <ChevronRight size={18} color={theme.onAction} strokeWidth={2.5} />
                             </Pressable>
 
                                 {/* UPSELL FOR GENERAL */}
                                 {todaysDevotional.type === 'general' && !devotionalFailed && (
                                     <Pressable
-                                        onPress={() => router.push('/profile')}
-                                        className="mt-4 pt-4 border-t border-dashed border-slate-200 flex-row items-center justify-between"
+                                        onPress={() => router.push('/paywall')}
+                                        accessibilityRole="button" style={{ marginTop: 16, paddingTop: 16, minHeight: Layout.touchTarget, borderTopWidth: 1, borderColor: theme.border, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}
                                     >
-                                        <Text className="text-xs text-slate-400">Want devotionals written for <Text className="font-bold text-slate-500">your</Text> journey?</Text>
+                                        <Text style={{ ...Typography.metadata, color: theme.mutedForeground, flexShrink: 1 }}>Personalize your daily reflection</Text>
                                         <View className="flex-row items-center gap-1">
-                                            <Lock size={10} color="#64748B" />
-                                            <Text className="text-xs font-bold text-slate-500">Unlock Pro</Text>
+                                            <Lock size={12} color={theme.tint} />
+                                            <Text style={{ ...Typography.metadata, fontWeight: '700', color: theme.tint }}>Explore Pro</Text>
                                         </View>
                                     </Pressable>
                                 )}
@@ -545,35 +549,36 @@ export default function HomeScreen() {
                         </View>
                     </View>
                 ) : (
-                    <View className="p-6 rounded-2xl mb-10 border border-slate-100 dark:border-slate-800 items-center" style={{ backgroundColor: theme.card }}>
-                        <Text className="text-slate-400 mb-2">Unable to load content.</Text>
-                        <Pressable onPress={() => loadData(true)} className="bg-slate-100 px-4 py-2 rounded-full">
-                            <Text className="text-slate-700 font-bold">Retry</Text>
+                    <View style={{ padding: Layout.cardPadding, borderRadius: Layout.cardRadius, marginBottom: Layout.sectionGap, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.card }}>
+                        <Text accessibilityRole="header" style={{ ...Typography.sectionHeading, color: theme.text, marginBottom: 8 }}>Today’s reflection is unavailable</Text>
+                        <Text style={{ ...Typography.helper, color: theme.mutedForeground, marginBottom: 16 }}>You can still read today’s Scripture. Try loading the reflection again.</Text>
+                        <Pressable onPress={() => loadData(true)} accessibilityRole="button" style={{ minHeight: Layout.actionHeight, paddingHorizontal: 20, paddingVertical: 12, borderRadius: Layout.controlRadius, backgroundColor: theme.muted, alignSelf: 'flex-start', justifyContent: 'center' }}>
+                            <Text style={{ ...Typography.action, color: theme.text }}>Try again</Text>
                         </Pressable>
                     </View>
                 )}
 
                 {/* --- 2. GUIDED PRAYER --- */}
                 {!isGenerating && todaysPrayer && (
-                    <View className="mb-10">
+                    <View style={{ marginBottom: Layout.sectionGap }}>
                         <View className="mb-3 flex-row items-center gap-2">
-                            <Heart size={15} color="#94A3B8" />
-                            <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Guided Prayer</Text>
+                            <Heart size={16} color={theme.mutedForeground} />
+                            <Text accessibilityRole="header" style={{ ...Typography.formLabel, color: theme.text }}>Guided prayer</Text>
                         </View>
                         <Pressable
                             onPress={() => router.push(`/prayer/${todaysPrayer.prayer_id || todaysPrayer.id}`)}
-                            className="p-4 rounded-2xl border border-slate-100 dark:border-slate-800 active:scale-[0.99] flex-row items-center"
-                            style={{ backgroundColor: theme.card }}
+                            accessibilityRole="button" accessibilityLabel="Open today’s prayer"
+                            style={{ padding: 16, borderRadius: Layout.cardRadius, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.card, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 12 }}
                         >
-                            <View className="h-12 w-12 rounded-xl bg-[#D4A373]/15 items-center justify-center mr-4">
-                                <HeartHandshake size={23} color="#D4A373" />
+                            <View style={{ height: 48, width: 48, borderRadius: 12, backgroundColor: theme.selection, alignItems: 'center', justifyContent: 'center' }}>
+                                <HeartHandshake size={23} color={theme.tint} />
                             </View>
-                            <View className="flex-1 mr-3">
-                                <Text className="text-lg font-serif mb-0.5" style={{ color: theme.text }}>Daily Prayer</Text>
-                                <Text className="text-sm" numberOfLines={1} style={{ color: theme.mutedForeground }}>Pause and pray with intention.</Text>
+                            <View style={{ flex: 1, minWidth: 140 }}>
+                                <Text style={{ ...Typography.formLabel, fontFamily: Layout.serif, color: theme.text }}>Daily prayer</Text>
+                                <Text style={{ ...Typography.helper, color: theme.mutedForeground }}>Pause and pray with intention.</Text>
                             </View>
-                            <View className="rounded-full border border-[#D4A373]/50 px-3 py-2">
-                                <Text className="text-xs font-bold text-[#D4A373]">Pray now</Text>
+                            <View style={{ paddingVertical: 8 }}>
+                                <ChevronRight size={20} color={theme.tint} />
                             </View>
                         </Pressable>
                     </View>
@@ -581,8 +586,8 @@ export default function HomeScreen() {
 
                 {/* --- RECOMMENDED VIDEOS --- */}
                 {recommendedVideos.length > 0 && (
-                    <View className="mt-10 px-4">
-                        <Text className="text-xs font-bold uppercase tracking-widest mb-4" style={{ color: theme.mutedForeground }}>
+                    <View style={{ marginBottom: Layout.sectionGap }}>
+                        <Text accessibilityRole="header" style={{ ...Typography.formLabel, color: theme.text, marginBottom: 12 }}>
                             Recommended For Your Walk
                         </Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -636,7 +641,7 @@ export default function HomeScreen() {
                         {communityPrayer ? (
                             <View className="bg-[#1E293B] dark:bg-[#0F172A] rounded-2xl shadow-lg overflow-hidden relative">
                                 <View className="absolute top-4 right-4 z-10">
-                                    <Pressable onPress={() => { LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); setCommunityPrayer(null); }} className="p-2 bg-white/10 rounded-full">
+                                    <Pressable onPress={() => { animateLayout(); setCommunityPrayer(null); }} className="p-2 bg-white/10 rounded-full">
                                         <X size={16} color="white" />
                                     </Pressable>
                                 </View>

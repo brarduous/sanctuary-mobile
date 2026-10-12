@@ -735,9 +735,11 @@ export type SpotifyTrack = {
 
 export const searchSpotifyArtists = async (q: string, required = false) => {
   try {
-    if (!q.trim()) return [];
+    const name = q.trim().replace(/["\\]/g, ' ').trim();
+    if (!name) return [];
     const response = await apiClient.get('/api/music/spotify/artists', {
-      params: { q, limit: 8 },
+      // Restrict Spotify's fuzzy search to the artist name the user entered.
+      params: { q: `artist:"${name}"`, limit: 8 },
     });
     return response.data || [];
   } catch (error) {

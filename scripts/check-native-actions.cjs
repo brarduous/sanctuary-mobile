@@ -29,6 +29,7 @@ function load(file) {
   if (name === '@/context/AuthContext') return { useAuth: () => auth };
   if (name === '@/lib/api') return api;
   if (name === '@/lib/inviteToken') return { extractInviteToken: value => value === 'valid-qa-invite' ? value : null };
+  if (name === '@/constants/Layout') return { Layout: { actionHeight: 48, controlRadius: 14 }, Typography: { helper: {}, action: {} } };
   if (name === '@/constants/Colors') return { light: palette, dark: palette };
   if (name === '@/components/useColorScheme') return { useColorScheme: () => 'light' };
   if (name === '@/components/ScreenState') return 'ScreenState';

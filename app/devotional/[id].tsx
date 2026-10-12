@@ -1,4 +1,5 @@
 import ScreenState from '@/components/ScreenState';
+import ReadingContent from '@/components/ReadingContent';
 import ReadingControls from '@/components/ReadingControls';
 import { Layout } from '@/constants/Layout';
 import ScriptureLinkifier from '@/components/ScriptureLinkifier';
@@ -12,7 +13,6 @@ import * as Speech from 'expo-speech';
 import { ArrowLeft, Share2 } from 'lucide-react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
-import Markdown from 'react-native-markdown-display';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import RNShare from 'react-native-share';
 import ViewShot from 'react-native-view-shot';
@@ -255,20 +255,7 @@ export default function DevotionalDetailScreen() {
 
                 {/* Content */}
                 <View className="mb-10">
-                    <Markdown
-                        style={{
-                            body: { color: theme.text, fontSize: 17, lineHeight: 28, fontFamily: Layout.serif },
-                            paragraph: { marginTop: 0, marginBottom: 14 },
-                            strong: { fontWeight: '700' },
-                            em: { fontStyle: 'italic' },
-                            bullet_list: { marginVertical: 8 },
-                            ordered_list: { marginVertical: 8 },
-                            list_item: { color: theme.text, fontSize: 17, lineHeight: 24 },
-                            link: { color: theme.tint },
-                        }}
-                    >
-                        {readingContent}
-                    </Markdown>
+                    <ReadingContent content={readingContent} horizontalPadding={24} />
                 </View>
 
                 {/* Prayer Section */}

@@ -1,4 +1,5 @@
 import { isSameArtist, toggleArtistPreference } from '@/lib/artistPreferences';
+import ArtistPreferenceChip from '@/components/ArtistPreferenceChip';
 import ArtistPreferenceRow from '@/components/ArtistPreferenceRow';
 import { nextImprovementCheckInAt } from '@/lib/improvementCheckIn';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -135,7 +136,7 @@ export default function OnboardingScreen() {
     const handle = setTimeout(async () => {
       if (!artistSearch.trim()) return;
       try {
-        const results = await searchSpotifyArtists(`${artistSearch} gospel christian`, true);
+        const results = await searchSpotifyArtists(artistSearch.trim(), true);
         if (!Array.isArray(results)) throw new Error('Artist search unavailable');
         if (active) setArtistResults(results);
       } catch {
@@ -493,25 +494,12 @@ export default function OnboardingScreen() {
                                 {artistSearching && <ActivityIndicator size="small" color={theme.tint} />}
                             </View>
 
+                            <Text accessibilityLiveRegion="polite" style={{ color: theme.mutedForeground, fontSize: 14, lineHeight: 21, marginBottom: 12 }}>{favoriteArtists.length}/5 selected{favoriteArtists.length >= 5 ? ' · Remove an artist to choose another.' : ' · Choose up to five.'}</Text>
+
                             {favoriteArtists.length > 0 && (
                                 <View className="flex-row flex-wrap gap-2 mb-4">
                                     {favoriteArtists.map((artist) => (
-                                        <Pressable
-                                            key={artist.id || artist.name}
-                                            onPress={() => toggleFavoriteArtist(artist)}
-                                            accessibilityRole="button"
-                                            accessibilityLabel={`Remove ${artist.name}`}
-                                            style={{ minHeight: 44, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 22, borderWidth: 1, borderColor: theme.tint, backgroundColor: theme.accentSoft, maxWidth: '100%' }}
-                                        >
-                                            <Text
-                                                style={{ fontSize: 14, lineHeight: 21, fontWeight: '600', color: theme.text }}
-                                                numberOfLines={1}
-                                                adjustsFontSizeToFit
-                                                minimumFontScale={0.75}
-                                            >
-                                                {artist.name}
-                                            </Text>
-                                        </Pressable>
+                                        <ArtistPreferenceChip key={artist.id || artist.name} name={artist.name} onRemove={() => toggleFavoriteArtist(artist)} theme={theme} />
                                     ))}
                                 </View>
                             )}

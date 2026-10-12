@@ -1,5 +1,6 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import useReducedMotion from '@/components/useReducedMotion';
 import { Layout } from '@/constants/Layout';
 import { formatReadingHtml } from '@/lib/readingHtml';
 import { getPassageHtml, SCRIPTURE_REGEX } from '@/lib/bibleUtils';
@@ -16,6 +17,7 @@ interface ScriptureLinkifierProps {
 }
 
 export default function ScriptureLinkifier({ text, className, versionKey, textStyle }: ScriptureLinkifierProps) {
+  const reducedMotion = useReducedMotion();
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
   const { width, height } = useWindowDimensions();
@@ -82,12 +84,12 @@ export default function ScriptureLinkifier({ text, className, versionKey, textSt
       <Text className={className} style={baseTextStyle}>
         {parts.map((part, idx) =>
           typeof part === 'string' ? (
-            <Text key={idx} style={baseTextStyle}>
+            <Text key={`text-${idx}`} style={baseTextStyle}>
               {part}
             </Text>
           ) : (
             <Text
-              key={part.key}
+              key={`reference-${part.key}`}
               accessibilityRole="link"
               onPress={() => handlePress(part.ref)}
               style={[...baseTextStyle, { color: theme.tint, fontWeight: 'bold' }]}
@@ -100,7 +102,7 @@ export default function ScriptureLinkifier({ text, className, versionKey, textSt
 
       <Modal
         visible={!!selectedRef}
-        animationType="slide"
+        animationType={reducedMotion ? 'none' : 'slide'}
         onRequestClose={closePassage}
         transparent
       >

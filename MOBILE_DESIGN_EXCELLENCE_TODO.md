@@ -8,20 +8,24 @@ This plan turns the goal of a 10/10 experience into concrete work and observable
 
 The app runs in Simulator. Native Google sign-in has returned to authenticated Home. The preference reminder is a branded overlay, and Later persists a new 30-day deadline. Scripture cards have bounded square-to-portrait sizing with complete long passages accessible. Main screens and many secondary flows have been inspected in light and dark. Live Spotify Profile results and RevenueCat Test Store offers have loaded. Native Giving has reached the correct Stripe sandbox checkout and recovered after closing it; no payment was submitted.
 
-Remaining verification includes normal Google session restoration, loaded onboarding artist results, guest invite continuation through provider authentication, and successful test purchase/payment handling. Backend fixes have passed local tests but still need deployment and deployed-flow verification.
+Normal Google restoration is now observed after bundle reload, native cold launch and background/foreground. Isolated onboarding with live Spotify has passed loaded/empty/error/retry, five-choice removal/replacement, save and Profile reopening checks. Backend remediations are deployed; production member Study → Lesson has been verified. Guest invite continuation, complete test purchase/payment handling and the remaining deployed routes stay open.
 
 Evidence: [screenshot report](qa-screenshots/2026-10-11-baseline-2/index.html), [structured audit](qa-screenshots/2026-10-11-baseline-2/baseline-audit.json). Captures 245–258 are registered and stale summaries reconciled. The report separates current verification from historical captures; final-build regrading is still required.
 
 
 ### Release pass — October 12, 2026
 
-Completed: Q01 evidence reconciliation (258 captures, all files validated), route/state inventory, source and archive QA cleanup, strict invite validation and scanner lifecycle (R05), synchronous checkout duplicate guard, cancellation form preservation, authenticated profile/membership stale-response protection, subscription account isolation, and compatible dependency patches. Normal Metro is retained; temporary QA backend/Metro on 3117/8082 are stopped. Private fixtures and signing material remain outside build uploads. Version 1.2.10 is prepared; npm is the mobile build’s single package manager.
+Completed: Q01 evidence reconciliation, strict invite/scanner guards (R05), and live loaded onboarding artist verification (R02). Shared typography, spacing, theme roles and reduced-motion handling now support the refined Home and shared reading/preferences controls. Native production lessons now show outlines, key verses, application, discussion prompts and closing prayer in light/dark. Lesson normalization preserves current and legacy content; Scripture lists no longer leak JSON formatting. Artist-name searches no longer append unrelated genre terms. Temporary staging backend/Metro on 3117/8082 are stopped; normal 8081, original Google account and dark appearance are restored. Private fixtures/signing material remain outside build uploads.
 
-Validation: mobile TypeScript, seven behavior checks (including real component lifecycles with mocked SDK/network boundaries), 4,756 Bible chapter preservation checks, Expo dependency compatibility, and 109 backend tests pass. These do not substitute for native provider/payment observations. Backend production dependency audit has no high/critical findings; mobile retains tooling/dependency advisories requiring assessment before a clean security claim.
+Validation: mobile TypeScript and nine behavior/contrast checks pass, including 4,756 Bible chapter preservation checks. Five saved QA artists have distinct provider IDs and survive Profile reopening with correct selected-result matching. Compact iPhone SE light/dark evidence is recorded; larger layouts, full VoiceOver and maximum accessibility text sizes remain unverified. Backend 109 tests and backend/database CI passed on the reviewed changes.
 
-Release blockers: final native interactions and new Mobbin inspections cannot run because computer control fails to start its native pipe; Render authentication is still expired; successful Stripe donation recording and RevenueCat purchase/restore remain unverified. Source inspection found that `/webhook` treats one-time checkout completion as subscription completion, while `/stripe/checkout` supplies no donation ledger metadata. R03 needs a proper idempotent donation path and test verification. Store submission remains pending these blockers.
+Release blockers: successful Stripe donation recording and RevenueCat purchase/restore remain unverified. Source inspection found `/webhook` treats one-time checkout completion as subscription completion, while `/stripe/checkout` supplies no donation ledger metadata. R03 needs a proper idempotent donation path and sandbox verification. Final native build, guest invite completion and remaining deployed flows stay open. Store submission remains pending these gates.
 
-Backend candidate: [PR #11](https://github.com/brarduous/sanctuary-backend/pull/11). Production’s 33 migration versions match local inventory; this backend candidate needs no new migration. Deployment rollback is the previously deployed application commit; no schema rollback is necessary for this candidate.
+Backend: [PR #11](https://github.com/brarduous/sanctuary-backend/pull/11) and the lesson key-verse safe-projection fix [PR #12](https://github.com/brarduous/sanctuary-backend/pull/12) are merged. Render authentication is refreshed and production is live at `6cc680775afaf8639215215bc5ccbbb30ce828c7`. Production's 33 migration versions match local inventory; neither change needs a migration. Production member Church → Study → Lesson and Scripture overlay return have native evidence. Other deployed routes require current checks.
+
+Build status: signed version 1.2.10 iOS build 60 and Android build 132 finished, but predate the latest Home, lesson and artist changes. They are not final release artifacts and have not been submitted. Rebuild after remaining fixes. npm is the single mobile package manager. Mobile dependency advisories remain; no clean security claim is made.
+
+Design reference comparison: [inspection notes and application table](MOBILE_DESIGN_REFERENCE_NOTES.md). New local captures and benchmark references are registered in the report, with earlier failed artist searches explicitly identified as superseded.
 
 ## Priorities and completion rules
 
@@ -54,10 +58,10 @@ For every implementation task: preserve current unrelated changes; record the af
 - [ ] Complete D01. **P1 · Design · Depends on Q01**
 - [ ] Inspect comparable devotional/Bible, meditation, community, and giving/subscription experiences. Select apps based on relevant flows, not popularity alone.
 - [ ] Compare Home hierarchy, daily reading, onboarding, community participation, giving, and subscription decision-making. Inspect dark variants when available.
-- [ ] For each reference, save the app name, direct Mobbin screen/flow link, inspected state, screenshot where available, observation, and proposed Sanctuary application.
-- [ ] Build a short comparison table: Sanctuary issue → observed reference pattern → intended improvement → verification method.
-- [ ] Identify where Sanctuary should remain distinctive: warm reading surfaces, spiritual content, restrained gold emphasis, and church context.
-- [ ] Record inaccessible or uninspected states as gaps. Do not infer a complete app experience from one reference screen.
+- [x] For each reference, save the app name, direct Mobbin screen/flow link, inspected state, screenshot where available, observation, and proposed Sanctuary application.
+- [x] Build a short comparison table: Sanctuary issue → observed reference pattern → intended improvement → verification method.
+- [x] Identify where Sanctuary should remain distinctive: warm reading surfaces, spiritual content, restrained gold emphasis, and church context.
+- [x] Record inaccessible or uninspected states as gaps. Do not infer a complete app experience from one reference screen.
 
 **Acceptance:** Every major flow has an inspected comparable pattern or an explicit gap. References support concrete decisions; they do not become a collection of unrelated visual styles.
 
@@ -65,9 +69,9 @@ For every implementation task: preserve current unrelated changes; record the af
 
 - [ ] Complete D02. **P1 · Design/engineering · Depends on D01**
 - [ ] Audit `constants/Colors.ts`, `constants/Layout.ts`, shared controls, and inline styles for inconsistent spacing, radii, borders, typography, and action hierarchy.
-- [ ] Define semantic roles for page background, elevated surface, inset reading surface, primary text, secondary text, separator, selection, focus, error, and disabled states in both themes.
-- [ ] Define typography roles for screen title, section heading, reading body, metadata, form label, helper text, and action label. Specify wrapping and font-scaling behavior.
-- [ ] Establish spacing and component geometry for screen gutters, section gaps, card padding, row height, icons, and bottom safe areas.
+- [x] Define semantic roles for page background, elevated surface, inset reading surface, primary text, secondary text, separator, selection, focus, error, and disabled states in both themes.
+- [x] Define typography roles for screen title, section heading, reading body, metadata, form label, helper text, and action label. Specify wrapping and font-scaling behavior.
+- [x] Establish spacing and component geometry for screen gutters, section gaps, card padding, row height, icons, and bottom safe areas.
 - [ ] Standardize primary/secondary/text actions, selection controls, headers, modal close controls, loading/error states, and card families. Keep editorial reading and actionable list rows visually distinguishable.
 - [ ] Apply the system incrementally to Home, then high-use routes. Consolidate repeated styles only when the shared behavior is genuinely reusable.
 
@@ -79,10 +83,10 @@ For every implementation task: preserve current unrelated changes; record the af
 
 - [ ] Complete D03. **P1 · Design/engineering · Depends on D02**
 - [ ] Inventory everything currently above and below the fold in `app/(tabs)/index.tsx`. Rank it by user value and frequency of use.
-- [ ] Create a clear first action around daily scripture/devotional content. Establish a deliberate hierarchy between the greeting, daily content, supporting actions, and church/community content.
-- [ ] Reduce competing visual emphasis: avoid giving every card the same weight, repeated strong borders, or multiple equally prominent actions in one viewport.
+- [x] Create a clear first action around daily scripture/devotional content. Establish a deliberate hierarchy between the greeting, daily content, supporting actions, and church/community content.
+- [x] Reduce competing visual emphasis: avoid giving every card the same weight, repeated strong borders, or multiple equally prominent actions in one viewport.
 - [ ] Refine hero imagery/cropping, title wrapping, supporting metadata, and card spacing using actual short and long content.
-- [ ] Make the next action understandable from its label and placement. Ensure scripture, reflection, and church content lead to the expected destination.
+- [x] Make the next action understandable from its label and placement. Ensure scripture, reflection, and church content lead to the expected destination.
 - [ ] Design guest, member, no-church, loading, and unavailable-content variants using the same hierarchy.
 - [ ] Verify the scripture card remains 1:1 by default and can grow to approximately 3:4. Preserve complete passage access, clear continuation controls, and the full reader.
 - [ ] Capture first viewport and full-scroll evidence on compact and larger iPhones in light/dark, including a long passage and long devotional title.
@@ -166,10 +170,10 @@ For every implementation task: preserve current unrelated changes; record the af
 
 - [ ] Complete D10. **P2 · Design/engineering · Depends on D03–D07**
 - [ ] Audit navigation transitions, overlay appearance/dismissal, selection feedback, keyboard behavior, media handoff, and save/completion feedback.
-- [ ] Introduce restrained motion and optional haptics only where they clarify a state change or completed action. Keep timing consistent and respect reduced motion.
+- [x] Introduce restrained motion and optional haptics only where they clarify a state change or completed action. Keep timing consistent and respect reduced motion.
 - [ ] Remove layout jumps caused by late-loading images, fonts, or inconsistent loading containers. Reserve sensible space for async content.
 - [ ] Preserve relevant query, filter, selected fund, and reading state across temporary navigation. Define which fields intentionally clear after completion or cancellation.
-- [ ] Guard duplicate taps and stale async responses. Ensure buttons recover after cancellation or failure and do not remain loading indefinitely.
+- [x] Guard duplicate taps and stale async responses. Ensure buttons recover after cancellation or failure and do not remain loading indefinitely.
 
 **Acceptance:** The app communicates state changes immediately and predictably. No unnecessary motion blocks an action; no cancellation leaves a stuck spinner or duplicate request.
 
@@ -189,7 +193,7 @@ For every implementation task: preserve current unrelated changes; record the af
 ### R01 — Verify authentication and invite continuity
 
 - [ ] Complete R01. **P0 · Engineering/QA · Google callback already observed**
-- [ ] Verify the normal Google-authenticated session survives bundle reload, background/foreground, and native cold launch. Confirm correct account identity and no unexpected onboarding or reminder.
+- [x] Verify the normal Google-authenticated session survives bundle reload, background/foreground, and native cold launch. Confirm correct account identity and no unexpected onboarding or reminder.
 - [ ] Verify sign-out and subsequent sign-in do not leave stale protected content or stale loading state.
 - [ ] Test provider cancellation and recoverable failure from both Login and Join; retain the intended destination.
 - [ ] Open a valid invite as a guest, authenticate, and complete joining the intended QA church. Verify resulting membership and destination; test invalid/expired invite recovery separately.
@@ -198,11 +202,11 @@ For every implementation task: preserve current unrelated changes; record the af
 
 ### R02 — Verify loaded onboarding artist results
 
-- [ ] Complete R02. **P0 · Engineering/QA · Dedicated QA account and live Spotify requested**
-- [ ] Use an isolated QA flow with live Spotify search and an incomplete-onboarding QA profile. Keep privileged credentials out of the client and do not overwrite a real user's production preferences.
-- [ ] Exercise search, loaded portraits/results, no results, error/retry, selection, removal, limit, keyboard dismissal, and theme changes on the actual onboarding route.
-- [ ] Save synthetic QA preferences and verify persisted artist identity/count after reopening. Confirm shared Profile/onboarding identity matching remains correct.
-- [ ] Restore temporary fixtures/configuration after recording evidence; document any remaining service/environment gap.
+- [x] Complete R02. **P0 · Engineering/QA · Dedicated QA account and live Spotify requested**
+- [x] Use an isolated QA flow with live Spotify search and an incomplete-onboarding QA profile. Keep privileged credentials out of the client and do not overwrite a real user's production preferences.
+- [x] Exercise search, loaded portraits/results, no results, error/retry, selection, removal, limit, keyboard dismissal, and theme changes on the actual onboarding route.
+- [x] Save synthetic QA preferences and verify persisted artist identity/count after reopening. Confirm shared Profile/onboarding identity matching remains correct.
+- [x] Restore temporary fixtures/configuration after recording evidence; document any remaining service/environment gap.
 
 **Acceptance:** Real loaded onboarding results are captured in both themes. Saving and reopening preserve the chosen artists; Profile results alone do not close this task.
 
@@ -232,16 +236,16 @@ For every implementation task: preserve current unrelated changes; record the af
 - [x] Complete R05. **P0 · Engineering · No physical device required**
 - [x] Reject unrelated, malformed and invalid invite URLs; retain valid web/deep links and raw invite tokens.
 - [x] Guard duplicate scan callbacks synchronously and stop rendering the camera when the route loses focus.
-- [x] Verify valid/invalid invite handling with deterministic regression checks retain existing light/dark Simulator permission/close evidence. New runtime interaction remains unavailable this pass.
+- [x] Verify valid/invalid invite handling with deterministic regression checks retain existing light/dark Simulator permission/close evidence. Native control is restored; hardware scanning remains outside this pass.
 
 **Acceptance:** Source checks cover parsing and duplicate/lifecycle behavior. Hardware capture quality and actual QR scanning are outside this pass; no hardware success is claimed.
 
 ### R06 — Deploy and verify backend remediations
 
 - [ ] Complete R06. **P0 · Engineering/release · Depends on reviewed backend change set**
-- [ ] Inventory the backend changes and necessary migrations, including member content access, Volunteer ordering/responses, News contracts, journey progress errors, and optional integration startup/recovery.
-- [ ] Reconcile staging migration history with the target environment; review access/privacy policies and prepare migration verification and rollback steps.
-- [ ] Run relevant backend checks on the final reviewed change set. The previous 109 passing tests are historical evidence, not a substitute for checks after new changes.
+- [x] Inventory the backend changes and necessary migrations, including member content access, Volunteer ordering/responses, News contracts, journey progress errors, and optional integration startup/recovery.
+- [x] Reconcile staging migration history with the target environment; review access/privacy policies and prepare migration verification and rollback steps.
+- [x] Run relevant backend checks on the final reviewed change set. The previous 109 passing tests are historical evidence, not a substitute for checks after new changes.
 - [ ] Deploy through the project's established release process and verify authenticated mobile → deployed API → data → response behavior.
 - [ ] Confirm failures remain distinguishable from empty/disabled states and sensitive/privileged fields are not exposed in member responses.
 

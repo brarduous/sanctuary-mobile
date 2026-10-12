@@ -1,3 +1,4 @@
+import { formatScriptureReferences } from '@/lib/readingHtml';
 import { Layout } from '@/constants/Layout';
 import ScreenState from '@/components/ScreenState';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -75,7 +76,7 @@ export default function StudyDetailsScreen() {
                                 {lesson.scripture && (
                                     <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
                                         <BookOpen size={12} color={theme.mutedForeground} style={{ marginRight: 4 }} />
-                                        <Text style={{ flex: 1, color: theme.mutedForeground, fontSize: 14, lineHeight: 21 }}>{lesson.scripture}</Text>
+                                        <Text style={{ flex: 1, color: theme.mutedForeground, fontSize: 14, lineHeight: 21 }}>{formatScriptureReferences(lesson.scripture)}</Text>
                                     </View>
                                 )}
                             </View>
