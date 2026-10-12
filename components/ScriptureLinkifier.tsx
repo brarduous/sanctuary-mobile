@@ -1,9 +1,11 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { Layout } from '@/constants/Layout';
+import { formatReadingHtml } from '@/lib/readingHtml';
 import { getPassageHtml, SCRIPTURE_REGEX } from '@/lib/bibleUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, Text, TextStyle, useWindowDimensions, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextStyle, useWindowDimensions, View } from 'react-native';
 import RenderHtml from 'react-native-render-html';
 
 interface ScriptureLinkifierProps {
@@ -16,7 +18,7 @@ interface ScriptureLinkifierProps {
 export default function ScriptureLinkifier({ text, className, versionKey, textStyle }: ScriptureLinkifierProps) {
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
-  const { width } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
 
   const [selectedRef, setSelectedRef] = useState<string | null>(null);
   const [selectedHtml, setSelectedHtml] = useState<string | null>(null);
@@ -73,6 +75,7 @@ export default function ScriptureLinkifier({ text, className, versionKey, textSt
     setSelectedRef(ref);
     setSelectedHtml(passage?.html || null);
   };
+  const closePassage = () => { setSelectedRef(null); setSelectedHtml(null); };
 
   return (
     <>
@@ -96,32 +99,38 @@ export default function ScriptureLinkifier({ text, className, versionKey, textSt
       </Text>
 
       <Modal
-        visible={!!selectedHtml}
+        visible={!!selectedRef}
         animationType="slide"
-        onRequestClose={() => setSelectedHtml(null)}
+        onRequestClose={closePassage}
         transparent
       >
         <View className="flex-1" style={{ backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 }}>
-          <View className="rounded-2xl p-5" style={{ backgroundColor: theme.card }}>
+          <View accessibilityViewIsModal className="rounded-2xl p-5" style={{ backgroundColor: theme.card, maxHeight: height * 0.8 }}>
             <View className="flex-row justify-between items-center mb-3">
-              <Text style={{ color: theme.text, fontWeight: 'bold', fontSize: 16 }}>{selectedRef}</Text>
-              <Pressable onPress={() => setSelectedHtml(null)} className="px-3 py-1 rounded-full" style={{ backgroundColor: colorScheme === 'dark' ? '#1f2937' : '#e2e8f0' }}>
+              <Text accessibilityRole="header" style={{ color: theme.text, fontWeight: 'bold', fontSize: 16, flex: 1 }}>{selectedRef}</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Close scripture passage" onPress={closePassage} style={{ minHeight: 44, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: theme.muted }}>
                 <Text style={{ color: theme.text, fontWeight: 'bold' }}>Close</Text>
               </Pressable>
             </View>
+            <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 12 }}>
             {selectedHtml ? (
               <RenderHtml
-                contentWidth={width - 60}
-                source={{ html: `<div>${selectedHtml}</div>` }}
+                contentWidth={width - 80}
+                source={{ html: formatReadingHtml(selectedHtml) }}
+                baseStyle={{ color: theme.text, fontFamily: Layout.serif, ...Layout.body }}
+                defaultTextProps={{ style: { fontFamily: Layout.serif } }}
+                systemFonts={[Layout.serif!]}
                 tagsStyles={{
                   sup: { fontSize: 12, color: theme.tint, marginRight: 4 },
-                  span: { fontSize: 16, lineHeight: 24, color: theme.text },
+                  span: { ...Layout.body, color: theme.text },
                   div: { color: theme.text },
+                  p: { marginTop: 0, marginBottom: 14 },
                 }}
               />
             ) : (
-              <Text style={{ color: Colors.gray }}>Unable to load passage.</Text>
+              <Text style={{ color: theme.mutedForeground, fontSize: 16, lineHeight: 25 }}>This passage could not be loaded in the selected translation. Open the Bible reader to find it.</Text>
             )}
+            </ScrollView>
           </View>
         </View>
       </Modal>

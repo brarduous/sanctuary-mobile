@@ -1,3 +1,5 @@
+import ReadingControls from '@/components/ReadingControls';
+import { Layout } from '@/constants/Layout';
 import ScriptureLinkifier from '@/components/ScriptureLinkifier';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
@@ -279,22 +281,7 @@ export default function AdviceDetailScreen() {
                     </Text>
                 </View>
 
-                {/* Audio Controls */}
-                <View className="flex-row items-center mb-6 justify-center space-x-6">
-                   <Pressable 
-                        onPress={handleSpeak}
-                        className="flex-row items-center px-6 py-3 rounded-full"
-                        style={{ backgroundColor: isSpeaking ? Colors.gray : theme.tint }}
-                   >
-                        {isSpeaking ? 
-                            <Square size={18} color={theme.background} fill={theme.background} /> : 
-                            <Play size={18} color={theme.background} fill={theme.background} />
-                        }
-                        <Text className="font-bold ml-2" style={{ color: theme.background }}>
-                            {isSpeaking ? "Stop Reading" : "Listen to Guidance"}
-                        </Text>
-                   </Pressable>
-                </View>
+                <View style={{ marginBottom: 24 }}><ReadingControls speaking={isSpeaking} onPress={handleSpeak} label="Listen to guidance" theme={theme} /></View>
 
                 {guidance && typeof guidance !== 'string' ? (
                     <View className="mb-10">

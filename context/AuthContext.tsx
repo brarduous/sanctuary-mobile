@@ -3,20 +3,14 @@ import { fetchUserCongregation, fetchUserProfile, setAuthToken } from '@/lib/api
 import { supabase } from '@/lib/supabase';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { AppState } from 'react-native';
-
-// Configure Google Sign-In (Get Web Client ID from Google Cloud Console)
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-  offlineAccess: false,
-  forceCodeForRefreshToken: true,
-});
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { Alert, AppState, Platform } from 'react-native';
 
 const AuthContext = createContext<any>(null);
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
+  const activeUserId = useRef<string | null>(null);
+  const authRevision = useRef(0);
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [profileLoadError, setProfileLoadError] = useState<unknown>(null);
@@ -27,10 +21,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     let mounted = true;
 
     const restoreSession = async () => {
+      const revision = authRevision.current;
       try {
         const { data: { session } } = await supabase.auth.getSession();
-        if (!mounted) return;
+        if (!mounted || revision !== authRevision.current) return;
 
+        activeUserId.current = session?.user?.id ?? null;
         setAuthToken(session?.access_token ?? null);
         setUser(session?.user ?? null);
         if (session?.user) {
@@ -48,7 +44,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           description: session?.user ? 'Active session found' : 'No active session',
         });
       } catch (error) {
-        if (!mounted) return;
+        if (!mounted || revision !== authRevision.current) return;
+        activeUserId.current = null;
+        setAuthToken(null);
         setUser(null);
         setProfile(null);
         setProfileLoadError(error);
@@ -67,6 +65,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         return;
       }
 
+      authRevision.current += 1;
+      const nextUserId = session?.user?.id ?? null;
+      if (activeUserId.current !== nextUserId) {
+        setProfile(null);
+        setUserCongregationId(null);
+      }
+      activeUserId.current = nextUserId;
       setUser(session?.user ?? null);
       if (session?.user) {
         setLoading(true);
@@ -138,10 +143,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const loadProfile = async (userId: string, options?: { silent?: boolean }) => {
     try {
+      if (activeUserId.current !== userId) return;
       setProfileLoadError(null);
-      const data = await fetchUserProfile(userId);
+      const [data, congregationId] = await Promise.all([fetchUserProfile(userId), fetchUserCongregation(userId)]);
+      if (activeUserId.current !== userId) return;
       setProfile(data);
-      const congregationId = await fetchUserCongregation(userId);
       setUserCongregationId(congregationId);
       if (!options?.silent) {
         await logActivityEvent({
@@ -151,13 +157,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         });
       }
     } catch (error) {
+      if (activeUserId.current !== userId) return;
       setProfileLoadError(error);
       if (!options?.silent) {
         await logErrorEvent('profile_load_error', error, { userId });
       }
     }
     finally {
-      setLoading(false);
+      if (activeUserId.current === userId) setLoading(false);
     }
   };
   const refreshProfile = async () => {
@@ -167,6 +174,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const applySession = async (session: any) => {
+    activeUserId.current = session?.user?.id ?? null;
     setUser(session?.user ?? null);
 
     if (session?.user) {
@@ -241,6 +249,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     await logActivityEvent({ activityType: 'google_sign_in_started', description: 'User tapped Google sign-in' });
     try {
       setLoading(true);
+      const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+      const iosClientId = process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID;
+      if (!webClientId || (Platform.OS === 'ios' && !iosClientId)) {
+        throw new Error('Google Sign-In configuration is missing for this build.');
+      }
+      // Keep native configuration errors inside the sign-in flow. The SDK's
+      // signIn method awaits its configuration promise and propagates failures.
+      GoogleSignin.configure({ webClientId, iosClientId, offlineAccess: false });
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
 
@@ -272,11 +288,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error: any) {
       setLoading(false);
-      console.error("Google Sign In Error", error);
 
       // Enhanced error diagnostics for DEVELOPER_ERROR (Android)
       const errorDescription = error?.message || String(error);
       const isDeveloperError = errorDescription.includes('DEVELOPER_ERROR') || errorDescription.includes('error 10');
+      const isSimulatorKeychainError = Platform.OS === 'ios' && errorDescription.toLowerCase().includes('keychain');
+
+      console.warn('Google Sign In Error', errorDescription);
 
       if (isDeveloperError) {
         await logErrorEvent('google_sign_in_developer_error_android', error, {
@@ -285,6 +303,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         await logErrorEvent('google_sign_in_error', error);
       }
+
+      Alert.alert(
+        'Unable to sign in with Google',
+        isSimulatorKeychainError
+          ? 'Google Sign-In cannot access the keychain in this simulator build. Use Apple Sign-In or try again on a physical device.'
+          : 'Please try again. If the problem continues, use another sign-in method.',
+      );
     }
   };
 

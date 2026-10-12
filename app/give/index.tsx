@@ -1,14 +1,18 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/lib/supabase';
+import ScreenState from '@/components/ScreenState';
+import { fetchGivingStatus, createGivingCheckout } from '@/lib/api';
 import { Stack } from 'expo-router';
+import { useHeaderHeight } from '@react-navigation/elements';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
-import { Building, CreditCard, Globe, Heart, Lock, ShieldAlert } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import { Building, Globe, Heart, Lock } from 'lucide-react-native';
+import React, { useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    InputAccessoryView, Keyboard,
     KeyboardAvoidingView, Platform,
     ScrollView,
     Text, TextInput, TouchableOpacity,
@@ -16,16 +20,21 @@ import {
 } from 'react-native';
 
 export default function GiveScreen() {
-    const { user, userCongregationId } = useAuth();
+    const { userCongregationId, loading: authLoading } = useAuth();
     const theme = Colors[useColorScheme() ?? 'light'];
+    const insets = useSafeAreaInsets();
+    const headerHeight = useHeaderHeight();
 
     const [isGivingEnabled, setIsGivingEnabled] = useState(false);
     const [isLoadingStatus, setIsLoadingStatus] = useState(true);
-    
+    const [statusError, setStatusError] = useState(false);
+    const [attempt, setAttempt] = useState(0);
+
     // Form State
     const [amount, setAmount] = useState('');
     const [selectedFund, setSelectedFund] = useState('General');
     const [isProcessing, setIsProcessing] = useState(false);
+    const checkoutInFlight = useRef(false);
 
     const FUNDS = [
         { id: 'General', label: 'General Fund', icon: Building },
@@ -34,134 +43,98 @@ export default function GiveScreen() {
     ];
 
     useEffect(() => {
-        if (userCongregationId) checkGivingStatus();
-        else setIsLoadingStatus(false);
-    }, [userCongregationId]);
-
-    const checkGivingStatus = async () => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/stripe/status/${userCongregationId}/public`, {
-                headers: { 'Authorization': `Bearer ${session?.access_token}` }
+        if (authLoading) return;
+        let active = true;
+        setStatusError(false);
+        setIsGivingEnabled(false);
+        setIsLoadingStatus(!!userCongregationId);
+        if (userCongregationId) {
+            void fetchGivingStatus(userCongregationId).then(enabled => {
+                if (active) setIsGivingEnabled(enabled);
+            }).catch(() => {
+                if (active) setStatusError(true);
+            }).finally(() => {
+                if (active) setIsLoadingStatus(false);
             });
-            const data = await res.json();
-            setIsGivingEnabled(data.isGivingEnabled);
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsLoadingStatus(false);
         }
-    };
+        return () => { active = false; };
+    }, [authLoading, userCongregationId, attempt]);
 
     const handleGive = async () => {
-        const numAmount = parseFloat(amount);
-        if (isNaN(numAmount) || numAmount < 1) {
+        if (checkoutInFlight.current || !userCongregationId) return;
+        const numAmount = Number(amount);
+        if (!Number.isFinite(numAmount) || numAmount < 1) {
             Alert.alert("Invalid Amount", "Please enter an amount of $1.00 or more.");
             return;
         }
 
+        checkoutInFlight.current = true;
         setIsProcessing(true);
         try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/stripe/checkout`, {
-                method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${session?.access_token}`,
-                    'Content-Type': 'application/json' 
-                },
-                body: JSON.stringify({
-                    amount: numAmount,
-                    fund: selectedFund,
-                    congregationId: userCongregationId
-                })
+            const url = await createGivingCheckout(numAmount, selectedFund, userCongregationId);
+            await WebBrowser.openBrowserAsync(url, {
+                presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+                toolbarColor: theme.background,
+                controlsColor: theme.tint
             });
-
-            const data = await res.json();
-            
-            if (res.ok && data.url) {
-                // Open Stripe Checkout securely in an in-app browser
-                await WebBrowser.openBrowserAsync(data.url, {
-
-                    presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
-                    toolbarColor: theme.background,
-                    controlsColor: '#6366f1'
-                });
-                
-                // Reset amount after they close the browser
-                setAmount('');
-            } else {
-                Alert.alert("Error", data.error || "Could not process transaction at this time.");
-            }
+            // Closing the browser does not prove payment; preserve the gift for retry.
         } catch (error) {
             Alert.alert("Error", "Check your connection and try again.");
         } finally {
+            checkoutInFlight.current = false;
             setIsProcessing(false);
         }
     };
 
+    const canContinue = Number.isFinite(Number(amount)) && Number(amount) >= 1 && !isProcessing;
+
     // --- RENDER BLOCKS ---
 
-    if (isLoadingStatus) {
-        return (
-            <View style={{ flex: 1, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#6366f1" />
-            </View>
-        );
-    }
-
-    if (!userCongregationId) {
-        return (
-            <View className="flex-1 justify-center items-center p-8 bg-white dark:bg-black">
-                <Stack.Screen options={{ title: 'Give' }} />
-                <ShieldAlert size={48} color={theme.text} className="mb-4 opacity-20" />
-                <Text className="text-xl font-bold dark:text-white mb-2 text-center">Connect to a Church</Text>
-                <Text className="text-gray-500 text-center text-sm leading-relaxed">You must join a digital congregation to tithe and view your giving history.</Text>
-            </View>
-        );
-    }
-
-    if (!isGivingEnabled) {
-        return (
-            <View className="flex-1 justify-center items-center p-8 bg-white dark:bg-black">
-                <Stack.Screen options={{ title: 'Give' }} />
-                <CreditCard size={48} color={theme.text} className="mb-4 opacity-20" />
-                <Text className="text-xl font-bold dark:text-white mb-2 text-center">Not Setup Yet</Text>
-                <Text className="text-gray-500 text-center text-sm leading-relaxed">Your church has not configured digital giving yet. Please check back later.</Text>
-            </View>
-        );
+    if (authLoading || isLoadingStatus || statusError || !userCongregationId || !isGivingEnabled) {
+        return <View style={{ flex: 1, backgroundColor: theme.background }}>
+            <Stack.Screen options={{ title: 'Give' }} />
+            {authLoading || isLoadingStatus ? <ScreenState title="Loading giving" loading /> :
+                statusError ? <ScreenState title="Giving unavailable" message="We couldn’t check your church’s giving options. Please try again." onRetry={() => setAttempt(value => value + 1)} /> :
+                !userCongregationId ? <ScreenState title="Connect to a church" message="Join your church to see its giving options." /> :
+                <ScreenState title="Giving isn’t available yet" message="Your church hasn’t enabled digital giving. Please check back later." />}
+        </View>;
     }
 
     return (
-        <KeyboardAvoidingView 
+        <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={headerHeight}
             style={{ flex: 1, backgroundColor: theme.background }}
         >
             <Stack.Screen options={{ title: 'Give' }} />
-            
-            <ScrollView className="flex-1" contentContainerStyle={{ padding: 24, paddingTop: 40 }}>
-                
-                <Text className="text-center text-gray-500 dark:text-gray-400 font-medium tracking-widest uppercase text-xs mb-8">
+
+            <ScrollView className="flex-1" keyboardShouldPersistTaps="handled" keyboardDismissMode="on-drag" contentContainerStyle={{ padding: 20, paddingTop: 24 }}>
+
+                <Text style={{ color: theme.mutedForeground, textAlign: 'center', fontSize: 13, fontWeight: '600', marginBottom: 24 }}>
                     Tithes & Offerings
                 </Text>
 
                 {/* Amount Input */}
                 <View className="items-center mb-10">
-                    <View className="flex-row items-center border-b-2 border-indigo-200 dark:border-indigo-900 pb-2">
-                        <Text className="text-4xl font-bold text-gray-400 dark:text-gray-600 mr-2">$</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', borderBottomWidth: 1, borderColor: theme.border, paddingBottom: 8 }}>
+                        <Text style={{ fontSize: 36, color: theme.mutedForeground, marginRight: 8 }}>$</Text>
                         <TextInput
                             value={amount}
                             onChangeText={text => setAmount(text.replace(/[^0-9.]/g, ''))}
                             keyboardType="decimal-pad"
+                            inputAccessoryViewID={Platform.OS === 'ios' ? 'giving-amount-accessory' : undefined}
+                            returnKeyType="done"
+                            onSubmitEditing={() => Keyboard.dismiss()}
                             placeholder="0.00"
-                            placeholderTextColor={theme.text === '#FFFFFF' ? '#475569' : '#CBD5E1'}
-                            className="text-6xl font-bold text-gray-900 dark:text-white min-w-[120px] text-center"
-                            autoFocus
+                            placeholderTextColor={theme.mutedForeground}
+                            accessibilityLabel="Gift amount in dollars"
+                            style={{ fontSize: 52, fontWeight: '700', color: theme.text, minWidth: 120, textAlign: 'center' }}
                         />
                     </View>
                 </View>
 
-                <Text className="font-bold text-gray-900 dark:text-white mb-3 text-sm">Designated Fund</Text>
-                
+                <Text style={{ color: theme.text, fontWeight: '600', fontSize: 16, marginBottom: 12 }}>Designated Fund</Text>
+
                 {/* Fund Selector */}
                 <View className="space-y-3 mb-8">
                     {FUNDS.map((fund) => {
@@ -171,16 +144,14 @@ export default function GiveScreen() {
                             <TouchableOpacity
                                 key={fund.id}
                                 onPress={() => setSelectedFund(fund.id)}
-                                className={`p-4 rounded-2xl border-2 flex-row items-center gap-4 transition-all ${
-                                    isSelected 
-                                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' 
-                                        : 'border-gray-200 dark:border-gray-800 bg-white dark:bg-[#1E293B]'
-                                }`}
+                                accessibilityRole="radio"
+                                accessibilityState={{ checked: isSelected }}
+                                style={{ padding: 16, borderRadius: 16, borderWidth: 1, borderColor: isSelected ? theme.tint : theme.border, backgroundColor: isSelected ? theme.accentSoft : theme.card, flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 12 }}
                             >
-                                <View className={`p-2 rounded-full ${isSelected ? 'bg-indigo-500' : 'bg-gray-100 dark:bg-gray-800'}`}>
-                                    <Icon size={18} color={isSelected ? 'white' : theme.text} />
+                                <View style={{ padding: 10, borderRadius: 24, backgroundColor: isSelected ? theme.tint : theme.muted }}>
+                                    <Icon size={18} color={isSelected ? theme.onTint : theme.text} />
                                 </View>
-                                <Text className={`font-bold text-base flex-1 ${isSelected ? 'text-indigo-900 dark:text-indigo-300' : 'text-gray-900 dark:text-white'}`}>
+                                <Text style={{ color: theme.text, fontWeight: '600', fontSize: 16, flex: 1 }}>
                                     {fund.label}
                                 </Text>
                             </TouchableOpacity>
@@ -189,30 +160,33 @@ export default function GiveScreen() {
                 </View>
 
                 <View className="flex-row items-center justify-center gap-2 mb-12">
-                    <Lock size={12} color="#64748b" />
-                    <Text className="text-xs text-gray-500 font-medium">Securely processed by Stripe. 508(c)(1)(a) Compliant.</Text>
+                    <Lock size={12} color={theme.mutedForeground} />
+                    <Text style={{ color: theme.mutedForeground, fontSize: 13, lineHeight: 20, flexShrink: 1 }}>Continue to secure checkout to review your gift.</Text>
                 </View>
 
             </ScrollView>
 
             {/* Sticky Give Button */}
-            <View className="p-5 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-black">
-                <TouchableOpacity 
+            <View style={{ padding: 20, paddingBottom: Math.max(insets.bottom, 12), borderTopWidth: 1, borderColor: theme.border, backgroundColor: theme.background }}>
+                <TouchableOpacity
                     onPress={handleGive}
-                    disabled={isProcessing || !amount}
-                    className={`p-4 rounded-xl items-center flex-row justify-center shadow-lg ${
-                        isProcessing || !amount ? 'bg-indigo-400' : 'bg-indigo-600'
-                    }`}
+                    disabled={!canContinue}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: !canContinue, busy: isProcessing }}
+                    style={{ minHeight: 52, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: theme.action, opacity: canContinue || isProcessing ? 1 : 0.45 }}
                 >
-                    {isProcessing ? (
-                        <ActivityIndicator color="white" />
-                    ) : (
-                        <Text className="text-white font-bold text-lg">
-                            Give ${parseFloat(amount || '0').toFixed(2)}
-                        </Text>
-                    )}
+                    {isProcessing ? <ActivityIndicator color={theme.onAction} /> :
+                        <Text style={{ color: theme.onAction, fontWeight: '700', fontSize: 17 }}>{amount && Number.isFinite(Number(amount)) ? `Continue with $${Number(amount).toFixed(2)}` : 'Continue to checkout'}</Text>}
                 </TouchableOpacity>
             </View>
+
+            {Platform.OS === 'ios' && <InputAccessoryView nativeID="giving-amount-accessory" backgroundColor={theme.background}>
+                <View style={{ borderTopWidth: 1, borderColor: theme.border, alignItems: 'flex-end', backgroundColor: theme.background }}>
+                    <TouchableOpacity accessibilityRole="button" accessibilityLabel="Done entering amount" onPress={() => Keyboard.dismiss()} style={{ minHeight: 44, paddingHorizontal: 20, justifyContent: 'center' }}>
+                        <Text style={{ color: theme.tint, fontWeight: '600', fontSize: 16 }}>Done</Text>
+                    </TouchableOpacity>
+                </View>
+            </InputAccessoryView>}
 
         </KeyboardAvoidingView>
     );

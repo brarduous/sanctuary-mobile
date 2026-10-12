@@ -1,7 +1,6 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
@@ -80,7 +79,7 @@ function RootLayoutNav() {
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
     if (timeZone) {
       void updateNotificationTimeZone(timeZone).catch(error => {
-        console.error('Notification timezone update failed:', error);
+        console.warn('Notification timezone update failed:', (error as { response?: { status?: number } })?.response?.status ?? 'unavailable');
       });
     }
   }, [userId]);
@@ -120,25 +119,25 @@ function RootLayoutNav() {
     }
   }, [user, loading, segments, profile, profileLoadError]);
 
+  const navigationTheme = {
+    ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(colorScheme === 'dark' ? DarkTheme : DefaultTheme).colors,
+      primary: theme.tint, background: theme.background, card: theme.card,
+      text: theme.text, border: theme.border,
+    },
+  };
+
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <View style={{ flex: 1 }}>
-        <LinearGradient
-          colors={
-            colorScheme === 'dark'
-              ? ['#2c3e50', '#0f172a'] // Dark mode: primary to background
-              : ['#64748B', '#FDFBF7'] // Light mode: slate-500 to background
-          }
-          locations={[0, 0.3]} // Gradient in first 30% of screen
-          style={{
-            position: 'absolute',
-            left: 0,
-            right: 0,
-            top: 0,
-            bottom: 0,
-          }}
-        />
-        <Stack>
+    <ThemeProvider value={navigationTheme}>
+      <View style={{ flex: 1, backgroundColor: theme.background }}>
+        <Stack screenOptions={{
+          headerStyle: { backgroundColor: theme.background },
+          headerTintColor: theme.text,
+          headerShadowVisible: false,
+          headerBackButtonDisplayMode: 'minimal',
+          contentStyle: { backgroundColor: theme.background },
+        }}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
           <Stack.Screen name="login" options={{ headerShown: false, animation: 'fade' }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal' }} />

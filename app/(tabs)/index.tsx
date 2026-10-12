@@ -1,3 +1,5 @@
+import ImprovementCheckInOverlay from '@/components/ImprovementCheckInOverlay';
+import { improvementReminderKey, isImprovementCheckInDue, nextImprovementCheckInAt } from '@/lib/improvementCheckIn';
 import ChristianAdviceCard from '@/components/ChristianAdviceCard';
 import GeneratingState from '@/components/GeneratingState';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -18,6 +20,7 @@ import {
     fetchUserStreak,
     generateContent,
     logUserActivity,
+    updateUserProfile,
 } from '@/lib/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
@@ -42,6 +45,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
+    ImageBackground,
     LayoutAnimation,
     Linking,
     Platform,
@@ -61,6 +65,7 @@ const bg2 = require('@/assets/images/votd-image-2.jpg');
 const bg3 = require('@/assets/images/votd-image-3.jpg');
 const bg4 = require('@/assets/images/votd-image-4.jpg');
 const bg5 = require('@/assets/images/votd-image-5.jpg');
+const devotionalHero = require('@/assets/images/daily-devotional-hero.jpg');
 
 const backgrounds = [bg1, bg2, bg3, bg4, bg5];
 const todayIndex = new Date().getDate() % backgrounds.length;
@@ -71,7 +76,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 export default function HomeScreen() {
-    const { user, profile, loading: authLoading } = useAuth();
+    const { user, profile, refreshProfile, loading: authLoading } = useAuth();
     const { isPro, isLoaded: isRevenueLoaded } = useRevenueCat();
     const router = useRouter();
     const colorScheme = useColorScheme();
@@ -121,33 +126,41 @@ export default function HomeScreen() {
         };
     }, []);
 
+    const [checkInVisible, setCheckInVisible] = useState(false);
+    const [checkInSaving, setCheckInSaving] = useState(false);
+    const [checkInError, setCheckInError] = useState<string | null>(null);
+    const userId = user?.id;
+    const checkInAt = profile?.user_preferences?.improvementAreasCheckInAt;
+
     useEffect(() => {
-        const maybePromptForImprovementCheckIn = async () => {
-            if (!user || authLoading) return;
+        let cancelled = false;
+        setCheckInVisible(false);
+        if (!userId || authLoading) return;
+        void AsyncStorage.getItem(improvementReminderKey(userId)).then(localDate => {
+            if (!cancelled && isImprovementCheckInDue(checkInAt, localDate)) setCheckInVisible(true);
+        }).catch(error => console.warn('Could not read preference reminder:', error));
+        return () => { cancelled = true; };
+    }, [authLoading, checkInAt, userId]);
 
-            const checkInAt = profile?.user_preferences?.improvementAreasCheckInAt;
-            if (!checkInAt || new Date(checkInAt).getTime() > Date.now()) return;
-
-            const today = new Date().toISOString().split('T')[0];
-            const storageKey = `improvement-check-in:${user.id}:${today}`;
-            const alreadyPrompted = await AsyncStorage.getItem(storageKey);
-            if (alreadyPrompted) return;
-
-            await AsyncStorage.setItem(storageKey, 'true');
-            Alert.alert(
-                'Still the right focus?',
-                'You have had some time with these devotionals. Would you like to update the areas you are working through?',
-                [
-                    { text: 'Later', style: 'cancel' },
-                    { text: 'Update', onPress: () => router.push('/profile' as any) },
-                ],
-            );
-        };
-
-        maybePromptForImprovementCheckIn().catch((error) => {
-            console.error('Improvement check-in prompt failed:', error);
-        });
-    }, [authLoading, profile?.user_preferences?.improvementAreasCheckInAt, router, user]);
+    const deferImprovementCheckIn = async () => {
+        if (!userId || checkInSaving) return;
+        setCheckInSaving(true);
+        setCheckInError(null);
+        const nextDate = nextImprovementCheckInAt();
+        try {
+            // Persist locally before closing, so another login cannot re-show it.
+            await AsyncStorage.setItem(improvementReminderKey(userId), nextDate);
+            setCheckInVisible(false);
+            // Mirror the schedule to the profile for reminders on other devices.
+            void updateUserProfile(userId, { user_preferences: { ...profile?.user_preferences, improvementAreasCheckInAt: nextDate } }, true)
+                .then(() => refreshProfile())
+                .catch(error => console.warn('Preference reminder sync deferred:', error));
+        } catch {
+            setCheckInError('Could not save your reminder. Please try Later again.');
+        } finally {
+            setCheckInSaving(false);
+        }
+    };
 
     const isToday = (dateString: string) => {
         if (!dateString) return false;
@@ -393,7 +406,7 @@ export default function HomeScreen() {
 
     if (authLoading || (user && !isRevenueLoaded)) {
         return (
-            <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
+            <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['left', 'right']}>
                 <View className="flex-1 items-center justify-center">
                     <ActivityIndicator size="large" color={theme.tint} />
                     <Text className="mt-3 text-sm" style={{ color: theme.mutedForeground }}>
@@ -405,7 +418,7 @@ export default function HomeScreen() {
     }
 
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['left', 'right']}>
             <ScrollView
                 contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D4A373" />}
@@ -413,15 +426,15 @@ export default function HomeScreen() {
             >
 
                 {/* --- HEADER --- */}
-                <View className="flex-row justify-between items-start mb-8 mt-2">
+                <View className="flex-row justify-between items-start mb-5 mt-1">
                     <View>
                         <Text className="font-serif italic text-xs mb-1" style={{ color: theme.mutedForeground }}>
                             {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
                         </Text>
-                        <Text className="text-3xl font-serif leading-tight" style={{ color: theme.text }}>
-                            {getGreeting()},{'\n'}
+                        <Text className="text-2xl font-serif leading-tight" style={{ color: theme.text }}>
+                            {`${getGreeting()}, `}
                             <Text className="font-bold">
-                                {user?.user_metadata?.given_name || 'Friend'}.
+                                {profile?.first_name?.trim() || user?.user_metadata?.given_name || 'Friend'}.
                             </Text>
                         </Text>
                     </View>
@@ -460,7 +473,7 @@ export default function HomeScreen() {
                     {todaysDevotional && !isGenerating && (
                         <View className={`px-2 py-0.5 rounded-full flex-row items-center gap-1 ${todaysDevotional.type === 'general' ? 'bg-slate-100' : 'bg-[#D4A373]/10'}`}>
                             {todaysDevotional.type === 'general' ? <BookOpen size={10} color="#64748B" /> : <Sparkles size={10} color="#D4A373" />}
-                            <Text className={`text-[10px] font-bold ${todaysDevotional.type === 'general' ? 'text-slate-500' : 'text-[#D4A373]'}`}>
+                            <Text className={`text-xs font-bold ${todaysDevotional.type === 'general' ? 'text-slate-500' : 'text-[#D4A373]'}`}>
                                 {todaysDevotional.type === 'general' ? 'General Edition' : 'For You'}
                             </Text>
                         </View>
@@ -470,32 +483,46 @@ export default function HomeScreen() {
                 {isGenerating ? (
                     <GeneratingState />
                 ) : todaysDevotional ? (
-                    <Link href={`/devotional/${todaysDevotional.devotional_id || todaysDevotional.id}`} asChild>
-                        <Pressable className="rounded-2xl border border-slate-100 dark:border-slate-800 mb-10 overflow-hidden active:scale-[0.99] transition-transform" style={{ backgroundColor: theme.card }}>
-                            <View className="p-6">
-                                <Text className="text-xl font-serif mb-3 leading-tight font-medium" numberOfLines={2} style={{ color: theme.text }}>
-                                    {todaysDevotional.title}
-                                </Text>
-
-                                <Text className="leading-relaxed text-sm mb-4" numberOfLines={3} style={{ color: theme.mutedForeground }}>
-                                    {todaysDevotional.content?.replace(/<[^>]*>?/gm, '').replace(/[#*`]/g, '').replace(/\\n/g, ' ').trim()}
-                                </Text>
-
-                                <View className="flex-row items-center">
-                                    <Text className="font-bold text-sm mr-1" style={{ color: theme.text }}>Read today's word</Text>
-                                    <ChevronRight size={16} color={theme.text} />
+                    <View className="rounded-3xl border border-slate-100 dark:border-slate-800 mb-7 overflow-hidden" style={{ backgroundColor: theme.card }}>
+                        <ImageBackground source={devotionalHero} className="h-28 justify-end" resizeMode="cover">
+                            <LinearGradient colors={['transparent', 'rgba(10, 14, 12, 0.82)']} className="absolute inset-0" />
+                            <View className="p-5 flex-row items-center justify-between">
+                                <View className="rounded-full bg-black/35 border border-white/20 px-3 py-1.5">
+                                    <Text className="text-xs font-bold uppercase tracking-widest text-white">Today's focus</Text>
                                 </View>
+                                <Text className="text-xs font-semibold text-white/80">About 4 min</Text>
+                            </View>
+                        </ImageBackground>
+
+                        <View className="p-5">
+                            <Text className="text-2xl font-serif mb-2 leading-tight font-semibold" numberOfLines={2} style={{ color: theme.text }}>
+                                {todaysDevotional.title}
+                            </Text>
+
+                            <Text className="leading-6 text-sm mb-5" numberOfLines={3} style={{ color: theme.mutedForeground }}>
+                                {todaysDevotional.content?.replace(/<[^>]*>?/gm, '').replace(/[#*`]/g, '').replace(/\\n/g, ' ').trim()}
+                            </Text>
+
+                            <Pressable
+                                onPress={() => router.push(`/devotional/${todaysDevotional.devotional_id || todaysDevotional.id}`)}
+                                className="min-h-12 rounded-xl bg-[#D4A373] px-5 flex-row items-center justify-center active:opacity-90"
+                                accessibilityRole="button"
+                                accessibilityLabel={`Read today's devotional: ${todaysDevotional.title}`}
+                            >
+                                <Text className="font-bold text-sm text-[#17130F] mr-2">Begin today's devotional</Text>
+                                <ChevronRight size={18} color="#17130F" strokeWidth={2.5} />
+                            </Pressable>
 
                                 {/* UPSELL FOR GENERAL */}
                                 {todaysDevotional.type === 'general' && !devotionalFailed && (
                                     <Pressable
-                                        onPress={(e) => { e.stopPropagation(); router.push('/profile'); }}
+                                        onPress={() => router.push('/profile')}
                                         className="mt-4 pt-4 border-t border-dashed border-slate-200 flex-row items-center justify-between"
                                     >
-                                        <Text className="text-xs text-slate-400">Want devotionals written for <Text className="font-bold text-slate-500">your</Text> Journey?</Text>
+                                        <Text className="text-xs text-slate-400">Want devotionals written for <Text className="font-bold text-slate-500">your</Text> journey?</Text>
                                         <View className="flex-row items-center gap-1">
                                             <Lock size={10} color="#64748B" />
-                                            <Text className="text-[10px] font-bold text-slate-500">Unlock Pro</Text>
+                                            <Text className="text-xs font-bold text-slate-500">Unlock Pro</Text>
                                         </View>
                                     </Pressable>
                                 )}
@@ -503,7 +530,7 @@ export default function HomeScreen() {
                                 {/* RETRY PERSONALIZATION OPTION */}
                                 {devotionalFailed && (
                                     <Pressable
-                                        onPress={(e) => { e.stopPropagation(); handleRetryPersonalization(); }}
+                                        onPress={handleRetryPersonalization}
                                         className="mt-4 pt-4 border-t border-dashed border-red-200 dark:border-red-900/30 flex-row items-center justify-between"
                                     >
                                         <View className="flex-row items-center gap-2">
@@ -511,13 +538,12 @@ export default function HomeScreen() {
                                             <Text className="text-xs text-slate-500 dark:text-slate-400">Personalization failed.</Text>
                                         </View>
                                         <View className="flex-row items-center gap-1 bg-red-50 dark:bg-red-900/20 px-3 py-1.5 rounded-full">
-                                            <Text className="text-[10px] font-bold text-red-600 dark:text-red-400">Retry Personalization</Text>
+                                            <Text className="text-xs font-bold text-red-600 dark:text-red-400">Retry Personalization</Text>
                                         </View>
                                     </Pressable>
                                 )}
-                            </View>
-                        </Pressable>
-                    </Link>
+                        </View>
+                    </View>
                 ) : (
                     <View className="p-6 rounded-2xl mb-10 border border-slate-100 dark:border-slate-800 items-center" style={{ backgroundColor: theme.card }}>
                         <Text className="text-slate-400 mb-2">Unable to load content.</Text>
@@ -531,15 +557,24 @@ export default function HomeScreen() {
                 {!isGenerating && todaysPrayer && (
                     <View className="mb-10">
                         <View className="mb-3 flex-row items-center gap-2">
+                            <Heart size={15} color="#94A3B8" />
                             <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Guided Prayer</Text>
                         </View>
                         <Pressable
                             onPress={() => router.push(`/prayer/${todaysPrayer.prayer_id || todaysPrayer.id}`)}
-                            className="p-6 rounded-2xl border border-slate-100 dark:border-slate-800 active:scale-[0.99]"
+                            className="p-4 rounded-2xl border border-slate-100 dark:border-slate-800 active:scale-[0.99] flex-row items-center"
                             style={{ backgroundColor: theme.card }}
                         >
-                            <Text className="text-lg font-serif mb-1" style={{ color: theme.text }}>Daily Prayer</Text>
-                            <Text className="text-sm" style={{ color: theme.mutedForeground }}>Take a moment to connect.</Text>
+                            <View className="h-12 w-12 rounded-xl bg-[#D4A373]/15 items-center justify-center mr-4">
+                                <HeartHandshake size={23} color="#D4A373" />
+                            </View>
+                            <View className="flex-1 mr-3">
+                                <Text className="text-lg font-serif mb-0.5" style={{ color: theme.text }}>Daily Prayer</Text>
+                                <Text className="text-sm" numberOfLines={1} style={{ color: theme.mutedForeground }}>Pause and pray with intention.</Text>
+                            </View>
+                            <View className="rounded-full border border-[#D4A373]/50 px-3 py-2">
+                                <Text className="text-xs font-bold text-[#D4A373]">Pray now</Text>
+                            </View>
                         </Pressable>
                     </View>
                 )}
@@ -564,7 +599,7 @@ export default function HomeScreen() {
                                         <View className="flex-row flex-wrap gap-1">
                                             {video.focus_areas.map((tag: any) => (
                                                 <View key={tag} className="bg-orange-50 dark:bg-orange-500/15 px-2 py-1 rounded-md">
-                                                    <Text className="text-[10px] text-orange-700 dark:text-orange-300 font-bold">{tag}</Text>
+                                                    <Text className="text-xs text-orange-700 dark:text-orange-300 font-bold">{tag}</Text>
                                                 </View>
                                             ))}
                                         </View>
@@ -622,7 +657,7 @@ export default function HomeScreen() {
                                         <>
                                             <View className="flex-row justify-between items-center mb-6">
                                                 <View className="bg-white/10 px-3 py-1 rounded-full backdrop-blur-sm">
-                                                    <Text className="text-white/90 text-[10px] font-bold uppercase">
+                                                    <Text className="text-white/90 text-xs font-bold uppercase">
                                                         {communityPrayer.visibility === 'congregation' ? 'Church Family' : 'Global Community'}
                                                     </Text>
                                                 </View>
@@ -660,7 +695,7 @@ export default function HomeScreen() {
                                     onPress={handlePrayForOthers}
                                     disabled={loadingCommunityPrayer}
                                     className="flex-1 p-4 rounded-2xl border active:scale-[0.98]"
-                                    style={{ backgroundColor: theme.card }}
+                                    style={{ backgroundColor: theme.card, borderColor: theme.border }}
                                 >
                                     <View className="bg-blue-50 w-8 h-8 rounded-full items-center justify-center mb-3">
                                         {loadingCommunityPrayer ? <ActivityIndicator size="small" color="#2563EB" /> : <HeartHandshake size={16} color="#2563EB" />}
@@ -672,7 +707,7 @@ export default function HomeScreen() {
                                 <Pressable
                                     onPress={() => router.push('/prayer/new')}
                                     className="flex-1 p-4 rounded-2xl border active:scale-[0.98]"
-                                    style={{ backgroundColor: theme.card }}
+                                    style={{ backgroundColor: theme.card, borderColor: theme.border }}
                                 >
                                     <View className="bg-orange-50 w-8 h-8 rounded-full items-center justify-center mb-3">
                                         <Users size={16} color="#EA580C" />
@@ -684,14 +719,11 @@ export default function HomeScreen() {
                         )}
                     </View>
                 ) : (
-                    <View className="p-6 rounded-2xl bg-slate-50 dark:bg-slate-900 border border-slate-200 mb-10 items-center">
-                        <HeartHandshake size={32} color={Colors.gray} />
-                        <Text className="font-bold text-lg mt-2 text-slate-900 dark:text-white">Join the Community</Text>
-                        <Text className="text-center text-slate-500 mb-4">Sign in to share prayer requests and pray for others.</Text>
-                        <Pressable onPress={() => router.push('/login')} className="bg-slate-900 dark:bg-white px-6 py-3 rounded-xl">
-                            <Text className="text-white dark:text-black font-bold">Sign In / Create Account</Text>
-                        </Pressable>
-                    </View>
+                    <Pressable onPress={() => router.push('/login')} accessibilityRole="button" style={{ flexDirection: 'row', gap: 12, alignItems: 'center', padding: 16, marginBottom: 28, borderRadius: 16, backgroundColor: theme.muted }}>
+                        <HeartHandshake size={24} color={theme.tint} />
+                        <View style={{ flex: 1 }}><Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>Pray together</Text><Text style={{ fontSize: 14, lineHeight: 21, color: theme.mutedForeground }}>Sign in to join the community.</Text></View>
+                        <ChevronRight size={20} color={theme.tint} />
+                    </Pressable>
                 )}
 
                 {/* --- 5. CHRISTIAN ADVICE --- */}
@@ -701,32 +733,30 @@ export default function HomeScreen() {
                             colors={colorScheme === 'dark' ? ['#263A30', '#16251E'] : ['#304D3E', '#1D3429']}
                             start={{ x: 0, y: 0 }}
                             end={{ x: 1, y: 1 }}
-                            className="px-5 py-8"
+                            style={{ paddingHorizontal: 20, paddingVertical: 32 }}
                         >
-                            <View className="flex-row items-start justify-between mb-6">
-                                <View className="flex-1 pr-4">
-                                    <View className="flex-row items-center mb-3">
-                                        <View className="w-9 h-9 rounded-full bg-white/10 items-center justify-center mr-3">
-                                            <Sparkles size={18} color="#E8C77A" />
-                                        </View>
-                                        <Text className="text-xs font-bold uppercase tracking-widest" style={{ color: '#E8C77A' }}>
-                                            Personalized biblical guidance
-                                        </Text>
+                            <View style={{ gap: 16, marginBottom: 24 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Sparkles size={18} color="#E8C77A" />
                                     </View>
-                                    <Text className="text-3xl font-serif font-bold leading-9 text-white">
-                                        Guidance for real life
+                                    <Text style={{ color: '#E8C77A', flex: 1, fontSize: 12, fontWeight: '700', lineHeight: 18, letterSpacing: 1 }}>
+                                        PERSONALIZED GUIDANCE
                                     </Text>
-                                    <Text className="text-sm leading-6 text-white/75 mt-2">
-                                        Bring what is weighing on you. Receive three practical next steps, a Scripture reading, and a prayer.
-                                    </Text>
+                                    <Pressable
+                                        accessibilityRole="button"
+                                        onPress={() => router.push('/advice')}
+                                        style={{ minHeight: 48, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }}
+                                    >
+                                        <Text style={{ fontSize: 12, fontWeight: '700', color: 'white' }}>History</Text>
+                                    </Pressable>
                                 </View>
-                                <Pressable
-                                    accessibilityRole="button"
-                                    onPress={() => router.push('/advice')}
-                                    className="bg-white/10 border border-white/15 rounded-full px-3 py-2"
-                                >
-                                    <Text className="text-[10px] font-bold uppercase tracking-wider text-white">History</Text>
-                                </Pressable>
+                                <Text className="text-3xl font-serif font-bold leading-9 text-white">
+                                    Guidance for real life
+                                </Text>
+                                <Text className="text-sm leading-6 text-white/75">
+                                    Bring what is weighing on you. Receive three practical next steps, a Scripture reading, and a prayer.
+                                </Text>
                             </View>
 
                             <ChristianAdviceCard featured />
@@ -740,7 +770,7 @@ export default function HomeScreen() {
                         <View className="flex-row items-end justify-between mb-3 px-1">
                             <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Today's News Recap</Text>
                             <Pressable onPress={() => router.push('/news')}>
-                                <Text className="text-[10px] font-bold uppercase tracking-wider" style={{ color: theme.text }}>View All</Text>
+                                <Text className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.text }}>View All</Text>
                             </Pressable>
                         </View>
 
@@ -753,6 +783,10 @@ export default function HomeScreen() {
                 )}
 
             </ScrollView>
+
+            <ImprovementCheckInOverlay visible={checkInVisible} saving={checkInSaving} error={checkInError} theme={theme}
+                onLater={() => { void deferImprovementCheckIn(); }}
+                onUpdate={() => { setCheckInVisible(false); router.push('/profile'); }} />
 
             {/* ViewShot for sharing verse - hidden from layout */}
             <View style={{ position: 'absolute', left: -9999, top: 0 }}>

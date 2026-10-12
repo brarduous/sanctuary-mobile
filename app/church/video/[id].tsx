@@ -1,12 +1,17 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import ScreenState from '@/components/ScreenState';
+import { Layout } from '@/constants/Layout';
 import { useAuth } from '@/context/AuthContext';
 import { fetchMessageDetail, logUserActivity } from '@/lib/api'; // <-- Updated import
 import { Stack, useLocalSearchParams } from 'expo-router';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { Calendar } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import RenderHTML, { defaultSystemFonts } from 'react-native-render-html';
+
+const readerFonts = [...defaultSystemFonts, Layout.serif];
 
 // --- NEW: SEPARATED PLAYER COMPONENT ---
 // This guarantees the hook only initializes when the URL is ready
@@ -57,69 +62,60 @@ const PastoralVideoPlayer = ({
     );
 };
 
-// --- MAIN SCREEN ---
 export default function VideoMessageScreen() {
     const { id } = useLocalSearchParams();
-    const { user } = useAuth();
+    const { user, userCongregationId, loading: authLoading } = useAuth();
     const theme = Colors[useColorScheme() ?? 'light'];
-    
+    const { width } = useWindowDimensions();
     const [message, setMessage] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [muxStreamUrl, setMuxStreamUrl] = useState<string | null>(null);
-    const [formattedDate, setFormattedDate] = useState<string>(''); 
+    const [attempt, setAttempt] = useState(0);
+    const screen = <Stack.Screen options={{ title: 'Pastoral Update', headerBackTitle: 'Church' }} />;
 
-    // Fetch the video data
     useEffect(() => {
-        fetchMessageDetail(id as string)
-            .then(data => {
-                console.log('Fetched message detail:', data);
-                setMessage(data);
-                console.log('https://stream.mux.com/' + data.video_playback_id + '.m3u8');    
-                setMuxStreamUrl(`https://stream.mux.com/${data.video_playback_id}.m3u8`);
-                setFormattedDate(new Date(data.created_at).toLocaleDateString(undefined, {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                }));
-            })
-            .catch(err => console.error(err))
-            .finally(() => setLoading(false));
-    }, [id]);
+        if (authLoading) return;
+        let active = true;
+        setLoading(true);
+        setMessage(null);
+        fetchMessageDetail(id as string, userCongregationId)
+            .then(data => { if (active) setMessage(data); })
+            .catch(() => { /* Show the same retry state for unavailable reads. */ })
+            .finally(() => { if (active) setLoading(false); });
+        return () => { active = false; };
+    }, [id, userCongregationId, authLoading, attempt]);
 
-    if (loading) return <View className="flex-1 justify-center items-center bg-background"><ActivityIndicator size="large" color={theme.tint} /></View>;
-    if (!message) return <View className="flex-1 justify-center items-center bg-background"><Text className="dark:text-white">Message not found</Text></View>;
+    if (loading) return <>{screen}<ScreenState title="Loading update" loading /></>;
+    if (!message) return <>{screen}<ScreenState title="Update unavailable" message="This update may no longer be published. You can try again or return to your church." onRetry={() => setAttempt(value => value + 1)} /></>;
 
+    const streamUrl = message.video_playback_id ? `https://stream.mux.com/${message.video_playback_id}.m3u8` : null;
+    const date = new Date(message.created_at);
+    const formattedDate = Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
-            <Stack.Screen options={{ title: 'Pastoral Update', headerBackTitle: 'Church' }} />
-            
-            {/* The video container now safely renders our child component ONLY after the URL is known */}
-            <View style={styles.videoContainer}>
-                <PastoralVideoPlayer 
-                    sourceUrl={muxStreamUrl? muxStreamUrl : ''} 
-                    message={message} 
-                    user={user} 
-                />
-            </View>
-
-            {/* Video Details */}
-            <View className="p-6">
-                <View className="flex-row items-center gap-2 mb-3">
-                    <Text className="text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-widest text-xs">
-                        {message.message_type.replace('_', ' ')}
+            {screen}
+            <ScrollView contentContainerStyle={{ paddingBottom: 40 }}>
+                {streamUrl ? <View style={styles.videoContainer}>
+                    <PastoralVideoPlayer sourceUrl={streamUrl} message={message} user={user} />
+                </View> : null}
+                <View style={{ padding: Layout.gutter }}>
+                    <Text style={{ color: theme.tint, fontSize: 13, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 12 }}>
+                        {String(message.message_type || 'Church update').replace(/_/g, ' ')}
                     </Text>
+                    <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: Layout.serif, fontSize: 28, lineHeight: 36, fontWeight: '700', marginBottom: 16 }}>{message.title}</Text>
+                    {formattedDate ? <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 24 }}>
+                        <Calendar size={14} color={theme.mutedForeground} />
+                        <Text style={{ color: theme.mutedForeground, fontSize: 14 }}>{formattedDate}</Text>
+                    </View> : null}
+                    {message.message_body ? <RenderHTML
+                        systemFonts={readerFonts}
+                        contentWidth={Math.max(1, width - Layout.gutter * 2)}
+                        source={{ html: message.message_body }}
+                        baseStyle={{ color: theme.text, fontFamily: Layout.serif, fontSize: 17, lineHeight: 28 }}
+                        tagsStyles={{ p: { marginTop: 0, marginBottom: 20 }, h1: { color: theme.text, fontSize: 24, lineHeight: 32, fontWeight: '700', marginTop: 24, marginBottom: 12 }, h2: { color: theme.text, fontSize: 22, lineHeight: 30, fontWeight: '700', marginTop: 24, marginBottom: 12 }, h3: { color: theme.text, fontSize: 20, lineHeight: 28, fontWeight: '700', marginTop: 20, marginBottom: 12 }, a: { color: theme.tint } }}
+                    /> : !streamUrl ? <Text style={{ color: theme.mutedForeground, fontSize: 16, lineHeight: 25 }}>Your church has not added a message or video to this update yet.</Text> : null}
                 </View>
-                
-                <Text className="text-2xl font-serif font-bold dark:text-white mb-4 leading-tight">
-                    {message.title}
-                </Text>
-
-                <View className="flex-row items-center gap-2 text-slate-500 dark:text-slate-400">
-                    <Calendar size={14} color={Colors.gray} />
-                    <Text className="text-sm font-medium">{formattedDate}</Text>
-                </View>
-            </View>
+            </ScrollView>
         </View>
     );
 }

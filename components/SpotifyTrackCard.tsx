@@ -20,40 +20,16 @@ export default function SpotifyTrackCard({ track, theme }: Props) {
   };
 
   return (
-    <View className="rounded-2xl border p-4 mb-8" style={{ backgroundColor: theme.card, borderColor: theme.border }}>
-      <View className="flex-row items-center gap-3">
-        {track.imageUrl ? (
-          <Image source={{ uri: track.imageUrl }} style={{ width: 56, height: 56, borderRadius: 10 }} />
-        ) : (
-          <View className="w-14 h-14 rounded-xl items-center justify-center bg-emerald-50">
-            <Music size={22} color="#059669" />
-          </View>
-        )}
-
-        <View className="flex-1">
-          <Text className="text-[10px] uppercase tracking-widest font-bold text-emerald-600 mb-1">
-            Recommended Worship Song
-          </Text>
-          <Text className="font-bold text-base" numberOfLines={1} style={{ color: theme.text }}>
-            {track.title}
-          </Text>
-          <Text className="text-xs" numberOfLines={1} style={{ color: theme.mutedForeground }}>
-            {track.artist}
-          </Text>
-        </View>
+    <Pressable onPress={openSpotify} accessibilityRole="link" accessibilityLabel={`Open ${track.title} by ${track.artist} in Spotify`}
+      style={{ flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 16, marginBottom: 24, borderBottomWidth: 1, borderColor: theme.border }}>
+      {track.imageUrl ? <Image source={{ uri: track.imageUrl }} style={{ width: 44, height: 44, borderRadius: 8 }} /> :
+        <View style={{ width: 44, height: 44, borderRadius: 8, backgroundColor: theme.muted, alignItems: 'center', justifyContent: 'center' }}><Music size={20} color={theme.tint} /></View>}
+      <View style={{ flex: 1 }}>
+        <Text style={{ color: theme.mutedForeground, fontSize: 13, marginBottom: 3 }}>Worship on Spotify</Text>
+        <Text style={{ color: theme.text, fontSize: 15, fontWeight: '600' }} numberOfLines={2}>{track.title}</Text>
+        <Text style={{ color: theme.mutedForeground, fontSize: 13 }} numberOfLines={1}>{track.artist}</Text>
       </View>
-
-      <View className="mt-4">
-        <Pressable
-          onPress={openSpotify}
-          className="flex-1 rounded-xl py-3 flex-row items-center justify-center bg-emerald-600"
-        >
-          <ExternalLink size={16} color="white" />
-          <Text className="text-white font-bold text-sm ml-2">
-            Open in Spotify
-          </Text>
-        </Pressable>
-      </View>
-    </View>
+      <ExternalLink size={18} color={theme.mutedForeground} />
+    </Pressable>
   );
 }

@@ -1,72 +1,86 @@
+import { Layout } from '@/constants/Layout';
+import ScreenState from '@/components/ScreenState';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import { useAuth } from '@/context/AuthContext';
 import { fetchStudyDetails } from '@/lib/api';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { BookOpen, ChevronRight } from 'lucide-react-native';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, Text, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 
 export default function StudyDetailsScreen() {
     const { id } = useLocalSearchParams();
     const router = useRouter();
+    const { userCongregationId, loading: authLoading } = useAuth();
+    const [attempt, setAttempt] = useState(0);
+    const screen = <Stack.Screen options={{ title: 'Curriculum', headerBackTitle: 'Church' }} />;
     const theme = Colors[useColorScheme() ?? 'light'];
 
     const [study, setStudy] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        fetchStudyDetails(id as string)
-            .then(data => setStudy(data))
-            .catch(err => console.error(err))
-            .finally(() => setLoading(false));
-    }, [id]);
+        if (authLoading) return;
+        let active = true;
+        setLoading(true);
+        setStudy(null);
+        fetchStudyDetails(id as string, userCongregationId)
+            .then(data => { if (active) setStudy(data); })
+            .catch(() => { /* The unavailable state offers a retry. */ })
+            .finally(() => { if (active) setLoading(false); });
+        return () => { active = false; };
+    }, [id, userCongregationId, authLoading, attempt]);
 
-    if (loading) return <View className="flex-1 justify-center items-center"><ActivityIndicator size="large" color={theme.tint} /></View>;
-    if (!study) return <View className="flex-1 justify-center items-center"><Text className="dark:text-white">Study not found</Text></View>;
+    if (loading) return <>{screen}<ScreenState title="Loading study" loading /></>;
+    if (!study) return <>{screen}<ScreenState title="Study unavailable" message="This study may no longer be published. You can try again or return to your church." onRetry={() => setAttempt(value => value + 1)} /></>;
 
     return (
         <View style={{ flex: 1, backgroundColor: theme.background }}>
-            <Stack.Screen options={{ title: 'Curriculum', headerBackTitle: 'Church' }} />
+            {screen}
             
-            <ScrollView contentContainerStyle={{ padding: 20 }}>
+            <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 48 }}>
                 {/* Header */}
                 <View className="mb-8">
-                    <Text className="text-indigo-600 dark:text-indigo-400 font-bold uppercase tracking-widest text-xs mb-2">
+                    <Text style={{ color: theme.tint, fontSize: 13, lineHeight: 20, fontWeight: '700', marginBottom: 8 }}>
                         {study.study_method || 'Bible Study'}
                     </Text>
-                    <Text className="text-3xl font-serif font-bold dark:text-white leading-tight mb-3">
+                    <Text accessibilityRole="header" style={{ color: theme.text, fontFamily: Layout.serif, fontSize: 28, lineHeight: 36, fontWeight: '700', marginBottom: 12 }}>
                         {study.title}
                     </Text>
-                    <Text className="text-base text-slate-500 dark:text-slate-400 leading-relaxed">
+                    <Text style={{ color: theme.mutedForeground, fontSize: 17, lineHeight: 28 }}>
                         {study.subtitle}
                     </Text>
                 </View>
 
+                {study.lessons?.length > 0 ? <Pressable accessibilityRole="button" onPress={() => router.push(`/church/lesson/${[...study.lessons].sort((a, b) => a.lesson_number - b.lesson_number)[0].lesson_id}` as any)} style={{ minHeight: 52, backgroundColor: theme.action, borderRadius: 14, alignItems: 'center', justifyContent: 'center', marginBottom: 28 }}><Text style={{ color: theme.onAction, fontSize: 16, fontWeight: '700' }}>Start study · {study.lessons.length} {study.lessons.length === 1 ? 'lesson' : 'lessons'}</Text></Pressable> : <Text style={{ color: theme.mutedForeground, marginBottom: 24 }}>Lessons will appear here when published.</Text>}
+
                 {/* Lessons */}
-                <Text className="text-xl font-bold dark:text-white mb-4">Lessons in this Study</Text>
+                <Text accessibilityRole="header" style={{ color: theme.text, fontSize: 20, lineHeight: 28, fontWeight: '700', marginBottom: 16 }}>Lessons in this Study</Text>
                 
-                <View className="bg-white dark:bg-gray-900 rounded-3xl border border-slate-100 dark:border-gray-800 overflow-hidden shadow-sm">
-                    {study.lessons?.sort((a:any, b:any) => a.lesson_number - b.lesson_number).map((lesson: any, index: number) => (
+                <View className="rounded-3xl border overflow-hidden shadow-sm" style={{ backgroundColor: theme.card, borderColor: theme.border }}>
+                    {[...(study.lessons || [])].sort((a:any, b:any) => a.lesson_number - b.lesson_number).map((lesson: any, index: number) => (
                         <Pressable
                             key={lesson.lesson_id}
                             onPress={() => router.push(`/church/lesson/${lesson.lesson_id}` as any)}
-                            className={`p-5 flex-row items-center gap-4 active:bg-slate-50 dark:active:bg-gray-800 transition-colors ${index !== 0 ? 'border-t border-slate-100 dark:border-gray-800' : ''}`}
+                            accessibilityRole="button"
+                            style={{ padding: 20, minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 16, borderTopWidth: index ? 1 : 0, borderColor: theme.border }}
                         >
-                            <View className="w-10 h-10 bg-indigo-50 dark:bg-indigo-900/30 rounded-full items-center justify-center">
-                                <Text className="text-indigo-600 dark:text-indigo-400 font-bold">{lesson.lesson_number}</Text>
+                            <View style={{ width: 40, height: 40, backgroundColor: theme.accentSoft, borderRadius: 20, alignItems: 'center', justifyContent: 'center' }}>
+                                <Text style={{ color: theme.tint, fontWeight: '700' }}>{lesson.lesson_number}</Text>
                             </View>
                             
                             <View className="flex-1">
-                                <Text className="font-bold text-base dark:text-white mb-1 leading-snug">{lesson.title}</Text>
+                                <Text style={{ color: theme.text, fontSize: 17, lineHeight: 24, fontWeight: '600', marginBottom: 6 }}>{lesson.title}</Text>
                                 {lesson.scripture && (
-                                    <View className="flex-row items-center">
-                                        <BookOpen size={12} color={Colors.gray} style={{ marginRight: 4 }} />
-                                        <Text className="text-xs text-slate-500 font-medium">{lesson.scripture}</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'flex-start' }}>
+                                        <BookOpen size={12} color={theme.mutedForeground} style={{ marginRight: 4 }} />
+                                        <Text style={{ flex: 1, color: theme.mutedForeground, fontSize: 14, lineHeight: 21 }}>{lesson.scripture}</Text>
                                     </View>
                                 )}
                             </View>
                             
-                            <ChevronRight size={20} color={Colors.gray} />
+                            <ChevronRight size={20} color={theme.mutedForeground} />
                         </Pressable>
                     ))}
                 </View>
