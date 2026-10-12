@@ -4,9 +4,9 @@ import { getRandomAdvicePromptSample } from '@/constants/AdvicePrompts';
 import { useAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/context/RevenueCatContext';
 import { checkAdviceLimit, generateContent } from '@/lib/api';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Lock, Send, Sparkles } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
 
 // Import the new Mic Button
@@ -16,9 +16,11 @@ interface ChristianAdviceCardProps {
     limitReached?: boolean;
     samplePrompt?: string;
     featured?: boolean;
+    focusRequest?: string;
+    onComposerFocused?: () => void;
 }
 
-export default function ChristianAdviceCard({ limitReached: initialLimitReached, samplePrompt: providedSamplePrompt, featured = false }: ChristianAdviceCardProps) {
+export default function ChristianAdviceCard({ limitReached: initialLimitReached, samplePrompt: providedSamplePrompt, featured = false, focusRequest, onComposerFocused }: ChristianAdviceCardProps) {
     const { user } = useAuth();
     const router = useRouter();
     const { isPro } = useRevenueCat();
@@ -31,6 +33,7 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
     // Input State
     const [situation, setSituation] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const inputRef = useRef<TextInput>(null);
     const [samplePrompt] = useState(() => providedSamplePrompt || getRandomAdvicePromptSample());
 
     useEffect(() => {
@@ -45,6 +48,23 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
         }
         check();
     }, [user, isPro]);
+
+    useFocusEffect(React.useCallback(() => () => inputRef.current?.blur(), []));
+
+    useFocusEffect(React.useCallback(() => {
+        if (!focusRequest || loadingLimit) return;
+        if (!user || (limitReached && !isPro)) {
+            onComposerFocused?.();
+            return;
+        }
+        // Wait for the tab transition and mounted composer, without stealing
+        // focus during an ordinary visit or after leaving the screen.
+        const timer = setTimeout(() => {
+            inputRef.current?.focus();
+            onComposerFocused?.();
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [focusRequest, loadingLimit, user, limitReached, isPro, onComposerFocused]));
 
     const handleSubmit = async () => {
         if (!situation.trim() || !user || isSubmitting) return;
@@ -83,10 +103,10 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
                 <Text style={{ color: theme.mutedForeground }} className="text-center text-sm mb-4">Bring a real situation, question, or struggle and receive Scripture-shaped guidance.</Text>
                 <Pressable
                     onPress={() => router.push('/profile' as any)}
-                    style={{ backgroundColor: theme.action, minHeight: 48, opacity: isSubmitting || !situation.trim() ? 0.45 : 1 }}
+                    style={{ backgroundColor: theme.action, minHeight: 48, opacity: 1 }}
                     className="w-full py-2 rounded-lg items-center"
                 >
-                    <Text className="text-white font-bold text-sm">Sign In</Text>
+                    <Text style={{ color: theme.onAction }} className="font-bold text-sm">Sign In</Text>
                 </Pressable>
             </View>
         );
@@ -112,11 +132,11 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
                 </Text>
                 <Pressable
                     onPress={() => router.push('/paywall' as any)}
-                    style={{ backgroundColor: theme.action, minHeight: 48, opacity: isSubmitting || !situation.trim() ? 0.45 : 1 }}
+                    style={{ backgroundColor: theme.action, minHeight: 48, opacity: 1 }}
                     className="flex-row items-center px-4 py-2 rounded-full"
                 >
-                    <Sparkles size={14} color="white" style={{ marginRight: 6 }} />
-                    <Text className="text-white font-bold text-xs">Unlock Pro</Text>
+                    <Sparkles size={14} color={theme.onAction} style={{ marginRight: 6 }} />
+                    <Text style={{ color: theme.onAction }} className="font-bold text-xs">Unlock Pro</Text>
                 </Pressable>
             </View>
         );
@@ -156,6 +176,8 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
                     </View>
 
                     <TextInput
+                        ref={inputRef}
+                        accessibilityLabel="What are you walking through?"
                         value={situation}
                         onChangeText={setSituation}
                         placeholder="What are you walking through?"

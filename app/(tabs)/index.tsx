@@ -1,6 +1,5 @@
 import ImprovementCheckInOverlay from '@/components/ImprovementCheckInOverlay';
 import { improvementReminderKey, isImprovementCheckInDue, nextImprovementCheckInAt } from '@/lib/improvementCheckIn';
-import ChristianAdviceCard from '@/components/ChristianAdviceCard';
 import GeneratingState from '@/components/GeneratingState';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
@@ -9,7 +8,6 @@ import { Layout, Typography } from '@/constants/Layout';
 import { useAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/context/RevenueCatContext';
 import {
-    checkAdviceLimit,
     deleteDevotional,
     deletePrayer,
     fetchCommunityStats,
@@ -94,7 +92,6 @@ export default function HomeScreen() {
     const [todaysPrayer, setTodaysPrayer] = useState<any>(null);
     const [streak, setStreak] = useState(0);
     const [communityStats, setCommunityStats] = useState({ totalPrayedForYou: 0 });
-    const [adviceLimitReached, setAdviceLimitReached] = useState(false);
     const [recommendedVideos, setRecommendedVideos] = useState<any[]>([]);
 
     // Community Interaction State
@@ -200,11 +197,10 @@ export default function HomeScreen() {
         }
         
         // Fetch ALL core data concurrently, including the general devotional curriculum
-        const [news, streakData, stats, adviceLimit, videos, generalData] = await Promise.all([
+        const [news, streakData, stats, videos, generalData] = await Promise.all([
             fetchDailyNewsSynopsis(),
             fetchUserStreak(user.id, 'daily_devotional'),
             fetchCommunityStats(),
-            checkAdviceLimit(user.id),
             user ? fetchRecommendedVideos() : Promise.resolve([]),
             fetchGeneralDevotional() // <-- We fetch this immediately for everyone now
         ]);
@@ -217,7 +213,6 @@ export default function HomeScreen() {
         setDailyNews(news);
         setStreak(streakData?.current_streak || streakData?.streak || 0);
         setCommunityStats(stats || { totalPrayedForYou: 0 });
-        setAdviceLimitReached(!isPro && adviceLimit?.limitReached || false);
         setRecommendedVideos(videos);
 
         // 2. Handle Non-Pro Users (Use general devotional)
@@ -584,6 +579,28 @@ export default function HomeScreen() {
                     </View>
                 )}
 
+                {/* Personal guidance stays directly below today's prayer. */}
+                {user && (
+                    <View style={{ marginBottom: Layout.sectionGap, padding: Layout.cardPadding, borderRadius: Layout.cardRadius, backgroundColor: theme.readingSurface, borderWidth: 1, borderColor: theme.tint, gap: 12 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                            <Sparkles size={22} color={theme.tint} accessible={false} />
+                            <Text accessibilityRole="header" style={{ ...Typography.sectionHeading, color: theme.text, flex: 1 }}>Personal guidance</Text>
+                        </View>
+                        <Text style={{ ...Typography.helper, color: theme.text }}>Bring what’s on your heart. Find practical next steps, Scripture, and a prayer.</Text>
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Start personal guidance"
+                            accessibilityHint="Opens Guidance with the question field ready to type."
+                            onPress={() => router.navigate({ pathname: '/(tabs)/advice', params: { compose: String(Date.now()) } })}
+                            className="active:opacity-85"
+                            style={{ minHeight: Layout.actionHeight, borderRadius: Layout.controlRadius, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.action, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }}
+                        >
+                            <Text style={{ ...Typography.action, color: theme.onAction, flexShrink: 1, textAlign: 'center' }}>Start personal guidance</Text>
+                            <ChevronRight size={20} color={theme.onAction} accessible={false} />
+                        </Pressable>
+                    </View>
+                )}
+
                 {/* --- RECOMMENDED VIDEOS --- */}
                 {recommendedVideos.length > 0 && (
                     <View style={{ marginBottom: Layout.sectionGap }}>
@@ -729,44 +746,6 @@ export default function HomeScreen() {
                         <View style={{ flex: 1 }}><Text style={{ fontSize: 16, fontWeight: '600', color: theme.text }}>Pray together</Text><Text style={{ fontSize: 14, lineHeight: 21, color: theme.mutedForeground }}>Sign in to join the community.</Text></View>
                         <ChevronRight size={20} color={theme.tint} />
                     </Pressable>
-                )}
-
-                {/* --- 5. CHRISTIAN ADVICE --- */}
-                {user && !adviceLimitReached && (
-                    <View className="-mx-5 mb-12 mt-2 overflow-hidden">
-                        <LinearGradient
-                            colors={colorScheme === 'dark' ? ['#263A30', '#16251E'] : ['#304D3E', '#1D3429']}
-                            start={{ x: 0, y: 0 }}
-                            end={{ x: 1, y: 1 }}
-                            style={{ paddingHorizontal: 20, paddingVertical: 32 }}
-                        >
-                            <View style={{ gap: 16, marginBottom: 24 }}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                                    <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Sparkles size={18} color="#E8C77A" />
-                                    </View>
-                                    <Text style={{ color: '#E8C77A', flex: 1, fontSize: 12, fontWeight: '700', lineHeight: 18, letterSpacing: 1 }}>
-                                        PERSONALIZED GUIDANCE
-                                    </Text>
-                                    <Pressable
-                                        accessibilityRole="button"
-                                        onPress={() => router.push('/advice')}
-                                        style={{ minHeight: 48, paddingHorizontal: 12, justifyContent: 'center', borderRadius: 24, backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.15)' }}
-                                    >
-                                        <Text style={{ fontSize: 12, fontWeight: '700', color: 'white' }}>History</Text>
-                                    </Pressable>
-                                </View>
-                                <Text className="text-3xl font-serif font-bold leading-9 text-white">
-                                    Guidance for real life
-                                </Text>
-                                <Text className="text-sm leading-6 text-white/75">
-                                    Bring what is weighing on you. Receive three practical next steps, a Scripture reading, and a prayer.
-                                </Text>
-                            </View>
-
-                            <ChristianAdviceCard featured />
-                        </LinearGradient>
-                    </View>
                 )}
 
                 {/* --- 6. NEWS CARD --- */}

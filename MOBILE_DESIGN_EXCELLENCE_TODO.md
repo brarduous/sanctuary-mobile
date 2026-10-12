@@ -27,6 +27,8 @@ An optional all-platform export also reached web static rendering and failed at 
 
 Build status: signed version 1.2.10 iOS build 60 and Android build 132 finished, but predate the latest Home, lesson and artist changes. They are not final release artifacts and have not been submitted. Rebuild after remaining fixes. npm is the single mobile package manager. Mobile dependency advisories remain; no clean security claim is made.
 
+Home guidance follow-up: replaced the tall embedded green/blue composer with a compact warm-surface card directly below guided prayer and above recommendations. “Start personal guidance” opens the existing Guidance tab at the composer, focuses the input once and preserves its draft. Ordinary tab visits do not autofocus; leaving Guidance blurs the field. Native SE light/dark and repeated CTA/ordinary-tab behavior verified without generating new advice. TypeScript and nine checks pass; larger/final signed build verification remains open.
+
 Design reference comparison: [inspection notes and application table](MOBILE_DESIGN_REFERENCE_NOTES.md). New local captures and benchmark references are registered in the report, with earlier failed artist searches explicitly identified as superseded.
 
 ## Priorities and completion rules

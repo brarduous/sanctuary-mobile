@@ -4,7 +4,7 @@ import { getRandomAdvicePromptSample } from '@/constants/AdvicePrompts';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { deleteAdvice, fetchAdvice } from '@/lib/api';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { Calendar, ChevronRight, Sparkles, MoreHorizontal } from 'lucide-react-native';
 import React, { useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
@@ -14,6 +14,15 @@ export default function AdviceScreen() {
     const { user } = useAuth();
     const userId = user?.id;
     const router = useRouter();
+    const { compose } = useLocalSearchParams<{ compose?: string }>();
+    const [focusRequest, setFocusRequest] = useState<string>();
+    const listRef = useRef<FlatList>(null);
+    const handleComposerFocused = React.useCallback(() => setFocusRequest(undefined), []);
+    useFocusEffect(React.useCallback(() => {
+        if (!compose) return;
+        setFocusRequest(compose);
+        router.setParams({ compose: undefined });
+    }, [compose, router]));
     const colorScheme = useColorScheme() ?? 'light';
     const theme = Colors[colorScheme];
 
@@ -65,17 +74,21 @@ export default function AdviceScreen() {
         };
     }, [hasInProgressAdvice, loadAdvice, userId]);
 
+    React.useEffect(() => {
+        if (focusRequest && !loading) listRef.current?.scrollToOffset({ offset: 0, animated: false });
+    }, [focusRequest, loading]);
+
     const listHeader = useMemo(() => (
         <View className="mb-6">
             <View className="mb-8">
-                <ChristianAdviceCard limitReached={limitReached} samplePrompt={advicePromptSample} />
+                <ChristianAdviceCard limitReached={limitReached} samplePrompt={advicePromptSample} focusRequest={focusRequest} onComposerFocused={handleComposerFocused} />
             </View>
 
             {adviceList.length > 0 && (
                 <Text className="text-xl font-bold mb-4" style={{ color: theme.text }}>Previous Guidance</Text>
             )}
         </View>
-    ), [adviceList.length, advicePromptSample, limitReached, theme.text]);
+    ), [adviceList.length, advicePromptSample, limitReached, theme.text, focusRequest, handleComposerFocused]);
 
     const handleDelete = async (id: string) => {
         Alert.alert("Delete Advice", "Are you sure you want to delete this?", [
@@ -103,6 +116,9 @@ export default function AdviceScreen() {
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['left', 'right']}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
                 <FlatList
+                    ref={listRef}
+                    keyboardShouldPersistTaps="handled"
+                    keyboardDismissMode="on-drag"
                     data={adviceList}
                     keyExtractor={(item) => item.advice_id}
                     contentContainerStyle={{ padding: 20, paddingBottom: 100 }}
