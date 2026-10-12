@@ -581,23 +581,26 @@ export default function HomeScreen() {
 
                 {/* Personal guidance stays directly below today's prayer. */}
                 {user && (
-                    <View style={{ marginBottom: Layout.sectionGap, padding: Layout.cardPadding, borderRadius: Layout.cardRadius, backgroundColor: theme.readingSurface, borderWidth: 1, borderColor: theme.tint, gap: 12 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                            <Sparkles size={22} color={theme.tint} accessible={false} />
-                            <Text accessibilityRole="header" style={{ ...Typography.sectionHeading, color: theme.text, flex: 1 }}>Personal guidance</Text>
+                    <View style={{ marginBottom: Layout.sectionGap }}>
+                        <View style={{ marginBottom: 12, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                            <Sparkles size={16} color={theme.mutedForeground} accessible={false} />
+                            <Text accessibilityRole="header" style={{ ...Typography.formLabel, color: theme.text, flex: 1 }}>Personal guidance</Text>
                         </View>
-                        <Text style={{ ...Typography.helper, color: theme.text }}>Bring what’s on your heart. Find practical next steps, Scripture, and a prayer.</Text>
-                        <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel="Start personal guidance"
-                            accessibilityHint="Opens Guidance with the question field ready to type."
-                            onPress={() => router.navigate({ pathname: '/(tabs)/advice', params: { compose: String(Date.now()) } })}
-                            className="active:opacity-85"
-                            style={{ minHeight: Layout.actionHeight, borderRadius: Layout.controlRadius, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.action, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }}
-                        >
-                            <Text style={{ ...Typography.action, color: theme.onAction, flexShrink: 1, textAlign: 'center' }}>Start personal guidance</Text>
-                            <ChevronRight size={20} color={theme.onAction} accessible={false} />
-                        </Pressable>
+                        <View style={{ padding: Layout.cardPadding, borderRadius: Layout.cardRadius, backgroundColor: theme.readingSurface, borderWidth: 1, borderColor: theme.tint, gap: 12 }}>
+                            <Text accessibilityRole="header" style={{ ...Typography.editorialTitle, fontFamily: Layout.serif, color: theme.text }}>What’s on your heart?</Text>
+                            <Text style={{ ...Typography.helper, color: theme.text }}>Find practical next steps, Scripture, and a prayer for what you’re facing.</Text>
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Start personal guidance"
+                                accessibilityHint="Opens Guidance with the question field ready to type."
+                                onPress={() => router.navigate({ pathname: '/(tabs)/advice', params: { compose: String(Date.now()) } })}
+                                className="active:opacity-85"
+                                style={{ minHeight: Layout.actionHeight, borderRadius: Layout.controlRadius, paddingHorizontal: 16, paddingVertical: 12, backgroundColor: theme.action, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }}
+                            >
+                                <Text style={{ ...Typography.action, color: theme.onAction, flexShrink: 1, textAlign: 'center' }}>Start personal guidance</Text>
+                                <ChevronRight size={20} color={theme.onAction} accessible={false} />
+                            </Pressable>
+                        </View>
                     </View>
                 )}
 
