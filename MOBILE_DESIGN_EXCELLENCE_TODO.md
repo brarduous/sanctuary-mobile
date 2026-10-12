@@ -19,17 +19,27 @@ Completed: Q01 evidence reconciliation, strict invite/scanner guards (R05), and 
 
 Validation: mobile TypeScript, final-source iOS/Android Hermes exports and nine behavior/contrast checks pass, including 4,756 Bible chapter preservation checks. Five saved QA artists have distinct provider IDs and survive Profile reopening with correct selected-result matching. Compact iPhone SE light/dark evidence is recorded; larger layouts, full VoiceOver and maximum accessibility text sizes remain unverified. Backend 109 tests and backend/database CI passed on the reviewed changes.
 
-Release blockers: successful Stripe donation recording and RevenueCat purchase/restore remain unverified. Source inspection found `/webhook` treats one-time checkout completion as subscription completion, while `/stripe/checkout` supplies no donation ledger metadata. R03 needs a proper idempotent donation path and sandbox verification. Final native build, guest invite completion and remaining deployed flows stay open. Store submission remains pending these gates.
+Remaining quality checks: successful Stripe donation recording and RevenueCat purchase/restore remain unverified. Source inspection found `/webhook` treats one-time checkout completion as subscription completion, while `/stripe/checkout` supplies no donation ledger metadata. R03 needs a proper idempotent donation path and sandbox verification. Final native build, guest invite completion and remaining deployed flows stay open. These checks remain open and are not claimed passed. On October 12 the user explicitly requested store submission; the latest candidate was submitted as recorded below.
 
 Backend: [PR #11](https://github.com/brarduous/sanctuary-backend/pull/11) and the lesson key-verse safe-projection fix [PR #12](https://github.com/brarduous/sanctuary-backend/pull/12) are merged. Render authentication is refreshed and production is live at `6cc680775afaf8639215215bc5ccbbb30ce828c7`. Production's 33 migration versions match local inventory; neither change needs a migration. Production member Church → Study → Lesson and Scripture overlay return have native evidence. Other deployed routes require current checks.
 
 An optional all-platform export also reached web static rendering and failed at Supabase/AsyncStorage server initialization; native-only iOS/Android exports subsequently completed successfully. Web SSR is outside this mobile release and is not claimed verified.
 
-Build status: signed version 1.2.10 iOS build 60 and Android build 132 finished, but predate the latest Home, lesson and artist changes. They are not final release artifacts and have not been submitted. Rebuild after remaining fixes. npm is the single mobile package manager. Mobile dependency advisories remain; no clean security claim is made.
+Historical build status: signed version 1.2.10 iOS build 60 and Android build 132 predate the latest Home, lesson and artist changes. Those older artifacts were not submitted. npm is the single mobile package manager. Mobile dependency advisories remain; no clean security claim is made.
 
 Home guidance follow-up: replaced the tall embedded green/blue composer with a separate section heading matching guided prayer, followed by a compact warm-surface CTA card directly below prayer and above recommendations. The card’s serif “What’s on your heart?” invitation and gold button provide emphasis within the shared section structure. “Start personal guidance” opens the existing Guidance tab at the composer, focuses the input once and preserves its draft. Ordinary tab visits do not autofocus; leaving Guidance blurs the field. Native SE light/dark and repeated CTA/ordinary-tab behavior verified without generating new advice. TypeScript and nine checks pass; larger/final signed build verification remains open.
 
 Design reference comparison: [inspection notes and application table](MOBILE_DESIGN_REFERENCE_NOTES.md). New local captures and benchmark references are registered in the report, with earlier failed artist searches explicitly identified as superseded.
+
+### Store submission — October 12, 2026
+
+The user requested submission of the latest candidate. Source commit `2fff90883731dd9f55c1a1c7db178c9ecd9eaad3` contains the final separate Home guidance heading and CTA beneath prayer, opening Guidance with one-time input focus.
+
+- iOS: version **1.2.10 (61)**, [build](https://expo.dev/accounts/donarduous/projects/sanctuary/builds/1c0c2300-2bbe-42b0-9f2f-10a48accdd33), [EAS upload](https://expo.dev/accounts/donarduous/projects/sanctuary/submissions/e5fbf491-54f6-4f1d-8e86-73645d9e1256) finished. App Store Connect has the correct build attached, release notes saved, and final Submit for Review completed. Native store status: **Waiting for Review**. Automatic release after approval remains selected.
+- Android: version **1.2.10 (133)**, [build](https://expo.dev/accounts/donarduous/projects/sanctuary/builds/19e768ac-16e9-4d03-83e4-404bbca2eed7), [production submission](https://expo.dev/accounts/donarduous/projects/sanctuary/submissions/f5ae9a9d-361e-4642-937b-2186a6b2bd0c) finished. Play Console confirms **Release 1.2.10 in review**, version code **133**. Production track, completed release status, review requested; managed publishing is off.
+- Final source TypeScript and nine behavior/contrast checks passed. Both signed build jobs finished successfully. Downloaded IPA Info.plist confirms version/build/bundle identifier; IPA and AAB JS bundles contain no isolated staging-project or QA endpoint markers. This archive inspection does not substitute for runtime purchase/payment verification.
+
+Submission does not close the unchecked functional, accessibility, design or final-native-runtime tasks below, and does not imply store approval or public availability. Private store receipts remain under `qa-screenshots/2026-10-12-refinement/`.
 
 ## Priorities and completion rules
 
