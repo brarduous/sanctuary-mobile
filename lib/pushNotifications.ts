@@ -64,7 +64,9 @@ async function registerForPushNotificationsAsync() {
       handleRegistrationError(`${e}`);
     }
   } else {
-    handleRegistrationError('Must use physical device for push notifications');
+    // Push tokens are unavailable in simulators. This is an expected capability
+    // difference, not an error the user needs to resolve.
+    return undefined;
   }
 }
 

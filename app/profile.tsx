@@ -1,3 +1,7 @@
+import { isSameArtist, toggleArtistPreference } from '@/lib/artistPreferences';
+import ArtistPreferenceChip from '@/components/ArtistPreferenceChip';
+import ArtistPreferenceRow from '@/components/ArtistPreferenceRow';
+import { nextImprovementCheckInAt } from '@/lib/improvementCheckIn';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
@@ -46,6 +50,7 @@ import {
     ActivityIndicator,
     Alert,
     LayoutAnimation,
+    Keyboard,
     TextInput,
     Platform,
     Pressable,
@@ -64,7 +69,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 function SettingsSection({ children, separated = true }: { children: React.ReactNode; separated?: boolean }) {
     return (
-        <View className={separated ? 'pt-8 border-t border-slate-200 dark:border-slate-800' : ''}>
+        <View className={separated ? 'pt-5 border-t border-slate-200 dark:border-slate-800' : ''}>
             {children}
         </View>
     );
@@ -104,6 +109,9 @@ export default function ProfileScreen() {
     const [artistSearch, setArtistSearch] = useState('');
     const [artistResults, setArtistResults] = useState<SpotifyArtist[]>([]);
     const [artistSearching, setArtistSearching] = useState(false);
+    const [artistSearchError, setArtistSearchError] = useState(false);
+    const [artistSearchComplete, setArtistSearchComplete] = useState(false);
+    const [artistSearchAttempt, setArtistSearchAttempt] = useState(0);
     const [announcementNotifications, setAnnouncementNotifications] = useState(true);
     const [journeyNotifications, setJourneyNotifications] = useState(true);
     const [journeyReminders, setJourneyReminders] = useState(true);
@@ -228,20 +236,25 @@ export default function ProfileScreen() {
     }, [activeSection, user]);
 
     useEffect(() => {
+        let active = true;
+        setArtistResults([]);
+        setArtistSearchError(false);
+        setArtistSearchComplete(false);
+        setArtistSearching(Boolean(artistSearch.trim()));
         const handle = setTimeout(async () => {
-            if (!artistSearch.trim()) {
-                setArtistResults([]);
-                return;
+            if (!artistSearch.trim()) return;
+            try {
+                const results = await searchSpotifyArtists(artistSearch.trim(), true);
+                if (!Array.isArray(results)) throw new Error('Artist search unavailable');
+                if (active) setArtistResults(results);
+            } catch {
+                if (active) setArtistSearchError(true);
+            } finally {
+                if (active) { setArtistSearching(false); setArtistSearchComplete(true); }
             }
-
-            setArtistSearching(true);
-            const results = await searchSpotifyArtists(`${artistSearch} gospel christian`);
-            setArtistResults(results);
-            setArtistSearching(false);
         }, 350);
-
-        return () => clearTimeout(handle);
-    }, [artistSearch]);
+        return () => { active = false; clearTimeout(handle); };
+    }, [artistSearch, artistSearchAttempt]);
 
     // Handlers
     const toggleString = (list: string[], item: string, setFn: any) => {
@@ -298,11 +311,7 @@ export default function ProfileScreen() {
         ));
     };
 
-    const getNextImprovementCheckInAt = () => {
-        const nextDate = new Date();
-        nextDate.setDate(nextDate.getDate() + 30);
-        return nextDate.toISOString();
-    };
+
 
     const toggleId = (list: number[], item: number, setFn: any) => {
         if (!Array.isArray(list) || typeof item !== 'number' || isNaN(item)) return;
@@ -324,12 +333,7 @@ export default function ProfileScreen() {
     };
 
     const toggleFavoriteArtist = (artist: SpotifyArtist) => {
-        setFavoriteArtists((current) => {
-            if (current.some((item) => item.id === artist.id || item.name === artist.name)) {
-                return current.filter((item) => item.id !== artist.id && item.name !== artist.name);
-            }
-            return [...current, artist].slice(0, 5);
-        });
+        setFavoriteArtists(current => toggleArtistPreference(current, artist));
     };
 
     const filteredYoutubeChannels = youtubeChannels.filter((channel) => {
@@ -369,7 +373,7 @@ export default function ProfileScreen() {
             const userPreferences = {
                 ...(profile?.user_preferences || {}),
                 improvementAreasUpdatedAt: new Date().toISOString(),
-                improvementAreasCheckInAt: getNextImprovementCheckInAt(),
+                improvementAreasCheckInAt: nextImprovementCheckInAt(),
                 onboardingCompleted: true,
                 videoPreferences: {
                     preferredChannelIds,
@@ -453,60 +457,57 @@ export default function ProfileScreen() {
     // --- GUEST VIEW (If not logged in) ---
     if (!user) {
         return (
-            <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
+            <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['left', 'right']}>
                 <Stack.Screen options={{ title: 'Profile' }} />
-                <View className="px-5 pt-4 border-b border-transparent">
-                    <Text className="text-2xl font-serif font-bold mb-6" style={{ color: theme.text }}>Profile</Text>
-                </View>
-
-                <View className="flex-1 items-center justify-center p-6">
-                    <View className="bg-slate-50 dark:bg-slate-900 p-8 rounded-3xl items-center w-full max-w-sm border border-slate-200 dark:border-slate-800">
-                        <View className="w-20 h-20 bg-[#D4A373]/20 rounded-full items-center justify-center mb-6">
-                            <User size={40} color="#D4A373" />
+                <ScrollView contentContainerStyle={{ flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+                    <View style={{ padding: 24, borderRadius: 20, alignItems: 'center', width: '100%', maxWidth: 420, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}>
+                        <View style={{ width: 64, height: 64, borderRadius: 20, backgroundColor: theme.accentSoft, alignItems: 'center', justifyContent: 'center', marginBottom: 20 }}>
+                            <User size={32} color={theme.tint} />
                         </View>
-                        <Text className="text-xl font-bold mb-2 text-center" style={{ color: theme.text }}>
+                        <Text accessibilityRole="header" style={{ color: theme.text, fontSize: 26, fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif', textAlign: 'center', marginBottom: 12 }}>
                             Create Your Profile
                         </Text>
-                        <Text className="text-center text-slate-500 mb-8 leading-6">
+                        <Text style={{ color: theme.mutedForeground, fontSize: 17, lineHeight: 26, textAlign: 'center', marginBottom: 24 }}>
                             Sign in to save your spiritual preferences, track your favorite devotionals, and customize your daily walk.
                         </Text>
 
                         <Pressable
+                            accessibilityRole="button"
                             onPress={() => router.push('/login')}
-                            className="w-full bg-[#D4A373] py-4 rounded-xl flex-row items-center justify-center mb-4 active:opacity-90 shadow-sm"
+                            style={{ width: '100%', minHeight: 52, borderRadius: 14, backgroundColor: theme.action, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
                         >
-                            <LogIn size={20} color="white" className="mr-2" />
-                            <Text className="text-white font-bold text-lg">Sign In / Sign Up</Text>
+                            <LogIn size={20} color={theme.onAction} />
+                            <Text style={{ color: theme.onAction, fontSize: 16, fontWeight: '600' }}>Sign In / Sign Up</Text>
                         </Pressable>
                     </View>
-                </View>
+                </ScrollView>
             </SafeAreaView>
         );
     }
 
     // --- LOGGED IN VIEW ---
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['left', 'right']}>
             {/* Header */}
-            <Stack.Screen options={{ title: 'My Sanctuary' }} />
-            <View className="px-5 pt-0 pb-2 z-10 border-b " style={{ backgroundColor: 'transparent' }}>
-                <View className="flex-row justify-end items-center mb-8">
-                    <Pressable onPress={handleSignOut}>
-                        <Text className="text-xs font-bold text-red-400 uppercase tracking-widest">Sign Out</Text>
-                    </Pressable>
-                </View>
+            <Stack.Screen options={{ title: 'My Sanctuary', headerRight: () => (
+                <Pressable onPress={handleSignOut} accessibilityRole="button" accessibilityLabel="Sign out" style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center' }}>
+                    <LogOut size={20} color={theme.mutedForeground} />
+                </Pressable>
+            ) }} />
+            <View style={{ paddingHorizontal: 20, paddingTop: 8, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: theme.border }}>
 
                 {/* Tab Switcher */}
-                <View className="flex-row p-1 bg-slate-100/80 rounded-xl mb-6 mx-4">
+                <View className="flex-row p-1 rounded-xl" style={{ backgroundColor: theme.muted }}>
                     <Pressable
                         onPress={() => {
                             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                             setActiveSection('library');
                         }}
-                        className={`flex-1 py-2 items-center rounded-lg ${activeSection === 'library' ? 'bg-white' : ''}`}
-                        style={activeSection === 'library' ? { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 } : undefined}
+                        accessibilityRole="tab" accessibilityState={{ selected: activeSection === 'library' }}
+                        className="flex-1 items-center justify-center rounded-lg"
+                        style={{ minHeight: 44, backgroundColor: activeSection === 'library' ? theme.card : 'transparent' }}
                     >
-                        <Text className={`text-sm font-bold ${activeSection === 'library' ? '' : 'text-slate-500'}`} style={activeSection === 'library' ? { color: '#2C3E50' } : undefined}>
+                        <Text className="text-sm font-bold" style={{ color: activeSection === 'library' ? theme.text : theme.mutedForeground }}>
                             My Library
                         </Text>
                     </Pressable>
@@ -516,10 +517,11 @@ export default function ProfileScreen() {
                             LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
                             setActiveSection('settings');
                         }}
-                        className={`flex-1 py-2 items-center rounded-lg ${activeSection === 'settings' ? 'bg-white' : ''}`}
-                        style={activeSection === 'settings' ? { shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 2 } : undefined}
+                        accessibilityRole="tab" accessibilityState={{ selected: activeSection === 'settings' }}
+                        className="flex-1 items-center justify-center rounded-lg"
+                        style={{ minHeight: 44, backgroundColor: activeSection === 'settings' ? theme.card : 'transparent' }}
                     >
-                        <Text className={`text-sm font-bold ${activeSection === 'settings' ? '' : 'text-slate-500'}`} style={activeSection === 'settings' ? { color: '#2C3E50' } : undefined}>
+                        <Text className="text-sm font-bold" style={{ color: activeSection === 'settings' ? theme.text : theme.mutedForeground }}>
                             Settings
                         </Text>
                     </Pressable>
@@ -545,17 +547,17 @@ export default function ProfileScreen() {
                                     key={fav.id}
                                     onPress={() => handleItemPress(fav)}
                                     className="p-4 rounded-xl border  flex-row justify-between items-center"
-                                    style={{ backgroundColor: theme.card }}
+                                    style={{ backgroundColor: theme.card, borderColor: theme.border }}
                                 >
                                     <View className="flex-1 pr-4">
-                                        <Text className="text-[10px] font-bold uppercase tracking-widest text-[#D4A373] mb-1">
+                                        <Text className="text-xs font-bold uppercase tracking-widest text-[#D4A373] mb-1">
                                             {fav.item_type}
                                         </Text>
                                         <Text className="font-serif font-bold text-base mb-1" numberOfLines={1} style={{ color: theme.text }}>
                                             {fav.title || 'Untitled Item'}
                                         </Text>
                                         <Text className="text-xs" numberOfLines={2} style={{ color: theme.mutedForeground }}>
-                                            {fav.preview}
+                                            {String(fav.preview || '').replace(/\[([^\]]+)\]\([^)]+\)/g, '$1').replace(/[*_`#]/g, '').trim()}
                                         </Text>
                                     </View>
                                     <ChevronRight size={16} color="#CBD5E1" />
@@ -567,14 +569,14 @@ export default function ProfileScreen() {
 
                 {/* --- SETTINGS TAB --- */}
                 {activeSection === 'settings' && (
-                    <View className="gap-8">
+                    <View className="gap-6">
                         {/* User Info */}
                         <SettingsSection separated={false}>
-                        <View className="flex-row items-center gap-4 p-4 rounded-2xl border " style={{ backgroundColor: theme.card }}>
+                        <View className="flex-row items-center gap-4 p-4 rounded-2xl border " style={{ backgroundColor: theme.card, borderColor: theme.border }}>
                             <View className="w-12 h-12 bg-[#D4A373]/10 rounded-full items-center justify-center">
                                 <User size={24} color="#D4A373" />
                             </View>
-                            <View>
+                            <View className="flex-1">
                                 <Text className="font-serif font-bold text-lg" style={{ color: theme.text }}>
                                     {profile?.first_name || 'User'} {profile?.last_name || ''}
                                 </Text>
@@ -585,7 +587,7 @@ export default function ProfileScreen() {
 
                         {/* Subscription */}
                         <SettingsSection>
-                        <View className="bg-gradient-to-br from-[#D4A373]/20 to-slate-100 border border-[#D4A373]/30 rounded-xl p-5">
+                        <View className="bg-brand-50 dark:bg-brand-950 border border-[#D4A373]/30 rounded-xl p-5">
                             <View className="flex-row items-center gap-3 mb-2">
                                 <View className="p-2 bg-[#D4A373]/20 rounded-full">
                                     <Crown size={20} color="#D4A373" />
@@ -612,7 +614,7 @@ export default function ProfileScreen() {
                                         }}
                                         className="mt-4 w-full py-3 bg-[#D4A373] rounded-lg items-center active:opacity-90"
                                     >
-                                        <Text className="text-white font-bold">Upgrade for $4.99/mo</Text>
+                                        <Text style={{ color: theme.onAction }} className="font-bold">Explore Sanctuary Pro</Text>
                                     </Pressable>
                                 </View>
                             )}
@@ -659,7 +661,7 @@ export default function ProfileScreen() {
                                 ].map(([label, description, value, setter], index) => (
                                     <View key={String(label)} className={`flex-row items-center gap-3 p-4 ${index ? 'border-t border-slate-200 dark:border-slate-800' : ''}`}>
                                         <View className="flex-1"><Text className="font-bold text-sm" style={{ color: theme.text }}>{String(label)}</Text><Text className="mt-1 text-xs" style={{ color: theme.mutedForeground }}>{String(description)}</Text></View>
-                                        <Switch value={Boolean(value)} onValueChange={setter as (value: boolean) => void} trackColor={{ true: '#4f46e5' }}/>
+                                        <Switch value={Boolean(value)} onValueChange={setter as (value: boolean) => void} trackColor={{ true: theme.tint }}/>
                                     </View>
                                 ))}
                             </View>
@@ -670,18 +672,18 @@ export default function ProfileScreen() {
                         <SettingsSection>
                         <View>
                             <Text className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3 ml-1">App Settings</Text>
-                            <View className="border  rounded-xl p-4 flex-row justify-between items-center" style={{ backgroundColor: theme.card }}>
+                            <View className="border  rounded-xl p-4 flex-row justify-between items-center" style={{ backgroundColor: theme.card, borderColor: theme.border }}>
                                 <View className="flex-row items-center gap-3">
-                                    <View className="p-2 bg-slate-100 rounded-full">
-                                        {colorScheme === 'dark' ? <Moon size={20} color="#64748B" /> : <Sun size={20} color="#64748B" />}
+                                    <View className="p-2 rounded-full" style={{ backgroundColor: theme.muted }}>
+                                        {colorScheme === 'dark' ? <Moon size={20} color={theme.mutedForeground} /> : <Sun size={20} color={theme.mutedForeground} />}
                                     </View>
                                     <View>
                                         <Text className="font-bold text-sm" style={{ color: theme.text }}>Appearance</Text>
                                         <Text className="text-xs" style={{ color: theme.mutedForeground }}>Uses system setting</Text>
                                     </View>
                                 </View>
-                                <View className="bg-slate-100 px-3 py-1 rounded-md">
-                                    <Text className="text-xs font-bold text-slate-500 capitalize">{colorScheme}</Text>
+                                <View className="px-3 py-1 rounded-md" style={{ backgroundColor: theme.muted }}>
+                                    <Text className="text-xs font-bold capitalize" style={{ color: theme.text }}>{colorScheme}</Text>
                                 </View>
                             </View>
                         </View>
@@ -778,12 +780,12 @@ export default function ProfileScreen() {
                                     <Video size={16} color="#D4A373" />
                                     <Text className="text-sm font-bold uppercase tracking-widest text-slate-400">Video Creators</Text>
                                 </View>
-                                <Text className="text-[10px] font-bold text-slate-400">
+                                <Text className="text-xs font-bold text-slate-400">
                                     {preferredChannelIds.length} yes / {blockedChannelIds.length} no
                                 </Text>
                             </View>
 
-                            <View className="flex-row p-1 bg-slate-100/80 rounded-xl mb-3">
+                            <View className="flex-row p-1 rounded-xl mb-3" style={{ backgroundColor: theme.muted }}>
                                 {[
                                     { key: 'discover', label: 'Discover' },
                                     { key: 'preferred', label: 'Preferred' },
@@ -792,10 +794,12 @@ export default function ProfileScreen() {
                                     <Pressable
                                         key={item.key}
                                         onPress={() => setChannelFilter(item.key as 'discover' | 'preferred' | 'blocked')}
-                                        className={`flex-1 py-2 items-center rounded-lg ${channelFilter === item.key ? 'bg-white' : ''}`}
+                                        className="flex-1 py-2 items-center rounded-lg"
+                                        style={{ minHeight: 44, backgroundColor: channelFilter === item.key ? theme.card : 'transparent' }}
                                     >
                                         <Text
-                                            className={`text-xs font-bold ${channelFilter === item.key ? 'text-slate-800' : 'text-slate-500'}`}
+                                            className="text-xs font-bold"
+                                            style={{ color: channelFilter === item.key ? theme.text : theme.mutedForeground }}
                                         >
                                             {item.label}
                                         </Text>
@@ -845,7 +849,7 @@ export default function ProfileScreen() {
                                                         onPress={() => setChannelPreference(channelId, 'neutral')}
                                                         className="px-3 py-1.5 rounded-lg bg-white/80 border border-slate-200"
                                                     >
-                                                        <Text className="text-[10px] font-bold text-slate-500">Reset</Text>
+                                                        <Text className="text-xs font-bold text-slate-500">Reset</Text>
                                                     </Pressable>
                                                 )}
                                             </View>
@@ -893,18 +897,21 @@ export default function ProfileScreen() {
                                     <Star size={16} color="#D4A373" />
                                     <Text className="text-sm font-bold uppercase tracking-widest text-slate-400">Gospel Artists</Text>
                                 </View>
-                                <Text className="text-[10px] font-bold text-slate-400">
+                                <Text className="text-xs font-bold text-slate-400">
                                     {favoriteArtists.length}/5 selected
                                 </Text>
                             </View>
 
-                            <View className="flex-row items-center gap-2 px-3 py-2 rounded-xl border border-slate-200 mb-3" style={{ backgroundColor: theme.card }}>
-                                <Search size={16} color="#94A3B8" />
+                            <View className="flex-row items-center gap-2 px-3 py-2 rounded-xl border mb-3" style={{ backgroundColor: theme.card, borderColor: theme.border, minHeight: 48 }}>
+                                <Search size={16} color={theme.mutedForeground} />
                                 <TextInput
+                                    accessibilityLabel="Search gospel artists"
+                                    returnKeyType="search"
+                                    onSubmitEditing={() => Keyboard.dismiss()}
                                     value={artistSearch}
                                     onChangeText={setArtistSearch}
                                     placeholder="Search gospel artists"
-                                    placeholderTextColor="#94A3B8"
+                                    placeholderTextColor={theme.mutedForeground}
                                     autoCapitalize="words"
                                     className="flex-1 text-sm"
                                     style={{ color: theme.text }}
@@ -915,40 +922,33 @@ export default function ProfileScreen() {
                             {favoriteArtists.length > 0 && (
                                 <View className="flex-row flex-wrap gap-2 mb-3">
                                     {favoriteArtists.map((artist) => (
-                                        <Pressable
-                                            key={artist.id || artist.name}
-                                            onPress={() => toggleFavoriteArtist(artist)}
-                                            className="px-3 py-2 rounded-full bg-emerald-50 border border-emerald-200 max-w-full"
-                                        >
-                                            <Text
-                                                className="text-xs font-bold text-emerald-700"
-                                                numberOfLines={1}
-                                                adjustsFontSizeToFit
-                                                minimumFontScale={0.75}
-                                            >
-                                                {artist.name}
-                                            </Text>
-                                        </Pressable>
+                                        <ArtistPreferenceChip key={artist.id || artist.name} name={artist.name} onRemove={() => toggleFavoriteArtist(artist)} theme={theme} />
                                     ))}
                                 </View>
                             )}
 
                             <View className="gap-2">
+                                {!artistSearch.trim() && <Text style={{ color: theme.mutedForeground, fontSize: 14, lineHeight: 21 }}>Search for artists you enjoy. Choose up to five.</Text>}
+                                {artistSearching && <Text accessibilityLiveRegion="polite" style={{ color: theme.mutedForeground }}>Searching artists…</Text>}
+                                {artistSearchError && <View style={{ padding: 16, borderRadius: 16, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.card, gap: 8 }}>
+                                    <Text style={{ color: theme.text, fontWeight: '600' }}>Artist search unavailable</Text>
+                                    <Text style={{ color: theme.mutedForeground }}>Try again in a moment. Your selected artists are still here.</Text>
+                                    <Pressable accessibilityRole="button" onPress={() => setArtistSearchAttempt(current => current + 1)} style={{ minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start', paddingHorizontal: 12 }}><Text style={{ color: theme.tint, fontWeight: '600' }}>Try again</Text></Pressable>
+                                </View>}
+                                {artistSearchComplete && !artistSearchError && !artistResults.length && <Text style={{ color: theme.mutedForeground }}>No artists found. Try another name.</Text>}
+                                {favoriteArtists.length >= 5 && <Text accessibilityLiveRegion="polite" style={{ color: theme.mutedForeground }}>Five artists selected. Remove one to choose another.</Text>}
                                 {artistResults.slice(0, 8).map((artist) => {
-                                    const selected = favoriteArtists.some((item) => item.id === artist.id || item.name === artist.name);
+                                    const selected = favoriteArtists.some(item => isSameArtist(item, artist));
 
                                     return (
-                                        <Pressable
+                                        <ArtistPreferenceRow
                                             key={artist.id || artist.name}
+                                            artist={artist}
+                                            selected={selected}
+                                            disabled={!selected && favoriteArtists.length >= 5}
                                             onPress={() => toggleFavoriteArtist(artist)}
-                                            className={`p-4 rounded-xl border flex-row items-center justify-between ${selected ? 'bg-emerald-50 border-emerald-300' : 'border-slate-200'}`}
-                                            style={!selected ? { backgroundColor: theme.card } : undefined}
-                                        >
-                                            <Text className="font-bold text-sm flex-1" numberOfLines={1} style={{ color: theme.text }}>
-                                                {artist.name}
-                                            </Text>
-                                            {selected && <Check size={16} color="#059669" />}
-                                        </Pressable>
+                                            theme={theme}
+                                        />
                                     );
                                 })}
                             </View>
@@ -963,7 +963,7 @@ export default function ProfileScreen() {
                                     <Newspaper size={16} color="#D4A373" />
                                     <Text className="text-sm font-bold uppercase tracking-widest text-slate-400">News Interests</Text>
                                 </View>
-                                <Text className="text-[10px] font-bold text-slate-400">
+                                <Text className="text-xs font-bold text-slate-400">
                                     {followedCategoryIds.length} selected
                                 </Text>
                             </View>

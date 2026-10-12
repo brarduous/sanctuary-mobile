@@ -1,0 +1,6 @@
+import assert from 'node:assert/strict';
+import { extractInviteToken } from '../lib/inviteToken.ts';
+const token = '123e4567-e89b-42d3-a456-426614174000';
+for (const value of [token, ` https://sanctuaryapp.us/join?token=${token} `, `https://www.sanctuaryapp.us/join/${token}`, `sanctuary://join?token=${token}`, `sanctuary:///join?token=${token}`, `https://sanctuaryapp.us/join?token=${encodeURIComponent(token)}`]) assert.equal(extractInviteToken(value), token);
+for (const value of [null, '', 'garbage', `https://example.com/join?token=${token}`, `https://sanctuaryapp.us.evil.test/join?token=${token}`, `https://evil.test/?token=${token}`, `https://sanctuaryapp.us/news/${token}`, `http://sanctuaryapp.us/join?token=${token}`, `https://sanctuaryapp.us:444/join?token=${token}`, `https://user:pass@sanctuaryapp.us/join?token=${token}`, 'https://sanctuaryapp.us/join?token=invalid', `https://sanctuaryapp.us/join?token=${token}&token=${token}`, `https://sanctuaryapp.us/join/${token}?token=123e4567-e89b-42d3-a456-426614174001`, `sanctuary://news?token=${token}`, 'sanctuary://join/%E0%A4%A']) assert.equal(extractInviteToken(value), null, String(value));
+console.log('Verified Sanctuary web/native/raw invites and rejection of unrelated, malformed and ambiguous links.');

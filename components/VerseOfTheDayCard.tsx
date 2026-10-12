@@ -1,11 +1,12 @@
-//
-import { useColorScheme } from '@/components/useColorScheme';
-import { getPassageText } from '@/lib/bibleUtils';
+import { scriptureCardHeight, SCRIPTURE_CARD_CHROME_HEIGHT } from '@/lib/scriptureCardLayout';
+import { getPassageText, parseScriptureReference } from '@/lib/bibleUtils';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Haptics from 'expo-haptics';
 import * as Sharing from 'expo-sharing';
-import { Share as ShareIcon } from 'lucide-react-native';
+import { useRouter } from 'expo-router';
+import { ChevronRight, Share as ShareIcon } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, ImageBackground, Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, ImageBackground, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import ViewShot from "react-native-view-shot";
 
 interface VerseOfTheDayCardProps {
@@ -14,22 +15,36 @@ interface VerseOfTheDayCardProps {
   backgroundImage: any;
 }
 
+const SCRIPTURE_FONT_SIZE = 22;
+const SCRIPTURE_LINE_HEIGHT = 32;
+
 const VerseOfTheDayCard: React.FC<VerseOfTheDayCardProps> = ({ reference, version = 'NIV', backgroundImage }) => {
   const viewShotRef = useRef<ViewShot>(null);
-  const colorScheme = useColorScheme();
+  const router = useRouter();
+  const { width: windowWidth } = useWindowDimensions();
   const [verseData, setVerseData] = useState<{ text: string, reference: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [cardWidth, setCardWidth] = useState(windowWidth - 40);
+  const [textHeight, setTextHeight] = useState(0);
+  const scriptureScrollRef = useRef<ScrollView>(null);
+  const scriptureViewport = useRef(0);
+  const scriptureContentHeight = useRef(0);
+  const [scriptureOffset, setScriptureOffset] = useState(0);
 
   // Fetch the text using the util
   useEffect(() => {
     if (!reference) return;
     setLoading(true);
+    setTextHeight(0);
+    setScriptureOffset(0);
+    scriptureScrollRef.current?.scrollTo({ y: 0, animated: false });
     // getPassageText is synchronous since it uses local JSON, but we wrap in timeout to not block UI frame
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
         const data = getPassageText(reference, version);
         setVerseData(data);
         setLoading(false);
     }, 10);
+    return () => clearTimeout(timeout);
   }, [reference, version]);
 
   const handleShare = async () => {
@@ -52,17 +67,32 @@ const VerseOfTheDayCard: React.FC<VerseOfTheDayCardProps> = ({ reference, versio
     }
   };
 
+  const handleReadPassage = async () => {
+    const parsed = parseScriptureReference(reference);
+    if (parsed) {
+      await AsyncStorage.multiSet([
+        ['bible_book', parsed.book],
+        ['bible_chapter', parsed.chapter.toString()],
+        ['bible_version', version],
+      ]);
+    }
+    router.push({ pathname: '/bible', params: { reference, version } });
+  };
+
   if (!verseData && !loading) return null;
 
+  const cardHeight = scriptureCardHeight(cardWidth, textHeight);
+  const needsScroll = textHeight > cardHeight - SCRIPTURE_CARD_CHROME_HEIGHT;
+
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={event => setCardWidth(event.nativeEvent.layout.width)}>
       {/* The ViewShot wraps ONLY the card content. 
          The Share Button is a sibling, so it won't be in the screenshot.
       */}
       <ViewShot ref={viewShotRef} options={{ format: "jpg", quality: 0.9 }}>
         <ImageBackground
           source={backgroundImage}
-          style={styles.cardSize}
+          style={[styles.cardSize, { height: cardHeight }]}
           imageStyle={styles.imageStyle}
         >
           {/* Dark Gradient/Overlay for readability */}
@@ -84,14 +114,33 @@ const VerseOfTheDayCard: React.FC<VerseOfTheDayCardProps> = ({ reference, versio
 
                     {/* CENTER: Scripture */}
                     <View style={styles.centerContainer}>
-                        <Text style={styles.scriptureText} adjustsFontSizeToFit numberOfLines={12}>
-                            "{verseData?.text}"
-                        </Text>
+                        <ScrollView ref={scriptureScrollRef} nestedScrollEnabled scrollEnabled={needsScroll} showsVerticalScrollIndicator={needsScroll}
+                            onLayout={event => { scriptureViewport.current = event.nativeEvent.layout.height; }}
+                            onContentSizeChange={(_, height) => { scriptureContentHeight.current = height; }}
+                            onScroll={event => setScriptureOffset(event.nativeEvent.contentOffset.y)} scrollEventThrottle={100}
+                            style={{ width: '100%', flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: needsScroll ? SCRIPTURE_LINE_HEIGHT : 0, justifyContent: needsScroll ? 'flex-start' : 'center' }}>
+                            <Text lineBreakStrategyIOS="standard" textBreakStrategy="simple" style={[styles.scriptureText, { fontSize: SCRIPTURE_FONT_SIZE, lineHeight: SCRIPTURE_LINE_HEIGHT }]}
+                                onTextLayout={event => { const lines = event.nativeEvent.lines; const height = lines.reduce((sum, line) => sum + line.height, 0); if (Math.abs(height - textHeight) > 1) setTextHeight(height); }}>
+                                {verseData?.text}{'\n'}
+                            </Text>
+                        </ScrollView>
                     </View>
-                    
-                    {/* BOTTOM: Branding (Optional, adds nice touch to share) */}
+                    {needsScroll && <TouchableOpacity accessibilityRole="button" accessibilityLabel={scriptureOffset >= scriptureContentHeight.current - scriptureViewport.current - 2 ? 'Back to start of scripture' : 'Read next verses'}
+                        onPress={() => {
+                            const end = Math.max(0, scriptureContentHeight.current - scriptureViewport.current);
+                            const nextOffset = scriptureOffset >= end - 2 ? 0 : Math.min(end, scriptureOffset + scriptureViewport.current - SCRIPTURE_LINE_HEIGHT);
+                            setScriptureOffset(nextOffset);
+                            scriptureScrollRef.current?.scrollTo({ y: nextOffset, animated: false });
+                        }} style={{ minHeight: 44, justifyContent: 'center' }}>
+                        <Text style={{ color: 'white', fontSize: 13 }}>{scriptureOffset >= scriptureContentHeight.current - scriptureViewport.current - 2 ? 'Back to start ↑' : 'Scroll or tap for next verses ↓'}</Text>
+                    </TouchableOpacity>}
+
+                    {/* BOTTOM: Full passage affordance */}
                     <View style={styles.bottomContainer}>
-                        <Text style={styles.brandingText}>SANCTUARY</Text>
+                        <TouchableOpacity onPress={handleReadPassage} accessibilityRole="button" accessibilityLabel="Read full scripture passage" style={styles.readPassageButton} activeOpacity={0.75}>
+                            <Text style={styles.readPassageText}>Read full passage</Text>
+                            <ChevronRight size={15} color="white" />
+                        </TouchableOpacity>
                     </View>
                 </>
             )}
@@ -103,6 +152,7 @@ const VerseOfTheDayCard: React.FC<VerseOfTheDayCardProps> = ({ reference, versio
       <TouchableOpacity 
         style={styles.floatingShareButton} 
         onPress={handleShare}
+        accessibilityRole="button" accessibilityLabel="Share verse of the day"
         activeOpacity={0.8}
       >
         <ShareIcon size={20} color="white" />
@@ -125,7 +175,6 @@ const styles = StyleSheet.create({
   },
   cardSize: {
     width: '100%',
-    aspectRatio: 1/1, // Slightly shorter than full 9/16 to fit nicely on dashboard
     justifyContent: 'center',
   },
   imageStyle: {
@@ -133,27 +182,27 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.35)', // Darker overlay for text pop
+    backgroundColor: 'rgba(0,0,0,0.48)', // Darker overlay for text pop
     borderRadius: 20,
-    padding: 32,
+    padding: 20,
     justifyContent: 'space-between',
     alignItems: 'center',
   },
   topContainer: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: 2,
   },
   referenceText: {
     color: 'white',
     fontSize: 14,
     fontWeight: '800', // Extra Bold
-    letterSpacing: 2,
+    letterSpacing: 1,
     textAlign: 'center',
     fontFamily: Platform.OS === 'ios' ? 'AvenirNext-Bold' : 'Roboto',
   },
   versionText: {
     color: 'rgba(255,255,255,0.6)',
-    fontSize: 10,
+    fontSize: 13,
     marginTop: 4,
     fontWeight: '600',
   },
@@ -161,12 +210,10 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingVertical: 8,
   },
   scriptureText: {
     color: 'white',
-    fontSize: 18,
-    lineHeight: 28,
     fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
     textAlign: 'center',
     textShadowColor: 'rgba(0,0,0,0.5)',
@@ -174,13 +221,26 @@ const styles = StyleSheet.create({
     textShadowRadius: 4,
   },
   bottomContainer: {
-    marginBottom: 8,
+    alignSelf: 'stretch',
+    paddingRight: 56,
+    minHeight: 44,
+    justifyContent: 'center',
   },
-  brandingText: {
-    color: 'rgba(255,255,255,0.5)',
-    fontSize: 10,
-    letterSpacing: 3,
-    fontWeight: '600',
+  readPassageButton: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.38)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.22)',
+  },
+  readPassageText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: '700',
   },
   floatingShareButton: {
     position: 'absolute',

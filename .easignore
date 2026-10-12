@@ -1,0 +1,56 @@
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
+node_modules/
+
+# Expo
+.expo/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env*.local
+.env
+
+# typescript
+*.tsbuildinfo
+
+# generated native folders
+/ios
+/android
+*.apk
+EN-05-10023.pdf
+glory-app-cf113-firebase-adminsdk-7ihpu-66e4df0d7a.json
+firebase-keys.json
+@donarduous__sanctuary-keystore-backup.zip
+
+# Local evidence, private signing material, and nonshipping diagnostics
+/qa-screenshots
+/docs
+/scripts
+/MOBILE_DESIGN_EXCELLENCE_TODO.md
+/release.keystore
+/test-icon.tsx
+/.vscode

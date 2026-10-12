@@ -2,28 +2,31 @@ import { useAuth } from '@/context/AuthContext';
 import { joinCongregation } from '@/lib/api';
 import { extractInviteToken } from '@/lib/inviteToken';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
+import { Stack, useRouter } from 'expo-router';
+import { useColorScheme } from '@/components/useColorScheme';
+import ScreenState from '@/components/ScreenState';
+import Colors from '@/constants/Colors';
 import { QrCode, X } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { ActivityIndicator, Alert, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ScanScreen() {
   const [permission, requestPermission] = useCameraPermissions();
+  const focused = useIsFocused();
+  const scanInFlight = useRef(false);
+  const retryScan = () => { scanInFlight.current = false; setScanned(false); };
   const [scanned, setScanned] = useState(false);
   const [joining, setJoining] = useState(false);
-  
+  const theme = Colors[useColorScheme() ?? 'light'];
+
   const router = useRouter();
   const { user, setUserCongregationId } = useAuth();
 
-  useEffect(() => {
-    if (!permission?.granted) {
-      requestPermission();
-    }
-  }, [permission]);
-
   const handleBarCodeScanned = async ({ data }: { type: string; data: string }) => {
-    if (scanned || joining) return;
+    if (scanInFlight.current || !focused) return;
+    scanInFlight.current = true;
     setScanned(true);
 
     try {
@@ -32,51 +35,53 @@ export default function ScanScreen() {
 
       if (!token) {
         Alert.alert("Invalid QR Code", "This doesn't look like a valid Sanctuary Church invite.", [
-          { text: "Try Again", onPress: () => setScanned(false) }
+          { text: "Try Again", onPress: retryScan }
         ]);
         return;
       }
 
       if (!user?.id) {
-        router.push(`/join?token=${encodeURIComponent(token)}` as any);
+        router.replace(`/join?token=${encodeURIComponent(token)}` as any);
         return;
       }
 
       setJoining(true);
-      
+
       // Call the API we created in the last step
       const congId = await joinCongregation(user.id, token);
-      
+
       // Update global state so the tab instantly appears
-      setUserCongregationId(congId); 
-      
+      setUserCongregationId(congId);
+
       Alert.alert(
-        "Welcome!", 
-        "You have successfully joined your digital congregation.", 
+        "Welcome!",
+        "You have successfully joined your digital congregation.",
         [{ text: "Go to My Church", onPress: () => router.replace('/(tabs)/church') }]
       );
     } catch (err: any) {
       Alert.alert("Connection Failed", err.message || "Unable to join this congregation.", [
-        { text: "Try Again", onPress: () => setScanned(false) }
+        { text: "Try Again", onPress: retryScan }
       ]);
     } finally {
       setJoining(false);
     }
   };
 
-  if (!permission) return <View />;
+  if (!permission) return <View style={{ flex: 1, backgroundColor: theme.background }}><Stack.Screen options={{ title: 'Scan invite' }} /><ScreenState title="Preparing scanner" loading /></View>;
 
   if (!permission.granted) {
     return (
-      <View className="flex-1 items-center justify-center bg-background px-6">
-        <Text className="text-center text-lg mb-6 dark:text-white">
-          We need your permission to show the camera to scan the invite code.
-        </Text>
-        <Pressable 
-          onPress={requestPermission} 
-          className="bg-indigo-600 px-6 py-3 rounded-xl"
+      <View style={{ flex: 1, justifyContent: 'center', padding: 28, backgroundColor: theme.background }}>
+        <Stack.Screen options={{ title: 'Scan invite' }} />
+        <QrCode size={36} color={theme.tint} />
+        <Text style={{ color: theme.text, fontSize: 24, fontWeight: '700', marginTop: 20, marginBottom: 12 }}>Connect with your church</Text>
+        <Text style={{ color: theme.mutedForeground, fontSize: 16, lineHeight: 25 }}>Scan the invite code your church provides. Allow camera access to use the scanner.</Text>
+        <Pressable
+          accessibilityRole="button"
+          onPress={() => { void (permission.canAskAgain ? requestPermission() : Linking.openSettings()).catch(() => Alert.alert('Camera unavailable', 'Please enable camera access in Settings.')); }}
+          style={{ alignSelf: 'flex-start', minHeight: 48, paddingHorizontal: 22, paddingVertical: 14, borderRadius: 14, backgroundColor: theme.action, marginTop: 24 }}
         >
-          <Text className="text-white font-bold text-lg">Grant Permission</Text>
+          <Text style={{ color: theme.onAction, fontWeight: '700', fontSize: 15 }}>{permission.canAskAgain ? 'Allow camera' : 'Open Settings'}</Text>
         </Pressable>
       </View>
     );
@@ -84,8 +89,9 @@ export default function ScanScreen() {
 
   return (
     <View style={styles.container}>
-      <CameraView 
-        style={styles.camera} 
+      <Stack.Screen options={{ headerShown: false }} />
+      {focused && <CameraView
+        style={styles.camera}
         facing="back"
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
         barcodeScannerSettings={{
@@ -99,9 +105,11 @@ export default function ScanScreen() {
               <QrCode size={18} color="white" />
               <Text className="text-white font-bold ml-2">Scan Invite Code</Text>
             </View>
-            <Pressable 
-              onPress={() => router.back()} 
-              className="bg-black/50 p-2 rounded-full"
+            <Pressable
+              onPress={() => router.canGoBack() ? router.back() : router.replace('/')}
+              accessibilityRole="button"
+              accessibilityLabel="Close scanner"
+              style={{ minWidth: 44, minHeight: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)' }}
             >
               <X size={24} color="white" />
             </Pressable>
@@ -116,7 +124,7 @@ export default function ScanScreen() {
                   <Text className="text-white mt-4 font-bold">Connecting to Church...</Text>
                 </View>
               ) : (
-                <View className="w-full h-full rounded-3xl border-4 border-indigo-500" style={{ borderStyle: 'dashed' }} />
+                <View className="w-full h-full rounded-3xl border-4 border-brand-500" style={{ borderStyle: 'dashed' }} />
               )}
             </View>
           </View>
@@ -128,7 +136,7 @@ export default function ScanScreen() {
             </Text>
           </View>
         </SafeAreaView>
-      </CameraView>
+      </CameraView>}
     </View>
   );
 }

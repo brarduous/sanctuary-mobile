@@ -21,7 +21,8 @@
       },
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://api.sanctuaryapp.us"
-      }
+      },
+      "environment": "production"
     }
   },
   "submit": {

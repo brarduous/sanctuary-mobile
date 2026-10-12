@@ -1,3 +1,5 @@
+import ReadingControls from '@/components/ReadingControls';
+import { Layout } from '@/constants/Layout';
 import SpotifyTrackCard from '@/components/SpotifyTrackCard';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
@@ -112,11 +114,11 @@ export default function PrayerDetailScreen() {
 
             
             <ScrollView contentContainerStyle={{ padding: 24 }}>
-                 <View className="mb-8 items-center">
+                 <View className="mb-6">
                     <View className="w-12 h-12 bg-[#D4A373]/10 rounded-full items-center justify-center mb-4">
                         <Sparkles size={24} color="#D4A373" />
                     </View>
-                    <Text className="text-2xl font-serif font-bold text-center mb-2" style={{ color: theme.text }}>
+                    <Text className="text-2xl font-serif font-bold mb-3" style={{ color: theme.text }}>
                         {prayer.title || "Daily Prayer"}
                     </Text>
                     
@@ -132,31 +134,19 @@ export default function PrayerDetailScreen() {
                     </View>
                 </View>
 
-                {/* Audio Controls */}
-                <View className="flex-row items-center mb-10 justify-center">
-                    <Pressable 
-                        onPress={handleSpeak}
-                        className="flex-row items-center px-6 py-3 rounded-full"
-                        style={({ pressed }) => [{ backgroundColor: pressed ? theme.text : '#0F172A' }]}
-                   >
-                        {isSpeaking ? <Square size={16} color="white" fill="white" /> : <Play size={16} color="white" fill="white" />}
-                        <Text className="text-white font-bold ml-2 text-sm">
-                            {isSpeaking ? "Stop Listening" : "Listen to Prayer"}
-                        </Text>
-                   </Pressable>
-                </View>
+                <View style={{ marginBottom: 24 }}><ReadingControls speaking={isSpeaking} onPress={handleSpeak} label="Listen to prayer" theme={theme} /></View>
 
                 <SpotifyTrackCard track={recommendedTrack} theme={theme} />
 
                 {/* Content */}
-                <View className="mb-10 p-8 rounded-[24px] border border-slate-100 dark:border-slate-800" style={{ backgroundColor: theme.card }}>
-                     <Text className="text-lg leading-loose font-serif italic text-center" style={{ color: theme.text }}>
-                        "{prayerContent}"
+                <View style={{ marginBottom: 32 }}>
+                     <Text style={{ color: theme.text, fontFamily: Layout.serif, ...Layout.body }}>
+                        {prayerContent}
                      </Text>
                 </View>
 
                 <View className="border-t pt-8 items-center" style={{ borderColor: theme.border }}>
-                    <Text className="text-[10px] uppercase tracking-widest font-bold" style={{ color: theme.mutedForeground }}>
+                    <Text className="text-xs uppercase tracking-widest font-bold" style={{ color: theme.mutedForeground }}>
                         Sanctuary Prayer
                     </Text>
                 </View>

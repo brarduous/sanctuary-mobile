@@ -4,9 +4,9 @@ import { getRandomAdvicePromptSample } from '@/constants/AdvicePrompts';
 import { useAuth } from '@/context/AuthContext';
 import { useRevenueCat } from '@/context/RevenueCatContext';
 import { checkAdviceLimit, generateContent } from '@/lib/api';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Lock, Send, Sparkles } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Pressable, Text, TextInput, View } from 'react-native';
 
 // Import the new Mic Button
@@ -16,9 +16,11 @@ interface ChristianAdviceCardProps {
     limitReached?: boolean;
     samplePrompt?: string;
     featured?: boolean;
+    focusRequest?: string;
+    onComposerFocused?: () => void;
 }
 
-export default function ChristianAdviceCard({ limitReached: initialLimitReached, samplePrompt: providedSamplePrompt, featured = false }: ChristianAdviceCardProps) {
+export default function ChristianAdviceCard({ limitReached: initialLimitReached, samplePrompt: providedSamplePrompt, featured = false, focusRequest, onComposerFocused }: ChristianAdviceCardProps) {
     const { user } = useAuth();
     const router = useRouter();
     const { isPro } = useRevenueCat();
@@ -31,6 +33,7 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
     // Input State
     const [situation, setSituation] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const inputRef = useRef<TextInput>(null);
     const [samplePrompt] = useState(() => providedSamplePrompt || getRandomAdvicePromptSample());
 
     useEffect(() => {
@@ -45,6 +48,23 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
         }
         check();
     }, [user, isPro]);
+
+    useFocusEffect(React.useCallback(() => () => inputRef.current?.blur(), []));
+
+    useFocusEffect(React.useCallback(() => {
+        if (!focusRequest || loadingLimit) return;
+        if (!user || (limitReached && !isPro)) {
+            onComposerFocused?.();
+            return;
+        }
+        // Wait for the tab transition and mounted composer, without stealing
+        // focus during an ordinary visit or after leaving the screen.
+        const timer = setTimeout(() => {
+            inputRef.current?.focus();
+            onComposerFocused?.();
+        }, 300);
+        return () => clearTimeout(timer);
+    }, [focusRequest, loadingLimit, user, limitReached, isPro, onComposerFocused]));
 
     const handleSubmit = async () => {
         if (!situation.trim() || !user || isSubmitting) return;
@@ -80,13 +100,13 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
             <View className="p-6 bg-white dark:bg-slate-900 rounded-2xl border border-slate-100 dark:border-slate-800 items-center">
                 <Sparkles size={32} color={theme.tint} style={{ marginBottom: 12 }} />
                 <Text style={{ color: theme.text }} className="text-lg font-serif font-bold text-center mb-2">Spiritual Guidance</Text>
-                <Text style={{ color: Colors.gray }} className="text-center text-sm mb-4">Bring a real situation, question, or struggle and receive Scripture-shaped guidance.</Text>
-                <Pressable 
+                <Text style={{ color: theme.mutedForeground }} className="text-center text-sm mb-4">Bring a real situation, question, or struggle and receive Scripture-shaped guidance.</Text>
+                <Pressable
                     onPress={() => router.push('/profile' as any)}
-                    style={{ backgroundColor: theme.tint }}
+                    style={{ backgroundColor: theme.action, minHeight: 48, opacity: 1 }}
                     className="w-full py-2 rounded-lg items-center"
                 >
-                    <Text className="text-white font-bold text-sm">Sign In</Text>
+                    <Text style={{ color: theme.onAction }} className="font-bold text-sm">Sign In</Text>
                 </Pressable>
             </View>
         );
@@ -104,29 +124,31 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
         return (
             <View className="bg-white dark:bg-slate-900 border border-slate-100 dark:border-slate-800 rounded-2xl p-6 items-center">
                 <View className="w-10 h-10 bg-white dark:bg-gray-700 rounded-full items-center justify-center mb-3">
-                    <Lock size={18} color={Colors.gray} />
+                    <Lock size={18} color={theme.mutedForeground} />
                 </View>
                 <Text className="font-bold text-base mb-1" style={{ color: theme.text }}>Monthly Limit Reached</Text>
                 <Text className="text-center text-gray-500 text-xs mb-4">
                     You've used your free guidance session. Upgrade for unlimited guidance.
                 </Text>
-                <Pressable 
+                <Pressable
                     onPress={() => router.push('/paywall' as any)}
-                    style={{ backgroundColor: theme.tint }}
+                    style={{ backgroundColor: theme.action, minHeight: 48, opacity: 1 }}
                     className="flex-row items-center px-4 py-2 rounded-full"
                 >
-                    <Sparkles size={14} color="white" style={{ marginRight: 6 }} />
-                    <Text className="text-white font-bold text-xs">Unlock Pro</Text>
+                    <Sparkles size={14} color={theme.onAction} style={{ marginRight: 6 }} />
+                    <Text style={{ color: theme.onAction }} className="font-bold text-xs">Unlock Pro</Text>
                 </Pressable>
             </View>
         );
     }
 
     return (
-        <View 
+        <View
             className={`bg-white dark:bg-slate-900 rounded-2xl p-1 ${featured ? '' : 'border border-slate-100 dark:border-slate-800'}`}
-            style={{ 
-                shadowColor: '#000', 
+            style={{
+                backgroundColor: theme.card,
+                borderColor: theme.border,
+                shadowColor: '#000',
                 shadowOffset: { width: 0, height: featured ? 8 : 1 },
                 shadowOpacity: featured ? 0.18 : 0.1,
                 shadowRadius: featured ? 18 : 2,
@@ -137,7 +159,7 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
                 <View className="py-8 items-center justify-center">
                     <ActivityIndicator size="large" color={theme.tint} />
                     <Text style={{ color: theme.tint, fontWeight: 'bold', marginTop: 8 }}>Seeking Wisdom...</Text>
-                    <Text style={{ color: Colors.gray, fontSize: 12, marginTop: 4 }}>Consulting Scripture...</Text>
+                    <Text style={{ color: theme.mutedForeground, fontSize: 12, marginTop: 4 }}>Consulting Scripture...</Text>
                 </View>
             ) : (
                 <View>
@@ -145,25 +167,28 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
                         <View className="flex-row items-center mb-1">
                             <Sparkles size={16} color={theme.tint} />
                             <Text style={{ color: theme.text }} className="text-lg font-serif font-bold ml-2">
-                                {featured ? 'What are you facing today?' : 'Ask for Scriptural Guidance'}
+                                What are you facing today?
                             </Text>
                         </View>
-                        <Text style={{ color: Colors.gray }} className="text-sm leading-5">
-                            Describe what you are facing. Sanctuary will help you think through it with biblical wisdom, prayer, and practical next steps.
+                        <Text style={{ color: theme.mutedForeground }} className="text-sm leading-5">
+                            Receive practical next steps, Scripture, and a prayer.
                         </Text>
                     </View>
 
                     <TextInput
+                        ref={inputRef}
+                        accessibilityLabel="What are you walking through?"
                         value={situation}
                         onChangeText={setSituation}
                         placeholder="What are you walking through?"
-                        placeholderTextColor={Colors.gray}
+                        placeholderTextColor={theme.mutedForeground}
                         editable={!isSubmitting}
                         multiline
-                        style={{ 
-                            minHeight: 100, 
-                            padding: 16, 
-                            fontSize: 16, 
+                        style={{
+                            minHeight: 112,
+                            maxHeight: 220,
+                            padding: 16,
+                            fontSize: 16,
                             color: theme.text,
                             textAlignVertical: 'top'
                         }}
@@ -171,7 +196,7 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
 
                     {samplePrompt && !situation.trim() && (
                         <View className="px-4 pb-4">
-                            <Text style={{ color: Colors.gray }} className="text-xs font-bold uppercase tracking-widest mb-2">
+                            <Text style={{ color: theme.mutedForeground }} className="text-xs font-bold uppercase tracking-widest mb-2">
                                 Try asking
                             </Text>
                             <Pressable
@@ -184,30 +209,28 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
                             </Pressable>
                         </View>
                     )}
-                    
+
                     {/* The Footer with Mic and Send Button */}
                     <View className="flex-row justify-between items-center p-4 border-t border-slate-100 dark:border-slate-700">
                         <View className="flex-row items-center gap-3">
-                            <AudioMicButton 
-                                onTranscription={handleTranscription} 
-                                tintColor={theme.tint} 
+                            <AudioMicButton
+                                onTranscription={handleTranscription}
+                                tintColor={theme.tint}
                             />
-                            <Text style={{ color: Colors.gray, fontSize: 12 }}>
-                                {situation.length > 0 ? `${situation.length} chars` : 'Hold to record'}
+                            <Text style={{ color: theme.mutedForeground, fontSize: 12 }}>
+                                {situation.length > 0 ? `${situation.length}` : 'Voice'}
                             </Text>
                         </View>
-                        
-                        {situation.length > 0 && (
+
                             <Pressable
                                 onPress={handleSubmit}
-                                disabled={isSubmitting}
-                                style={{ backgroundColor: theme.tint }}
+                                disabled={isSubmitting || !situation.trim()}
+                                style={{ backgroundColor: theme.action, minHeight: 48, opacity: isSubmitting || !situation.trim() ? 0.45 : 1 }}
                                 className="flex-row items-center px-4 py-3 rounded-full shadow-sm"
                             >
-                                <Text className="text-white font-bold mr-2 text-sm">Get Guidance</Text>
-                                <Send size={12} color="white" />
+                                <Text style={{ color: theme.onAction }} className="font-bold mr-2 text-sm">Get Guidance</Text>
+                                <Send size={16} color={theme.onAction} />
                             </Pressable>
-                        )}
                     </View>
                 </View>
             )}

@@ -15,6 +15,14 @@
       },
       "oauth_client": [
         {
+          "client_id": "618700854180-8g05tt2fvd3plkiad0uiv1etbsqfd0ut.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "us.sanctuaryapp.app",
+            "certificate_hash": "484f614cea0e8fdd1e9093139f4fa2e92ac0fe5e"
+          }
+        },
+        {
           "client_id": "618700854180-1rhfaf7l24ggok5im5q192gqsrj1tss7.apps.googleusercontent.com",
           "client_type": 3
         }
