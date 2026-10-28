@@ -112,6 +112,10 @@ export default function ProfileScreen() {
     const [artistSearchError, setArtistSearchError] = useState(false);
     const [artistSearchComplete, setArtistSearchComplete] = useState(false);
     const [artistSearchAttempt, setArtistSearchAttempt] = useState(0);
+    const [devotionalNotifications,setDevotionalNotifications]=useState(false);
+    const [adviceNotifications,setAdviceNotifications]=useState(false);
+    const [newsNotifications,setNewsNotifications]=useState(false);
+    const [triviaNotifications,setTriviaNotifications]=useState(false);
     const [announcementNotifications, setAnnouncementNotifications] = useState(true);
     const [journeyNotifications, setJourneyNotifications] = useState(true);
     const [journeyReminders, setJourneyReminders] = useState(true);
@@ -211,6 +215,10 @@ export default function ProfileScreen() {
                             ? userProfile.user_preferences.musicPreferences.favoriteGospelArtists
                             : []);
                         const notifications = userProfile.user_preferences.notifications || {};
+                        setDevotionalNotifications(notifications.devotionals===true);
+                        setAdviceNotifications(notifications.advice===true);
+                        setNewsNotifications(notifications.news===true);
+                        setTriviaNotifications(notifications.trivia===true);
                         setAnnouncementNotifications(notifications.announcements !== false);
                         setJourneyNotifications(notifications.churchJourneys ?? notifications.announcements ?? true);
                         setJourneyReminders(notifications.journeyReminders ?? notifications.announcements ?? true);
@@ -386,6 +394,10 @@ export default function ProfileScreen() {
                 },
                 notifications: {
                     ...(profile?.user_preferences?.notifications || {}),
+                    devotionals:devotionalNotifications,
+                    advice:adviceNotifications,
+                    news:newsNotifications,
+                    trivia:triviaNotifications,
                     announcements: announcementNotifications,
                     churchJourneys: journeyNotifications,
                     journeyReminders
@@ -652,6 +664,18 @@ export default function ProfileScreen() {
                         {/* App Settings */}
                         <SettingsSection>
                         <View>
+                            <Text className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3 ml-1">Daily Faith Notifications</Text>
+                            <View className="mb-6 rounded-xl border border-slate-200 dark:border-slate-800" style={{backgroundColor:theme.card}}>
+                                {[
+                                    ['Daily devotional','A quiet invitation to read and reflect',devotionalNotifications,setDevotionalNotifications],
+                                    ['Daily trivia','An evening reminder when you haven’t played',triviaNotifications,setTriviaNotifications],
+                                    ['Wisdom check-in','An occasional invitation to seek guidance',adviceNotifications,setAdviceNotifications],
+                                    ['Important news','High-impact stories through Scripture',newsNotifications,setNewsNotifications],
+                                ].map(([label,description,value,setter],index)=><View key={String(label)} className={`flex-row items-center gap-3 p-4 ${index ? 'border-t border-slate-200 dark:border-slate-800':''}`}>
+                                    <View className="flex-1"><Text className="font-bold text-sm" style={{color:theme.text}}>{String(label)}</Text><Text className="mt-1 text-xs" style={{color:theme.mutedForeground}}>{String(description)}</Text></View>
+                                    <Switch accessibilityLabel={String(label)} value={Boolean(value)} onValueChange={setter as (value:boolean)=>void} trackColor={{true:theme.tint}}/>
+                                </View>)}
+                            </View>
                             <Text className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3 ml-1">Church Notifications</Text>
                             <View className="rounded-xl border border-slate-200 dark:border-slate-800" style={{ backgroundColor: theme.card }}>
                                 {[

@@ -1,7 +1,7 @@
 import { formatReadingHtml } from '@/lib/readingHtml';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
-import { parseScriptureReference } from '@/lib/bibleUtils';
+import { BIBLE_FILES, parseScriptureReference } from '@/lib/bibleUtils';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useLocalSearchParams } from 'expo-router';
 import { ArrowLeft, ChevronLeft, ChevronRight, Menu, Type, X } from 'lucide-react-native';
@@ -10,15 +10,6 @@ import { ActivityIndicator, Modal, Platform, Pressable, ScrollView, Text, useWin
 import Animated, { FadeIn, FadeOut } from 'react-native-reanimated';
 import RenderHtml, { MixedStyleDeclaration } from 'react-native-render-html';
 import { SafeAreaView } from 'react-native-safe-area-context';
-
-// Load Bible Data directly
-// In a real app with multiple versions, we might lazy load or use file system
-const BIBLE_FILES: Record<string, any> = {
-  WEB: require('@/assets/bible/web-optimized.json'),
-  ASV: require('@/assets/bible/asv-optimized.json'),
-  NIV: require('@/assets/bible/niv-optimized.json'),
-  KJV: require('@/assets/bible/kjv-optimized.json'),
-};
 
 const AVAILABLE_TRANSLATIONS: Record<string, { key: string; longName: string; description: string }> = {
   WEB: {

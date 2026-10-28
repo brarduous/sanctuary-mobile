@@ -88,6 +88,10 @@ export const updateNotificationTimeZone = async (timeZone: string) => {
   await apiClient.post('/api/notifications/timezone', { timeZone });
 };
 
+export const registerNotificationCapabilities = async (expoPushToken:string,appVersion:string) => {
+  await apiClient.post('/api/notifications/capabilities',{expoPushToken,appVersion,features:['discoveries']});
+};
+
 export const recordNotificationOpen = async (deliveryId: string) => {
   try {
     await apiClient.post('/api/notifications/church-content/open', { deliveryId });

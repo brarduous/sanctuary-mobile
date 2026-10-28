@@ -60,6 +60,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import ViewShot from "react-native-view-shot";
 
 import VerseOfTheDayCard from '@/components/VerseOfTheDayCard';
+import DailyDiscoveryCard from '@/components/DailyDiscoveryCard';
+import { useDiscoveries } from '@/context/DiscoveryContext';
 const bg1 = require('@/assets/images/votd-image-1.jpg');
 const bg2 = require('@/assets/images/votd-image-2.jpg');
 const bg3 = require('@/assets/images/votd-image-3.jpg');
@@ -76,6 +78,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 }
 
 export default function HomeScreen() {
+    const { refresh: refreshDiscoveries } = useDiscoveries();
     const reducedMotion = useReducedMotion();
     const animateLayout = () => { if (!reducedMotion) LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); };
     const { user, profile, refreshProfile, loading: authLoading } = useAuth();
@@ -313,6 +316,7 @@ export default function HomeScreen() {
     useEffect(() => { loadData(); }, [loadData]);
 
     const onRefresh = async () => {
+        void refreshDiscoveries();
         setRefreshing(true);
         if (!reducedMotion) void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light).catch(() => {});
         await loadData(true);
@@ -605,6 +609,7 @@ export default function HomeScreen() {
                 )}
 
                 {/* --- RECOMMENDED VIDEOS --- */}
+                <DailyDiscoveryCard />
                 {recommendedVideos.length > 0 && (
                     <View style={{ marginBottom: Layout.sectionGap }}>
                         <Text accessibilityRole="header" style={{ ...Typography.formLabel, color: theme.text, marginBottom: 12 }}>

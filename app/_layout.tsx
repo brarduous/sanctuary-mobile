@@ -27,6 +27,7 @@ import { RevenueCatProvider } from '@/context/RevenueCatContext';
 import { savePushTokenToProfile, usePushNotifications } from '@/lib/pushNotifications';
 import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 import { updateNotificationTimeZone } from '@/lib/api';
+import { DiscoveryProvider } from '@/context/DiscoveryContext';
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -52,7 +53,7 @@ export default function RootLayout() {
     <AuthProvider>
       <RevenueCatProvider>
         <ActionSheetProvider>
-          <RootLayoutNav />
+          <DiscoveryProvider><RootLayoutNav /></DiscoveryProvider>
         </ActionSheetProvider>
       </RevenueCatProvider>
     </AuthProvider>
@@ -88,10 +89,11 @@ function RootLayoutNav() {
     if (loading) return;
 
     const currentSegment = segments[0] as string | undefined;
-    const inAuthGroup = currentSegment === '(tabs)';
+    const inBible = currentSegment === '(tabs)' && segments[1] === 'bible';
     const inOnboarding = currentSegment === 'onboarding';
     const inJoin = currentSegment === 'join';
     const inLogin = currentSegment === 'login';
+    const inDiscovery = currentSegment === 'discoveries';
 
     // 1. Guest Logic: If not logged in, they CAN stay in (tabs), but not onboarding
     if (!user) {
@@ -112,7 +114,7 @@ function RootLayoutNav() {
     
     if (user && inLogin && hasCompletedOnboarding) {
       router.replace('/(tabs)');
-    } else if (user && !inOnboarding && !inJoin && !hasCompletedOnboarding) {
+    } else if (user && !inOnboarding && !inJoin && !inDiscovery && !inBible && !hasCompletedOnboarding) {
       router.replace('/onboarding');
     } else if (user && inOnboarding && hasCompletedOnboarding) {
       router.replace('/(tabs)');
@@ -151,6 +153,7 @@ function RootLayoutNav() {
           <Stack.Screen name="prayer/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="advice/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="church/journey/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="discoveries/[id]" options={{ title: 'Daily Discovery', headerShown: true }} />
         </Stack>
       </View>
     </ThemeProvider>

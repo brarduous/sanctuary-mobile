@@ -8,6 +8,8 @@ global.IS_REACT_ACT_ENVIRONMENT = true;
 let authListener;
 let resolveProfile;
 let token;
+let clearedDiscoveryAccount;
+let unreadableProgress = true;
 const profilePromise = new Promise(resolve => { resolveProfile = resolve; });
 const auth = {
  async getSession() { return { data: { session: { user: { id: 'first' }, access_token: 'test-first' } } }; },
@@ -20,9 +22,10 @@ vm.runInNewContext(source, { exports: exportsObject, console, setTimeout, setInt
  if (name === '@/lib/activityLogger') return { logActivityEvent: async () => {}, logErrorEvent: async () => {} };
  if (name === '@/lib/api') return { fetchUserProfile: async () => profilePromise, fetchUserCongregation: async () => 42, setAuthToken: value => { token = value; } };
  if (name === '@/lib/supabase') return { supabase: { auth } };
+ if (name === '@/lib/discoveries') return { discoverySessionId:async()=> 'first', sendDiscoveryCompletions:async()=>({results:[]}), discoveryStore:{sync:async()=>{},progress:async()=>{if(unreadableProgress)throw new Error('corrupt');return {pending:{}};},clearAccount:async id=>{clearedDiscoveryAccount=id;}} };
  if (name === '@react-native-google-signin/google-signin') return { GoogleSignin: {} };
  if (name === 'expo-apple-authentication') return {};
- if (name === 'react-native') return { Alert: {}, Platform: { OS: 'ios' }, AppState: { addEventListener: () => ({ remove() {} }) } };
+ if (name === 'react-native') return { Alert: {alert(_title,message,buttons){assert.match(message,/could not be read/);buttons[0].onPress();}}, Platform: { OS: 'ios' }, AppState: { addEventListener: () => ({ remove() {} }) } };
  return require(name);
 }});
 let value;
@@ -31,7 +34,12 @@ function Probe() { value = exportsObject.useAuth(); return null; }
  let renderer;
  await act(async () => { renderer = create(React.createElement(exportsObject.AuthProvider, null, React.createElement(Probe))); });
  assert.equal(value.user.id, 'first');
- await act(async () => { authListener('SIGNED_OUT', null); });
+ await act(async () => { await value.signOut(); });
+ assert.equal(value.user.id,'first','corrupt discovery data offers a cancelable sign-out decision');
+ assert.equal(clearedDiscoveryAccount,undefined);
+ unreadableProgress=false;
+ await act(async () => { await value.signOut(); });
+ assert.equal(clearedDiscoveryAccount,'first','signed-out discovery progress is cleared only for that account');
  assert.equal(value.user, null);
  assert.equal(token, null);
  await act(async () => { resolveProfile({ user_id: 'first', subscription_tier: 'pro' }); await new Promise(resolve => setImmediate(resolve)); });

@@ -56,6 +56,7 @@ export default function OnboardingScreen() {
   
   // Notification State
   const [pushDevotionals, setPushDevotionals] = useState(true);
+  const [pushTrivia,setPushTrivia]=useState(false);
   const [pushAnnouncements, setPushAnnouncements] = useState(true);
   const [pushStudies, setPushStudies] = useState(true);
   const [expoPushToken, setExpoPushToken] = useState<string | null>(null);
@@ -212,6 +213,7 @@ export default function OnboardingScreen() {
       improvementAreasCheckInAt: nextImprovementCheckInAt(),
       notifications: {
           devotionals: pushDevotionals,
+          trivia:pushTrivia,
           advice: true,
           news: true,
           announcements: pushAnnouncements,
@@ -594,6 +596,15 @@ export default function OnboardingScreen() {
                                     description="A reminder for daily scripture and prayer."
                                     value={pushDevotionals} 
                                     onValueChange={setPushDevotionals} 
+                                    theme={theme}
+                                />
+                                <View style={{ height: 1, backgroundColor: theme.border, marginHorizontal: 16 }} />
+                                <NotificationToggle
+                                    icon={<BookOpen size={20} color="#a67631" />}
+                                    title="Daily Trivia"
+                                    description="An evening nudge when you haven’t played today."
+                                    value={pushTrivia}
+                                    onValueChange={setPushTrivia}
                                     theme={theme}
                                 />
                             </View>

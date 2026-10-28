@@ -1,6 +1,7 @@
 import { logActivityEvent, logErrorEvent } from '@/lib/activityLogger';
 import { fetchUserCongregation, fetchUserProfile, setAuthToken } from '@/lib/api';
 import { supabase } from '@/lib/supabase';
+import { discoverySessionId, discoveryStore, sendDiscoveryCompletions } from '@/lib/discoveries';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import * as AppleAuthentication from 'expo-apple-authentication';
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
@@ -315,9 +316,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signOut = async () => {
     const currentUserId = user?.id ?? profile?.user_id ?? null;
+    if (currentUserId) {
+      try {await discoveryStore.sync(currentUserId,discoverySessionId,events => sendDiscoveryCompletions(currentUserId,events));} catch { /* Offline completions remain persisted until the user chooses. */ }
+      let pending=0, unreadable=false;
+      try {pending=Object.keys((await discoveryStore.progress(currentUserId)).pending).length;} catch {unreadable=true;}
+      if (pending || unreadable) {
+        const notice=unreadable ? 'Local discovery progress could not be read. Signing out removes it from this device. Your synced discoveries remain saved to your account.' : `${pending} ${pending===1 ? 'discovery is' : 'discoveries are'} saved only on this device. Signing out removes this unsynced progress.`;
+        const confirmed = await new Promise<boolean>(resolve => Alert.alert('Discoveries haven’t synced',notice,[
+          {text:'Stay signed in',style:'cancel',onPress:() => resolve(false)},
+          {text:'Sign out',style:'destructive',onPress:() => resolve(true)},
+        ],{cancelable:true,onDismiss:() => resolve(false)}));
+        if (!confirmed) return;
+      }
+    }
     await logActivityEvent({ userId: currentUserId, activityType: 'sign_out_started' });
     try {
       await supabase.auth.signOut();
+      if (currentUserId) await discoveryStore.clearAccount(currentUserId);
       await logActivityEvent({ userId: currentUserId, activityType: 'sign_out_success' });
     } catch (error) {
       await logErrorEvent('sign_out_error', error, { userId: currentUserId });

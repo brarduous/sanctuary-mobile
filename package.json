@@ -1,7 +1,7 @@
 {
   "name": "sanctuary-mobile",
   "main": "expo-router/entry",
-  "version": "1.2.10",
+  "version": "1.2.11",
   "scripts": {
     "start": "expo start",
     "dev": "expo start --dev-client",
@@ -11,7 +11,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "check:behavior": "node scripts/check-mobile-layout.mjs && node scripts/check-artist-preferences.mjs && node scripts/check-reading-html.mjs && node scripts/check-invite-token.mjs && node scripts/check-auth-continuity.cjs && node scripts/check-revenuecat-identity.cjs && node scripts/check-native-actions.cjs && node scripts/check-lesson-content.mjs && node scripts/check-theme-contrast.mjs"
+    "check:behavior": "node scripts/check-mobile-layout.mjs && node scripts/check-artist-preferences.mjs && node scripts/check-reading-html.mjs && node scripts/check-bible-passages.cjs && node scripts/check-invite-token.mjs && node scripts/check-auth-continuity.cjs && node scripts/check-revenuecat-identity.cjs && node scripts/check-native-actions.cjs && node scripts/check-lesson-content.mjs && node scripts/check-theme-contrast.mjs",
+    "test:discoveries": "node --test scripts/check-discoveries.mjs scripts/check-discovery-notifications.cjs scripts/check-discovery-game.mjs"
   },
   "dependencies": {
     "@expo/react-native-action-sheet": "^4.1.1",

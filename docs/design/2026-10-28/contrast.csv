@@ -1,0 +1,17 @@
+Theme,Text,Surface,Contrast
+light,text,background,11.20
+light,text,card,11.99
+light,mutedForeground,background,5.41
+light,mutedForeground,card,5.80
+light,tint,selection,6.38
+light,success,successSurface,7.30
+light,text,successSurface,10.08
+light,onAction,action,8.27
+dark,text,background,14.96
+dark,text,card,13.14
+dark,mutedForeground,background,8.51
+dark,mutedForeground,card,7.48
+dark,tint,selection,6.58
+dark,success,successSurface,7.57
+dark,text,successSurface,9.51
+dark,onAction,action,8.27

@@ -7,7 +7,7 @@ const luminance = hex => {
 const ratio = (a,b) => { const x=luminance(a),y=luminance(b); return (Math.max(x,y)+0.05)/(Math.min(x,y)+0.05); };
 for (const name of ['light','dark']) {
  const theme=Colors[name];
- for (const [text,surface] of [['text','background'],['text','card'],['text','readingSurface'],['mutedForeground','background'],['mutedForeground','card'],['tint','selection'],['onAction','action'],['onTint','tint'],['error','errorSurface'],['onDisabled','disabled']]) {
+ for (const [text,surface] of [['text','background'],['text','card'],['text','readingSurface'],['mutedForeground','background'],['mutedForeground','card'],['tint','selection'],['success','successSurface'],['text','successSurface'],['onAction','action'],['onTint','tint'],['error','errorSurface'],['onDisabled','disabled']]) {
   const contrast=ratio(theme[text],theme[surface]);
   assert.ok(contrast>=4.5, `${name} ${text}/${surface}: ${contrast.toFixed(2)} below 4.5`);
  }
