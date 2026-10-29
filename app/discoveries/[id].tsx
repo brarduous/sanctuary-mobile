@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AccessibilityInfo, ActivityIndicator, Alert, Linking, ScrollView, Share, Text, View } from 'react-native';
+import { AccessibilityInfo, ActivityIndicator, Alert, Linking, ScrollView, Share, Text, useWindowDimensions, View } from 'react-native';
 import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { BookOpen, Check, ChevronDown, ChevronRight, ExternalLink, Clock3, Share2, WifiOff } from 'lucide-react-native';
 import { useColorScheme } from '@/components/useColorScheme';
@@ -18,6 +18,8 @@ import { discoveryMetric, fetchDiscovery } from '@/lib/discoveries';
 export default function DiscoveryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const {width,fontScale} = useWindowDimensions();
+  const stackResultActions = width<360 || fontScale>1;
   const [showSources,setShowSources] = useState(false);
   const {id,reveal} = useLocalSearchParams<{id:string;reveal?:string}>();
   const {bundle,today,progress,complete} = useDiscoveries();
@@ -157,9 +159,9 @@ export default function DiscoveryScreen() {
           {item.correctionNotice ? <Text style={{...Typography.helper,color:theme.tint}}>Correction: {item.correctionNotice}</Text> : null}
           {completed && completed.revision!==item.revision ? <Text style={{...Typography.metadata,color:theme.mutedForeground}}>Updated answer and sources.</Text> : null}
           <TriviaStats elapsedMs={completed?.elapsedMs} streak={stats.current}/>
-          <View style={{flexDirection:'row',gap:10}}>
-            <View style={{flex:1}}><DiscoveryButton variant="primary" label="Done" onPress={done}/></View>
-            <View style={{flex:1}}><DiscoveryButton label="Share result" onPress={() => {void share();}} icon={<Share2 size={17} color={theme.tint} accessible={false}/>}/></View>
+          <View style={{flexDirection:stackResultActions ? 'column':'row',gap:10}}>
+            <View style={{flex:stackResultActions ? undefined:1}}><DiscoveryButton variant="primary" label="Done" onPress={done}/></View>
+            <View style={{flex:stackResultActions ? undefined:1}}><DiscoveryButton label="Share result" onPress={() => {void share();}} icon={<Share2 size={17} color={theme.tint} accessible={false}/>}/></View>
           </View>
           {item.scriptureReference ? <DiscoveryScripture reference={item.scriptureReference}/> : item.sources[0] ? <Text style={{...Typography.metadata,color:theme.mutedForeground}}>{item.sources[0].locator}</Text> : null}
           <DiscoveryButton variant="quiet" label={showSources ? 'Hide sources' : 'View sources'} accessibilityState={{expanded:showSources}} onPress={() => setShowSources(value => !value)} icon={<BookOpen size={16} color={theme.tint} accessible={false}/>}/>

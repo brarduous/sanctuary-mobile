@@ -12,6 +12,7 @@ import { fetchAppOptions, fetchCategories, searchSpotifyArtists, SpotifyArtist, 
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
 import { Bell, BellRing, BookOpen, Check, ChevronLeft, ChevronRight, Crown, Info, Megaphone, Search, User } from 'lucide-react-native';
 import React, { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Alert, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, Switch, Text, TextInput, View } from 'react-native';
@@ -21,6 +22,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 export default function OnboardingScreen() {
   const { user, profile, refreshProfile, loading: authLoading } = useAuth();
   const router = useRouter();
+  const isFocused = useIsFocused();
+  const hasCompletedOnboarding = profile?.user_preferences?.onboardingCompleted === true;
   const colorScheme = useColorScheme() ?? 'light';
   const theme = Colors[colorScheme];
   const { isPro } = useRevenueCat();
@@ -109,10 +112,10 @@ export default function OnboardingScreen() {
 
   // Redirect if already completed
   useEffect(() => {
-    if (profile?.user_preferences?.onboardingCompleted) {
+    if (isFocused && hasCompletedOnboarding) {
        router.replace('/(tabs)');
     }
-  }, [profile]);
+  }, [isFocused, hasCompletedOnboarding, router]);
 
   const handleToggle = (list: any[], setList: any, item: any) => {
     if (list.includes(item)) {
