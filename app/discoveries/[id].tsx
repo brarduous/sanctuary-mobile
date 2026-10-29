@@ -106,7 +106,9 @@ export default function DiscoveryScreen() {
   const done = () => router.canGoBack() ? router.back() : router.replace('/(tabs)');
   return <>
     <Stack.Screen options={{title:'Daily Trivia',headerShown:true,headerShadowVisible:false,headerBackButtonDisplayMode:'minimal'}}/>
-    <ScrollView style={{flex:1,backgroundColor:theme.background}} contentContainerStyle={{paddingHorizontal:24,paddingTop:14,paddingBottom:Math.max(insets.bottom,24)+16,gap:16}}>
+    {/* Native text can retain old measurements after a Dynamic Type change.
+        Rebuild the content while keeping round/result state in this screen. */}
+    <ScrollView key={`text-scale-${fontScale}`} style={{flex:1,backgroundColor:theme.background}} contentContainerStyle={{paddingHorizontal:24,paddingTop:14,paddingBottom:Math.max(insets.bottom,24)+16,gap:16}}>
       {!item ? <View style={[styles.panel,{borderColor:theme.border,backgroundColor:theme.card}]}>
         {loading ? <ActivityIndicator color={theme.tint} accessibilityLabel="Loading question"/> : <>
           <Text accessibilityRole="header" style={[styles.sectionTitle,{color:theme.text}]}>{unavailable ? 'Question unavailable' : 'Connect to download'}</Text>
