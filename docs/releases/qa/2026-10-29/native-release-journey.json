@@ -1,0 +1,25 @@
+{
+  "capturedAt": "2026-10-29T23:04:07.155Z",
+  "bundleId": "us.sanctuaryapp.discoveryqa",
+  "configuration": "Release",
+  "apiStopped": true,
+  "metroStopped": true,
+  "simulatorRestarted": true,
+  "outcome": "correct",
+  "responseTime": "18.8s",
+  "streak": "1 day",
+  "offlineBadge": true,
+  "initialChoices": 4,
+  "laterChoices": 2,
+  "share": "Native sheet opened with generic correct-result preview and was canceled without choosing an activity.",
+  "observations": [
+    {
+      "capturedAt": "2026-10-29T22:53:06.720Z",
+      "state": "~\t\t62 text Description: Time left, Secondary Actions: Cancel\n~\t\t63 text Description: 20s, Secondary Actions: Cancel\n+\t\t64 button Description: A. a kernel of wheat, Secondary Actions: Cancel\n+\t\t65 button Description: B. a pinch of leaven, Secondary Actions: Cancel\n+\t\t66 button Description: C. a grain of mustard seed, Secondary Actions: Cancel\n+\t\t67 button Description: D. a small pearl, Secondary Actions: Cancel"
+    },
+    {
+      "capturedAt": "2026-10-29T22:53:24.488Z",
+      "state": "\t\t12 text Description: Time left, Secondary Actions: Cancel\n\t\t13 text Description: 2s, Secondary Actions: Cancel\n\t\t14 button Description: C. a grain of mustard seed, Secondary Actions: Cancel\n\t\t15 button Description: D. a small pearl, Secondary Actions: Cancel"
+    }
+  ]
+}

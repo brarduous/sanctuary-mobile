@@ -1,0 +1,34 @@
+{
+  "capturedAt": "2026-10-29T23:46:46.401Z",
+  "source": "2e5fb4e96673acf3f36ec47e7ac973aa0f6feb56",
+  "simulator": "E73C3418-AB5F-43A8-9445-10B09CA8CEC6",
+  "configuration": "isolated simulator Release",
+  "checks": {
+    "questionFourChoicesVisibleLight": true,
+    "questionFourChoicesVisibleDark": true,
+    "timerAndRevealVisible": true,
+    "correctResult": {
+      "elapsed": "1.4s",
+      "streak": "1 day",
+      "edition": "WEB",
+      "verseCount": 12
+    },
+    "timeoutResult": {
+      "elapsed": "20.0s",
+      "streak": "0 days",
+      "edition": "WEB",
+      "verseCount": 12
+    },
+    "largerTextReflow": true,
+    "stackedFooterAtIncreasedText": true,
+    "nativeShareSheetOpenedAndCanceled": true,
+    "defaultTextSizeRestored": true,
+    "defaultLightAppearanceRestored": true,
+    "newsEmptyActionLoadsAllNews": true
+  },
+  "limits": [
+    "No production trivia completion was created",
+    "Imagegen concepts are separate from runtime captures",
+    "Full content scrolling, maximum text size and physical screen-reader/device paths are not accepted by this review"
+  ]
+}

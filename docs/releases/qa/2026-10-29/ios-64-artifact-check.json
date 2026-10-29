@@ -1,0 +1,11 @@
+{
+  "platform": "ios",
+  "version": "1.2.11",
+  "build": "64",
+  "bundleId": "us.sanctuaryapp.app",
+  "ipaSha256": "2f20096732337f82ea69748a070762a8607c675f7aa5b5ebb670405f7d844003",
+  "productionApiPresent": true,
+  "productionDatabasePresent": true,
+  "stagingDatabasePresent": false,
+  "loopbackQaApiPresent": false
+}

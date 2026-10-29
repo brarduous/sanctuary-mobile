@@ -1,0 +1,17 @@
+{
+  "capturedAt": "2026-10-29T22:51:53.333Z",
+  "configuration": "Release",
+  "commit": "b2fb713ff12bd66cdfc4a51e235f3a9d2ffd4788",
+  "simulator": "E73C3418-AB5F-43A8-9445-10B09CA8CEC6",
+  "bundleId": "us.sanctuaryapp.discoveryqa",
+  "displayName": "Sanctuary",
+  "method": "Xcode-signed local simulator Release build with a separate application identity for isolated storage. Xcode generates simulator Keychain entitlements. Store packages are not modified.",
+  "compilerOverrides": {
+    "SWIFT_ENABLE_EXPLICIT_MODULES": "NO",
+    "CLANG_ENABLE_EXPLICIT_MODULES": "NO"
+  },
+  "stagingDatabasePresent": true,
+  "loopbackApiPresent": true,
+  "dynamicTextReflowPresent": true,
+  "hermesBundleSha256": "f4991f7777590920dccc33e18bf073a9ad5a28a95260b8888ad690b99cb23302"
+}

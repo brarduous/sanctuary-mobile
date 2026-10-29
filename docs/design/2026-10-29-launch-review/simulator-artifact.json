@@ -1,0 +1,11 @@
+{
+  "capturedAt": "2026-10-29T23:39:45.150Z",
+  "commit": "2e5fb4e96673acf3f36ec47e7ac973aa0f6feb56",
+  "configuration": "Release",
+  "bundleId": "us.sanctuaryapp.discoveryqa",
+  "simulator": "E73C3418-AB5F-43A8-9445-10B09CA8CEC6",
+  "stageEndpointVerified": true,
+  "visualPolishStringsVerified": true,
+  "hermesBundleSha256": "367413add3a225d0f4352d29261072918b6a0bdeb11a72fe01a06524a66705fc",
+  "method": "Xcode simulator Release, separate QA identity/storage and URL scheme, locally named copy re-signed with Xcode simulator entitlements; store artifacts unchanged."
+}

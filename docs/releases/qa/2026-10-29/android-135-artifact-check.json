@@ -1,0 +1,10 @@
+{
+  "platform": "android",
+  "version": "1.2.11",
+  "build": "135",
+  "aabSha256": "16faa70a45644091428f5fbff35959178a3ac5c0adf99e9cb00acb632105bc2e",
+  "productionApiPresent": true,
+  "productionDatabasePresent": true,
+  "stagingDatabasePresent": false,
+  "loopbackQaApiPresent": false
+}
