@@ -487,15 +487,7 @@ export default function HomeScreen() {
                     <GeneratingState />
                 ) : todaysDevotional ? (
                     <View style={{ borderRadius: Layout.cardRadius, borderWidth: 1, borderColor: theme.border, marginBottom: Layout.sectionGap, overflow: 'hidden', backgroundColor: theme.card }}>
-                        <ImageBackground source={devotionalHero} className="h-28 justify-end" resizeMode="cover">
-                            <LinearGradient colors={['transparent', 'rgba(10, 14, 12, 0.82)']} className="absolute inset-0" />
-                            <View className="p-5 flex-row items-center justify-between">
-                                <View className="rounded-full bg-black/35 border border-white/20 px-3 py-1.5">
-                                    <Text className="text-xs font-bold uppercase tracking-widest text-white">Today's focus</Text>
-                                </View>
-                                <Text style={{ ...Typography.metadata, color: 'white', flexShrink: 1 }}>Daily reflection</Text>
-                            </View>
-                        </ImageBackground>
+                        <ImageBackground source={devotionalHero} className="h-24" resizeMode="cover" accessible={false}/>
 
                         <View style={{ padding: Layout.cardPadding }}>
                             <Text accessibilityRole="header" style={{ ...Typography.editorialTitle, fontFamily: Layout.serif, marginBottom: 8, color: theme.text }}>

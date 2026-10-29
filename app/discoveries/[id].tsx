@@ -18,7 +18,8 @@ import { discoveryMetric, fetchDiscovery } from '@/lib/discoveries';
 export default function DiscoveryScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const {width,fontScale} = useWindowDimensions();
+  const {width,height,fontScale} = useWindowDimensions();
+  const compactQuestion = width<390 && height<740;
   const stackResultActions = width<360 || fontScale>1;
   const [showSources,setShowSources] = useState(false);
   const {id,reveal} = useLocalSearchParams<{id:string;reveal?:string}>();
@@ -104,23 +105,24 @@ export default function DiscoveryScreen() {
   };
   const selected = completed?.revision===item?.revision && completed?.mode==='answered' ? completed.optionId : null;
   const done = () => router.canGoBack() ? router.back() : router.replace('/(tabs)');
-  return <>
+  const outcomeLabel = completed?.outcome==='correct' ? 'Correct' : completed?.outcome==='timeout' ? 'Time’s up' : completed?.outcome==='incorrect' ? 'Not quite' : 'Answer revealed';
+  return <View style={{flex:1,backgroundColor:theme.background}}>
     <Stack.Screen options={{title:'Daily Trivia',headerShown:true,headerShadowVisible:false,headerBackButtonDisplayMode:'minimal'}}/>
     {/* Native text can retain old measurements after a Dynamic Type change.
         Rebuild the content while keeping round/result state in this screen. */}
-    <ScrollView key={`text-scale-${fontScale}`} style={{flex:1,backgroundColor:theme.background}} contentContainerStyle={{paddingHorizontal:24,paddingTop:14,paddingBottom:Math.max(insets.bottom,24)+16,gap:16}}>
+    <ScrollView key={`text-scale-${fontScale}`} style={{flex:1}} contentContainerStyle={{paddingHorizontal:20,paddingTop:10,paddingBottom:revealed ? 20:Math.max(insets.bottom,16),gap:12}}>
       {!item ? <View style={[styles.panel,{borderColor:theme.border,backgroundColor:theme.card}]}>
         {loading ? <ActivityIndicator color={theme.tint} accessibilityLabel="Loading question"/> : <>
           <Text accessibilityRole="header" style={[styles.sectionTitle,{color:theme.text}]}>{unavailable ? 'Question unavailable' : 'Connect to download'}</Text>
           <DiscoveryButton label="Try again" onPress={() => {void load();}}/>
         </>}
       </View> : <>
-        <View style={{gap:14}}>
+        <View style={{gap:10}}>
           <View style={{...styles.row,justifyContent:'space-between',flexWrap:'wrap'}}>
             <Text style={{...Typography.metadata,color:theme.mutedForeground}}>{item.kind==='biblical_text' ? 'Bible' : item.category}{item.traditionLabel ? ` · ${item.traditionLabel}` : ''}</Text>
             <DifficultyBadge item={item}/>
           </View>
-          {revealed || game.started ? <Text accessibilityRole="header" style={[styles.question,{color:theme.text},revealed ? {fontSize:20,lineHeight:28} : null]}>{item.prompt}</Text> : null}
+          {revealed || game.started ? <Text accessibilityRole="header" style={[styles.question,{color:theme.text},revealed ? {fontSize:20,lineHeight:28} : compactQuestion ? {fontSize:22,lineHeight:30}:null]}>{item.prompt}</Text> : null}
         </View>
         {!revealed && !game.started ? <View style={{gap:16,paddingVertical:24}}>
           <Clock3 size={36} color={theme.tint} accessible={false}/>
@@ -129,9 +131,12 @@ export default function DiscoveryScreen() {
           <DiscoveryButton variant="primary" label={game.starting ? 'Starting…' : 'Start question'} disabled={!game.ready || game.starting} onPress={()=>{void game.start();}}/>
           {game.error ? <><Text accessibilityRole="alert" style={{...Typography.helper,color:theme.error}}>{game.error}</Text>{!game.ready ? <DiscoveryButton label="Try again" onPress={game.retryRestore}/>:null}</>:null}
         </View>:null}
-        {!revealed && game.started ? <View style={{gap:7}} accessibilityRole="progressbar" accessibilityLabel="Time remaining" accessibilityValue={{min:0,max:20,now:game.remaining,text:`${game.remaining} seconds remaining`}}>
-          <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}><Text style={{...Typography.metadata,color:theme.mutedForeground}}>Time left</Text><Text style={{...Typography.formLabel,fontVariant:['tabular-nums'],color:theme.tint}}>{game.remaining}s</Text></View>
-          <View style={{height:5,borderRadius:3,backgroundColor:theme.muted,overflow:'hidden'}}><View style={{height:5,width:`${game.remaining/20*100}%`,backgroundColor:theme.action}}/></View>
+        {!revealed && game.started ? <View style={{gap:4}}>
+          <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap'}}>
+            <View style={{...styles.row,minHeight:44}}><Clock3 size={16} color={theme.tint} accessible={false}/><Text style={{...Typography.formLabel,fontVariant:['tabular-nums'],color:theme.tint}}>{game.remaining}s</Text></View>
+            {!commitFailed ? <DiscoveryButton variant="quiet" label={saving ? 'Saving…':'Reveal answer'} disabled={saving || game.expired} onPress={()=>{void finish();}}/>:null}
+          </View>
+          <View accessibilityRole="progressbar" accessibilityLabel="Time remaining" accessibilityValue={{min:0,max:20,now:game.remaining,text:`${game.remaining} seconds remaining`}} style={{height:5,borderRadius:3,backgroundColor:theme.muted,overflow:'hidden'}}><View style={{height:5,width:`${game.remaining/20*100}%`,backgroundColor:theme.action}}/></View>
         </View>:null}
         {revealed || game.started ? <View style={{gap:10}}>
           {item.choices.map((choice,index) => {
@@ -140,7 +145,7 @@ export default function DiscoveryScreen() {
             if(revealed && !correct)return null;
             if(!revealed && removed.includes(choice.id))return <View key={choice.id} accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{height:rowHeights[choice.id] || 52}}/>;
             return <DiscoveryPressable key={choice.id} accessibilityRole="button"
-              accessibilityLabel={`${String.fromCharCode(65+index)}. ${choice.text}${correct ? '. Correct answer' : picked ? '. Your answer' : ''}`}
+              accessibilityLabel={correct ? `${outcomeLabel}. Correct answer: ${choice.text}` : `${String.fromCharCode(65+index)}. ${choice.text}${picked ? '. Your answer' : ''}`}
               accessibilityState={{disabled:saving || revealed || commitFailed || game.expired,selected:picked}} disabled={saving || revealed || commitFailed || game.expired} onPress={() => {void finish(choice.id);}}
               onLayout={event=>{const height=event.nativeEvent.layout.height;setRowHeights(old=>old[choice.id]===height ? old:{...old,[choice.id]:height});}}
               pressedStyle={{borderColor:theme.tint,backgroundColor:theme.selection}}
@@ -148,26 +153,21 @@ export default function DiscoveryScreen() {
               <View style={{minWidth:28,minHeight:28,padding:3,borderRadius:20,borderWidth:1,borderColor:correct ? theme.success : theme.border,alignItems:'center',justifyContent:'center'}}>
                 {correct ? <Check size={16} color={theme.success} accessible={false}/> : <Text style={{...Typography.metadata,color:theme.tint}}>{String.fromCharCode(65+index)}</Text>}
               </View>
-              <Text style={{...Typography.formLabel,fontWeight:'500',color:theme.text,flex:1}}>{choice.text}</Text>
+              <View style={{flex:1,gap:3}}>{correct ? <Text style={{...Typography.metadata,fontWeight:'600',color:completed?.outcome==='correct' ? theme.success:theme.text}}>{outcomeLabel}</Text>:null}<Text style={{...Typography.formLabel,fontWeight:'500',color:theme.text}}>{choice.text}</Text></View>
               {picked && !correct ? <Text style={{...Typography.metadata,color:theme.mutedForeground}}>Your pick</Text> : null}
             </DiscoveryPressable>;
           })}
         </View>:null}
         {commitFailed ? <DiscoveryButton label="Save result" onPress={()=>{void finish();}}/>:null}
         {revealed ? <View style={{gap:12}} accessibilityLiveRegion="polite">
-          {completed?.outcome ? <Text style={{...Typography.formLabel,color:theme.tint}}>{completed.outcome==='correct' ? 'Correct' : completed.outcome==='timeout' ? 'Time’s up' : completed.outcome==='incorrect' ? 'Not quite' : 'Answer revealed'}</Text>:null}
           {selected && selected!==item.correctOptionId ? <Text style={{...Typography.metadata,color:theme.mutedForeground}}>Your pick: {item.choices.find(choice=>choice.id===selected)?.text}</Text> : null}
           <Text style={{...Typography.helper,color:theme.text}}>{item.explanation}</Text>
           {item.correctionNotice ? <Text style={{...Typography.helper,color:theme.tint}}>Correction: {item.correctionNotice}</Text> : null}
           {completed && completed.revision!==item.revision ? <Text style={{...Typography.metadata,color:theme.mutedForeground}}>Updated answer and sources.</Text> : null}
           <TriviaStats elapsedMs={completed?.elapsedMs} streak={stats.current}/>
-          <View style={{flexDirection:stackResultActions ? 'column':'row',gap:10}}>
-            <View style={{flex:stackResultActions ? undefined:1}}><DiscoveryButton variant="primary" label="Done" onPress={done}/></View>
-            <View style={{flex:stackResultActions ? undefined:1}}><DiscoveryButton label="Share result" onPress={() => {void share();}} icon={<Share2 size={17} color={theme.tint} accessible={false}/>}/></View>
-          </View>
           {item.scriptureReference ? <DiscoveryScripture reference={item.scriptureReference}/> : item.sources[0] ? <Text style={{...Typography.metadata,color:theme.mutedForeground}}>{item.sources[0].locator}</Text> : null}
           <DiscoveryButton variant="quiet" label={showSources ? 'Hide sources' : 'View sources'} accessibilityState={{expanded:showSources}} onPress={() => setShowSources(value => !value)} icon={<BookOpen size={16} color={theme.tint} accessible={false}/>}/>
-        </View> : game.started && !commitFailed ? <DiscoveryButton variant="quiet" label={saving ? 'Saving…' : 'Reveal answer'} disabled={saving || game.expired} onPress={() => {void finish();}}/>:null}
+        </View> : null}
         {savedCopy ? <View style={{...styles.row,padding:12,borderRadius:14,backgroundColor:theme.muted}}><WifiOff size={16} color={theme.mutedForeground} accessible={false}/><Text style={{...Typography.metadata,color:theme.mutedForeground,flex:1}}>Saved for offline play</Text></View> : null}
         {error ? <Text accessibilityRole="alert" style={{...Typography.helper,color:theme.error}}>{error}</Text> : null}
         {revealed && showSources ? <View style={{gap:14}}>
@@ -185,5 +185,9 @@ export default function DiscoveryScreen() {
         </View> : null}
       </>}
     </ScrollView>
-  </>;
+    {item && revealed ? <View style={{paddingHorizontal:20,paddingTop:12,paddingBottom:Math.max(insets.bottom,12),borderTopWidth:1,borderTopColor:theme.border,backgroundColor:theme.background,flexDirection:stackResultActions ? 'column':'row',gap:10}}>
+      <View style={{flex:stackResultActions ? undefined:1}}><DiscoveryButton variant="primary" label="Done" onPress={done}/></View>
+      <View style={{flex:stackResultActions ? undefined:1}}><DiscoveryButton label="Share result" onPress={()=>{void share();}} icon={<Share2 size={17} color={theme.tint} accessible={false}/>}/></View>
+    </View>:null}
+  </View>;
 }

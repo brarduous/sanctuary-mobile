@@ -172,6 +172,14 @@ export default function NewsScreen() {
         fetchFeed(activeFilter, searchQuery, 1, userCategoryIds);
     };
 
+    const browseAllNews = () => {
+        setSearchQuery('');
+        setActiveFilter('all');
+        setPage(1);
+        setHasMore(true);
+        void fetchFeed('all', '', 1, userCategoryIds);
+    };
+
     const loadMore = () => {
         if (!hasMore || loadingMore || loadingArticles) return;
         const nextPage = page + 1;
@@ -336,7 +344,10 @@ export default function NewsScreen() {
                 ListEmptyComponent={
                     loadingArticles ? <ScreenState title="Loading articles" loading /> : feedError ?
                         <ScreenState title="News unavailable" message="We couldn’t load these articles. Please try again." onRetry={handleSearch} /> :
-                        <ScreenState title="No articles found" message={searchQuery.trim() ? 'Try another search or choose a different topic.' : 'Check back for new articles or choose a different topic.'} />
+                        <ScreenState title="No articles found"
+                            message={searchQuery.trim() ? 'Try another search or browse all news.' : activeFilter!=='all' ? 'There are no articles here yet. Explore the latest from all topics.' : 'Check back for new articles.'}
+                            actionLabel={searchQuery.trim() || activeFilter!=='all' ? 'Browse all news':'Refresh news'}
+                            onRetry={searchQuery.trim() || activeFilter!=='all' ? browseAllNews:handleSearch}/>
                 }
                 ListFooterComponent={
                     loadingMore ? <ActivityIndicator className="py-4" color={theme.tint} /> : feedError && articles.length > 0 ?

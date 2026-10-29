@@ -182,7 +182,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.48)', // Darker overlay for text pop
+    backgroundColor: 'rgba(0,0,0,0.56)', // White text retains contrast even over a bright photo.
     borderRadius: 20,
     padding: 20,
     justifyContent: 'space-between',
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === 'ios' ? 'AvenirNext-Bold' : 'Roboto',
   },
   versionText: {
-    color: 'rgba(255,255,255,0.6)',
+    color: 'white',
     fontSize: 13,
     marginTop: 4,
     fontWeight: '600',

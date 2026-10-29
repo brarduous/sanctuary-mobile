@@ -201,7 +201,9 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
                             </Text>
                             <Pressable
                                 onPress={() => setSituation(samplePrompt)}
-                                className="p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                                accessibilityRole="button"
+                                className="p-3 rounded-xl border"
+                                style={{minHeight:44,backgroundColor:theme.muted,borderColor:theme.border}}
                             >
                                 <Text style={{ color: theme.text }} className="text-sm leading-5">
                                     {samplePrompt}
@@ -211,7 +213,7 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
                     )}
 
                     {/* The Footer with Mic and Send Button */}
-                    <View className="flex-row justify-between items-center p-4 border-t border-slate-100 dark:border-slate-700">
+                    <View className="flex-row justify-between items-center p-4 border-t" style={{borderColor:theme.border}}>
                         <View className="flex-row items-center gap-3">
                             <AudioMicButton
                                 onTranscription={handleTranscription}
@@ -225,11 +227,13 @@ export default function ChristianAdviceCard({ limitReached: initialLimitReached,
                             <Pressable
                                 onPress={handleSubmit}
                                 disabled={isSubmitting || !situation.trim()}
-                                style={{ backgroundColor: theme.action, minHeight: 48, opacity: isSubmitting || !situation.trim() ? 0.45 : 1 }}
+                                accessibilityRole="button"
+                                accessibilityState={{disabled:isSubmitting || !situation.trim()}}
+                                style={{ backgroundColor: isSubmitting || !situation.trim() ? theme.disabled:theme.action, minHeight: 48 }}
                                 className="flex-row items-center px-4 py-3 rounded-full shadow-sm"
                             >
-                                <Text style={{ color: theme.onAction }} className="font-bold mr-2 text-sm">Get Guidance</Text>
-                                <Send size={16} color={theme.onAction} />
+                                <Text style={{ color: isSubmitting || !situation.trim() ? theme.onDisabled:theme.onAction }} className="font-bold mr-2 text-sm">Get Guidance</Text>
+                                <Send size={16} color={isSubmitting || !situation.trim() ? theme.onDisabled:theme.onAction} />
                             </Pressable>
                     </View>
                 </View>
