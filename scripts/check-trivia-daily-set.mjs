@@ -1,12 +1,23 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
+import {readFileSync} from 'node:fs';
+import {isDiscovery} from '../lib/discoveryCore.ts';
 import {dailySetForDate,dailySetResults,dailySetShareText,dailySetStreak} from '../lib/discoveryDailySet.ts';
 import {createDiscoveryStore} from '../lib/discoveryStore.ts';
 const date='2026-10-30';
 const items=[1,2,3].map(setPosition=>({id:randomUUID(),revision:1,publicationDate:date,setPosition}));
 const bundle={enabled:true,items,withdrawnIds:[]};
 const done=(item,outcome='correct')=>({eventId:randomUUID(),discoveryId:item.id,revision:1,puzzleDate:date,localDate:date,setPosition:item.setPosition,outcome,mode:'answered',optionId:'option-1',occurredAt:date+'T12:00:00Z'});
+test('new grading and legacy saved games retain their own bands; forged labels and unknown rubrics reject',()=>{
+ const source=JSON.parse(readFileSync(new URL('../../sanctuary-backend/content/discoveries/biblical-candidates.json',import.meta.url),'utf8'))[0];
+ const item={id:source.id,revision:1,publicationDate:date,...source.content,explanation:source.content.claims[0].text,url:`https://sanctuaryapp.us/discoveries/${source.id}`};
+ assert.ok(isDiscovery({...item,difficulty:{rubricVersion:'discovery-difficulty-v1',score:6,level:'challenging'}}));
+ assert.ok(isDiscovery({...item,difficulty:{rubricVersion:'discovery-difficulty-v2',score:6,level:'moderate'}}));
+ assert.ok(isDiscovery({...item,difficulty:{rubricVersion:'discovery-difficulty-v2',score:8,level:'challenging'}}));
+ assert.equal(isDiscovery({...item,difficulty:{rubricVersion:'discovery-difficulty-v2',score:6,level:'challenging'}}),false);
+ assert.equal(isDiscovery({...item,difficulty:{rubricVersion:'unknown',score:6,level:'moderate'}}),false);
+});
 test('daily set selection is complete, fixed in difficulty order, and honors withdrawals',()=>{
  assert.deepEqual(dailySetForDate({...bundle,items:[items[2],items[0],items[1]]},date),items);
  for(const b of [{...bundle,items:items.slice(0,2)},{...bundle,items:[items[0],items[0],items[2]]},{...bundle,enabled:false},{...bundle,withdrawnIds:[items[1].id]}])assert.deepEqual(dailySetForDate(b,date),[]);
@@ -18,7 +29,7 @@ test('share rows represent all 64 combinations honestly without questions or ans
   assert.equal(text.split('\n')[1],outcomes.map(r=>r==='correct' ? '🟩':r ? '🟥':'⬜').join(''));
   assert.ok(text.includes(`${outcomes.filter(r=>r==='correct').length}/3 correct`));
   assert.equal(text.includes('/3 played'),played<3);
-  assert.ok(text.endsWith('/discoveries?date=2026-10-30'));
+  assert.ok(text.endsWith('/trivia?date=2026-10-30'));
   for(const spoiler of ['option-1','Mark','Jesus','correct answer','Sycamore'])assert.ok(!text.includes(spoiler));
  }
 });

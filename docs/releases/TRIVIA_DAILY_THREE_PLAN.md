@@ -1,3 +1,5 @@
+> Current release candidate: seven approved daily sets (21 questions), twenty Trivia tests passing, native/browser journeys verified, and **Share your Results** is the final CTA. See [QA](qa/2026-10-30-native-three-journey.json) and [CMO sharing brief](TRIVIA_SOCIAL_BRIEF.md). Signed replacement builds and final review states are still pending. Earlier prototype notes below are historical.
+
 # Trivia: daily three — development checkpoint
 
 The owner requested a plan before the remaining execution and store resubmission. The full [execution plan](https://github.com/brarduous/sanctuary-backend/blob/feature/daily-trivia-three/docs/TRIVIA_EXECUTION_PLAN.md), [writing benchmarks](https://github.com/brarduous/sanctuary-backend/blob/feature/daily-trivia-three/docs/TRIVIA_EXCELLENCE_BENCHMARKS.md), and [reference-library design](https://github.com/brarduous/sanctuary-backend/blob/feature/daily-trivia-three/docs/TRIVIA_REFERENCE_LIBRARY_PLAN.md) live in the backend repository.

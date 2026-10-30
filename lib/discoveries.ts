@@ -36,7 +36,7 @@ export async function fetchDiscoveryBundle(installationId: string, timeZone: str
   return body;
 }
 export async function fetchDiscovery(id: string): Promise<Discovery | null> {
-  const response = await request(`/${encodeURIComponent(id)}`);
+  const response = await request(`/${encodeURIComponent(id)}?dailySet=1`);
   if (response.status === 404 || response.status === 410) return null;
   if (!response.ok) throw new Error('This discovery could not refresh.');
   const body = await response.json();

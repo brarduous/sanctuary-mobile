@@ -11,7 +11,7 @@ import type { TriviaTiming } from '@/lib/discoveryGame';
 const empty = (): DiscoveryProgress => ({total:0,completions:{},pending:{}});
 type DiscoveryContextValue = {
   bundle: DiscoveryBundle | null; today: string; selection: ReturnType<typeof selectDiscovery>; progress: DiscoveryProgress;
-  error: string | null; refresh: () => Promise<void>; complete: (item: Discovery, mode: DiscoveryCompletion['mode'], optionId?: string,timing?:TriviaTiming) => Promise<void>;
+  error: string | null; refresh: (force?:boolean) => Promise<void>; complete: (item: Discovery, mode: DiscoveryCompletion['mode'], optionId?: string,timing?:TriviaTiming) => Promise<void>;
   mergeGuest: () => Promise<void>; hasGuestProgress: boolean;
 };
 const Context = createContext<DiscoveryContextValue | null>(null);
@@ -31,7 +31,8 @@ export function DiscoveryProvider({children}: {children:React.ReactNode}) {
   const nextBundleRefresh = useRef(0);
   const refreshLatest = useRef<() => Promise<void>>(async () => undefined);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (force=false) => {
+    if(force)nextBundleRefresh.current=0;
     if (loading || refreshing.current) return;
     refreshing.current = true;
     const owner = account;

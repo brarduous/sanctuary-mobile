@@ -7,7 +7,7 @@ export type Discovery = {
   sources: DiscoverySource[]; claims: { id: string; text: string; sourceIds: string[] }[];
   answerClaimId: string; explanationClaimIds: string[]; scriptureReference?: string; translation?: string;
   url: string; correctionNotice?: string | null;
-  difficulty?: {rubricVersion: 'discovery-difficulty-v1';level:'easy'|'moderate'|'challenging';score:number};
+  difficulty?: {rubricVersion: 'discovery-difficulty-v1'|'discovery-difficulty-v2';level:'easy'|'moderate'|'challenging';score:number};
 };
 export type DiscoveryBundle = { schemaVersion: 1; enabled: boolean; items: Discovery[]; evergreen: Discovery[]; withdrawnIds: string[]; bundleRevision: string; serverTime: string };
 export type DiscoveryCompletion = { eventId: string; discoveryId: string; revision: number; mode: 'answered' | 'revealed'; optionId: string | null; occurredAt: string; localDate: string; timeZone: string; elapsedMs?:number; outcome?:'correct'|'incorrect'|'timeout'|'revealed'; puzzleDate?:string|null; timedOut?:boolean; setPosition?:1|2|3 };
@@ -29,7 +29,7 @@ export function isDiscovery(value: unknown): value is Discovery {
     && Array.isArray(item.sources) && item.sources.length > 0 && item.sources.every(source => typeof source.url === 'string' && /^https:\/\//.test(source.url) && typeof source.excerpt === 'string' && typeof source.locator === 'string')
     && Array.isArray(item.claims) && Array.isArray(item.explanationClaimIds)
     && (item.setPosition==null || ([1,2,3].includes(item.setPosition) && item.setDifficulty===['easy','medium','hard'][item.setPosition-1] && item.difficulty?.level===['easy','moderate','challenging'][item.setPosition-1]))
-    && (item.difficulty==null || (item.difficulty.rubricVersion==='discovery-difficulty-v1' && Number.isInteger(item.difficulty.score) && item.difficulty.score>=0 && item.difficulty.score<=8 && item.difficulty.level===(item.difficulty.score<=2 ? 'easy':item.difficulty.score<=5 ? 'moderate':'challenging')));
+    && (item.difficulty==null || (['discovery-difficulty-v1','discovery-difficulty-v2'].includes(item.difficulty.rubricVersion) && Number.isInteger(item.difficulty.score) && item.difficulty.score>=0 && item.difficulty.score<=(item.difficulty.rubricVersion==='discovery-difficulty-v2' ? 10:8) && item.difficulty.level===(item.difficulty.score<=(item.difficulty.rubricVersion==='discovery-difficulty-v2' ? 3:2) ? 'easy':item.difficulty.score<=(item.difficulty.rubricVersion==='discovery-difficulty-v2' ? 6:5) ? 'moderate':'challenging')));
 }
 export function discoveryDifficultyLabel(item:Discovery) {
   return item.difficulty ? {easy:'Easy',moderate:'Medium',challenging:'Hard'}[item.difficulty.level] : null;

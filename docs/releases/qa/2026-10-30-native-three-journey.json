@@ -1,0 +1,27 @@
+{
+  "status": "Release candidate; new signed store builds not yet submitted",
+  "source": "feature/daily-trivia-three working tree; native Debug shell with current JS via Metro",
+  "qaBundle": "us.sanctuaryapp.triviaqa",
+  "device": "Sanctuary QC iPhone SE, iOS 26.5 simulator",
+  "data": "Real independently reviewed hosted-staging daily set. The immutable staging example predates the final v2 launch bank. No production progress or approvals were written.",
+  "checks": [
+    "Home card and daily-three landing",
+    "Correct Easy, incorrect Medium, revealed Hard",
+    "Fixed-order green/red/red and score 1/3",
+    "Next question progression and answer/source review",
+    "Native share sheet opened and canceled without sending",
+    "Cold app restart with Trivia API unavailable retained all three results and cached questions",
+    "Final Share your Results label verified in native and browser"
+  ],
+  "limitations": [
+    "Debug JS was served by Metro during the API-unavailable restart; this was not a full airplane-mode bootstrap test.",
+    "Physical-device VoiceOver/TalkBack and installed/uninstalled universal links are not marked passed."
+  ],
+  "tests": {
+    "typecheck": "passed",
+    "trivia": 20,
+    "contentShare": "passed",
+    "behavior": "passed"
+  },
+  "screenshot": "2026-10-30-native-three-results.jpg"
+}

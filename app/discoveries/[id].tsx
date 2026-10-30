@@ -194,7 +194,7 @@ export default function DiscoveryScreen() {
     </ScrollView>
     {item && revealed ? <View style={{paddingHorizontal:20,paddingTop:12,paddingBottom:Math.max(insets.bottom,12),borderTopWidth:1,borderTopColor:theme.border,backgroundColor:theme.background,flexDirection:stackResultActions ? 'column':'row',gap:10}}>
       <View style={{flex:stackResultActions ? undefined:1}}><DiscoveryButton variant="primary" label={item.setPosition ? nextItem ? `Next: ${DAILY_LABELS[nextItem.setPosition!-1]}`:'View your results':'Done'} onPress={item.setPosition ? continueSet:done}/></View>
-      <View style={{flex:stackResultActions ? undefined:1}}><DiscoveryButton label="Share result" onPress={()=>{void share();}} icon={<Share2 size={17} color={theme.tint} accessible={false}/>}/></View>
+      <View style={{flex:stackResultActions ? undefined:1}}><DiscoveryButton label="Share your Results" onPress={()=>{void share();}} icon={<Share2 size={17} color={theme.tint} accessible={false}/>}/></View>
     </View>:null}
   </View>;
 }

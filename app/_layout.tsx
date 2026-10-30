@@ -136,7 +136,6 @@ function RootLayoutNav() {
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
         <Stack screenOptions={{
-          statusBarStyle: colorScheme === 'dark' ? 'light' : 'dark',
           headerStyle: { backgroundColor: theme.background },
           headerTintColor: theme.text,
           headerShadowVisible: false,

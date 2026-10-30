@@ -18,7 +18,7 @@ export function dailyResultLabel(result:DailyResult) {
 export function dailySetShareText(date:string,results:DailyResult[]) {
  const row=[0,1,2].map(i=>results[i]==='correct' ? '🟩':results[i] ? '🟥':'⬜').join('');
  const correct=results.filter(r=>r==='correct').length,played=results.filter(Boolean).length;
- return `Sanctuary Trivia · ${date}\n${row}\nEasy · Medium · Hard\n${correct}/3 correct${played<3 ? ` · ${played}/3 played`:''}\nhttps://sanctuaryapp.us/discoveries?date=${encodeURIComponent(date)}`;
+ return `Sanctuary Trivia · ${date}\n${row}\nEasy · Medium · Hard\n${correct}/3 correct${played<3 ? ` · ${played}/3 played`:''}\nhttps://sanctuaryapp.us/trivia?date=${encodeURIComponent(date)}`;
 }
 // A win means all three correct that day. A partial set cannot earn a win.
 export function dailySetStreak(completions:DiscoveryCompletion[],today:string) {
