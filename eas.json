@@ -18,6 +18,9 @@
       "extends": "production",
       "distribution": "internal",
       "autoIncrement": false,
+      "env": {
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a"
+      },
       "android": {
         "buildType": "apk"
       }
