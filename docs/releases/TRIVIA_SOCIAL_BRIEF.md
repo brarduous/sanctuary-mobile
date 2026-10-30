@@ -1,6 +1,6 @@
 # Trivia: sharing brief
 
-Release candidate, October 30, 2026. Store review submissions and the public web rollout are being completed; confirm the release record before announcing availability.
+October 30, 2026: the browser game is live at https://sanctuaryapp.us/trivia. iOS 1.2.11 (67) is Waiting for Review; Android 139 is In review in Google Play. Both retain public release holds. Do not announce the updated native version as publicly available until the owner releases it after approval.
 
 ## What people can share
 
@@ -30,7 +30,7 @@ Lead with curiosity and friendly competition. Use plain language and real discov
 
 ## Assets and claims
 
-[Native results preview](qa/2026-10-30-native-three-results.jpg) shows the current interface and final button label. It is an actual simulator QA result, not a store screenshot export. Production web captures and store submission references will be added to the release record.
+[Native results preview](qa/2026-10-30-native-three-results.jpg) shows the current interface and final button label. It is an actual simulator QA result, not a store screenshot export. [Production browser results](qa/2026-10-30-production-trivia-results-full.png) show the live game. [Apple review proof](qa/2026-10-30-ios-67-waiting-for-review.jpg) confirms build 67. [Google Play review proof](qa/2026-10-30-android-139-in-review.png) confirms release 19 with build 139. Use these for campaign planning; the native simulator capture includes its frame and is not a store screenshot export.
 
 The launch bank contains seven independently reviewed daily sets (21 questions). Difficulty labels are editorial estimates; do not advertise measured audience success rates or perfect factual infallibility. Source research currently supports Bible-text facts; do not advertise a public atlas, lexicon or commentary reader.
 

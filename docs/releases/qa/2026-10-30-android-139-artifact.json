@@ -1,0 +1,10 @@
+{
+  "build": 139,
+  "version": "1.2.11",
+  "metadataSource": "EAS completed build 8280bf75-318a-42b5-8d7e-7cabb12901a8; store version code will be verified after upload",
+  "productionAPI": true,
+  "shareCTA": true,
+  "dailySetFlag": true,
+  "browserTriviaPath": true,
+  "localEndpoints": false
+}

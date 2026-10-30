@@ -1,0 +1,48 @@
+{
+  "version": "1.2.11",
+  "mobileSource": "3ade2a1672c8ffdea8ac7e17fcd62cb454f98b8a",
+  "productionTriviaURL": "https://sanctuaryapp.us/trivia",
+  "backendSource": "8f8beef8a6801c9f9cbabda9d3ae359d70a35bc1",
+  "webSource": "5c54be9519c6890161c5989511838c3c1a2c2e9e",
+  "webJourney": {
+    "guest": true,
+    "date": "2026-10-30",
+    "outcomes": [
+      "correct",
+      "incorrect",
+      "revealed"
+    ],
+    "score": "1/3",
+    "exactCTA": "Share your Results",
+    "screenshot": "2026-10-30-production-trivia-results-full.png"
+  },
+  "ios": {
+    "build": 67,
+    "easBuildId": "474c522c-2e6b-44e7-9a1f-62b38fc455b8",
+    "submissionId": "0f3b5b3a-6eea-4e3b-8f22-b4266f0530ec",
+    "status": "Waiting for Review",
+    "submittedAt": "2026-10-30T19:02:00Z",
+    "manualRelease": true
+  },
+  "android": {
+    "build": 139,
+    "easBuildId": "8280bf75-318a-42b5-8d7e-7cabb12901a8",
+    "status": "In review",
+    "managedPublishing": true,
+    "easSubmissionId": "22624381-80bc-45b6-a806-b3e8a06ee9f1",
+    "releaseName": "139 (1.2.11) \u00b7 Trivia",
+    "releaseNumber": 19,
+    "releaseURL": "https://play.google.com/console/u/0/developers/8715406039218746780/app/4974619440589159854/tracks/4697658687522460566/releases/19/details",
+    "retainedAppBundles": [],
+    "deactivatedAppBundles": [
+      138
+    ],
+    "publiclyPublished": false,
+    "notesUpdated": true
+  },
+  "limitations": [
+    "No physical-device VoiceOver/TalkBack trial was performed.",
+    "Difficulty is model-estimated; no recruited audience study was performed.",
+    "Native store artwork was retained; provided screenshots are release/CMO QA evidence."
+  ]
+}
