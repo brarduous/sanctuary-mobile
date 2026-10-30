@@ -6,9 +6,11 @@ import { ActivityIndicator, Alert, StyleSheet, TouchableOpacity } from 'react-na
 interface AudioMicButtonProps {
   onTranscription: (text: string) => void;
   tintColor: string;
+  accessibilityLabel?: string;
+  disabled?: boolean;
 }
 
-export default function AudioMicButton({ onTranscription, tintColor }: AudioMicButtonProps) {
+export default function AudioMicButton({ onTranscription, tintColor, accessibilityLabel = 'Hold to record your question', disabled = false }: AudioMicButtonProps) {
   const [isRecordingState, setIsRecordingState] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
@@ -17,12 +19,6 @@ export default function AudioMicButton({ onTranscription, tintColor }: AudioMicB
   const isPressingRef = useRef(false);
   
   const [permissionResponse, requestPermission] = Audio.usePermissions();
-
-  useEffect(() => {
-    if (!permissionResponse) {
-       requestPermission();
-    }
-  }, [permissionResponse, requestPermission]);
 
   async function startRecording() {
     isPressingRef.current = true;
@@ -119,12 +115,15 @@ export default function AudioMicButton({ onTranscription, tintColor }: AudioMicB
     <TouchableOpacity
       onPressIn={startRecording}
       onPressOut={stopRecording}
-      disabled={isProcessing}
+      disabled={isProcessing || disabled}
+      accessibilityRole="button"
+      accessibilityLabel={isRecordingState ? 'Release to finish recording' : accessibilityLabel}
+      accessibilityState={{ disabled: isProcessing || disabled, busy: isProcessing }}
       activeOpacity={0.8}
       // Using standard inline styles bypasses the NativeWind/Reanimated crash bug
       style={[
         styles.button,
-        isRecordingState ? styles.recording : styles.idle
+        isRecordingState ? styles.recording : { backgroundColor: `${tintColor}18` }
       ]}
     >
       {isProcessing ? (
@@ -143,9 +142,6 @@ const styles = StyleSheet.create({
     borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  idle: {
-    backgroundColor: 'rgba(79, 70, 229, 0.1)', // Indigo 50 equivalent
   },
   recording: {
     backgroundColor: '#ef4444', // Red 500

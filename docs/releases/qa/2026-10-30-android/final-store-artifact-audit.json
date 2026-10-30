@@ -1,0 +1,45 @@
+[
+  {
+    "file": "sanctuary-store-1.2.11-66.ipa",
+    "sha256": "6aa9691c37f5d6791459e5f39db4aab6de58b49a92aeef4ae86f446941f59495",
+    "bytes": 31101782,
+    "bundle": "Payload/Sanctuary.app/main.jsbundle",
+    "checks": {
+      "productionApi": true,
+      "productionDatabase": true,
+      "stagingDatabase": false,
+      "qaEndpoint": false,
+      "newNewsRecovery": true,
+      "conciseNewsShare": true,
+      "iosPurchaseKey": true,
+      "androidPurchaseKey": true
+    },
+    "sourceCommit": "58913bf02d1131db713ca8107e06cd2e69999fae",
+    "version": "1.2.11",
+    "build": "66",
+    "bundleId": "us.sanctuaryapp.app"
+  },
+  {
+    "file": "sanctuary-store-1.2.11-138.aab",
+    "sha256": "2cad231ffd57f6815a82f818b3eacce9f54942c2ef630f7d5d973c86e8dc0f3f",
+    "bytes": 93374170,
+    "bundle": "base/assets/index.android.bundle",
+    "checks": {
+      "productionApi": true,
+      "productionDatabase": true,
+      "stagingDatabase": false,
+      "qaEndpoint": false,
+      "newNewsRecovery": true,
+      "conciseNewsShare": true,
+      "iosPurchaseKey": true,
+      "androidPurchaseKey": true
+    },
+    "sourceCommit": "58913bf02d1131db713ca8107e06cd2e69999fae",
+    "abis": [
+      "arm64-v8a",
+      "armeabi-v7a",
+      "x86",
+      "x86_64"
+    ]
+  }
+]

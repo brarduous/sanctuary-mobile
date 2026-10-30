@@ -1,261 +1,154 @@
+import ScreenState from '@/components/ScreenState';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/lib/supabase';
+import { fetchVolunteerMemberships, fetchVolunteerSchedule, fetchVolunteerTeams, joinVolunteerTeam, respondToVolunteerSchedule } from '@/lib/api';
 import { Stack, useRouter } from 'expo-router';
-import {
-    CheckCircle2,
-    Clock,
-    ShieldAlert,
-    XCircle
-} from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
-import {
-    ActivityIndicator,
-    Alert,
-    RefreshControl,
-    ScrollView,
-    Text,
-    TouchableOpacity,
-    View
-} from 'react-native';
+import { CalendarDays, Users } from 'lucide-react-native';
+import axios from 'axios';
+import React, { useEffect, useRef, useState } from 'react';
+import { Alert, Pressable, RefreshControl, ScrollView, Text, View } from 'react-native';
+
+type Schedule = { id: string; status: 'pending' | 'accepted' | 'declined'; events: { id: string | number; title: string; event_date: string; location?: string } | null; volunteer_roles: { name: string; color_code: string } | null };
+type Team = { id: string; name: string; description?: string; join_policy: string; color_code?: string };
+type Membership = { status: string; volunteer_roles: { id: string | number } | null };
 
 export default function VolunteerHubScreen() {
-    const { user, userCongregationId } = useAuth();
-    const router = useRouter();
-    const theme = Colors[useColorScheme() ?? 'light'];
+  const router = useRouter();
+  const { user, userCongregationId, loading: authLoading } = useAuth();
+  const theme = Colors[useColorScheme() ?? 'light'];
+  const [tab, setTab] = useState<'schedule' | 'browse'>('schedule');
+  const [attempt, setAttempt] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const [accessDenied, setAccessDenied] = useState(false);
+  const [schedule, setSchedule] = useState<Schedule[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [memberships, setMemberships] = useState<Membership[]>([]);
+  const [busyId, setBusyId] = useState<string | null>(null);
+  const submitting = useRef(false);
 
-    const [activeTab, setActiveTab] = useState<'schedule' | 'browse'>('schedule');
-    const [isLoading, setIsLoading] = useState(true);
-    const [isRefreshing, setIsRefreshing] = useState(false);
-    
-    // Data States
-    const [schedule, setSchedule] = useState<any[]>([]);
-    const [myTeams, setMyTeams] = useState<any[]>([]);
-    const [availableTeams, setAvailableTeams] = useState<any[]>([]);
-
-    const fetchData = async () => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
-            const baseUrl = process.env.EXPO_PUBLIC_BACKEND_URL;
-
-            // Fetch Hub Data (Schedule & My Teams)
-            const hubRes = await fetch(`${baseUrl}/api/volunteers/hub`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const hubData = await hubRes.json();
-            setSchedule(hubData.schedule);
-            setMyTeams(hubData.myTeams);
-
-            // Fetch Browse Teams
-            if (userCongregationId) {
-                const teamsRes = await fetch(`${baseUrl}/api/volunteers/browse-teams/${userCongregationId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                setAvailableTeams(await teamsRes.json());
-            }
-        } catch (error) {
-            console.error(error);
-        } finally {
-            setIsLoading(false);
-            setIsRefreshing(false);
+  useEffect(() => {
+    if (authLoading || !user || !userCongregationId) return;
+    let active = true;
+    setLoading(true);
+    setError(false);
+    setAccessDenied(false);
+    setSchedule([]);
+    setTeams([]);
+    setMemberships([]);
+    const load = async () => {
+      try {
+        if (tab === 'schedule') {
+          const data = await fetchVolunteerSchedule();
+          if (active) setSchedule(data.filter((item: Schedule) => item?.events?.id && item?.volunteer_roles));
+        } else {
+          const [data, memberData] = await Promise.all([fetchVolunteerTeams(userCongregationId), fetchVolunteerMemberships()]);
+          if (active) {
+            setTeams(data);
+            setMemberships(memberData);
+          }
         }
-    };
-
-    useEffect(() => { fetchData(); }, []);
-
-    const onRefresh = () => {
-        setIsRefreshing(true);
-        fetchData();
-    };
-
-    const respondToSchedule = async (scheduleId: string, status: 'accepted' | 'declined') => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/events/schedule/${scheduleId}/respond`, {
-                method: 'PUT',
-                headers: { 
-                    'Authorization': `Bearer ${session?.access_token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ status })
-            });
-
-            if (res.ok) {
-                // Optimistically update the UI
-                setSchedule(prev => prev.map(s => s.id === scheduleId ? { ...s, status } : s));
-            }
-        } catch (error) {
-            Alert.alert("Error", "Could not update status.");
+      } catch (cause) {
+        if (active) {
+          setError(true);
+          setAccessDenied(axios.isAxiosError(cause) && cause.response?.status === 403);
         }
+      } finally {
+        if (active) setLoading(false);
+      }
     };
+    void load();
+    return () => { active = false; };
+  }, [authLoading, user?.id, userCongregationId, tab, attempt]);
 
-    const handleJoinTeam = async (team: any) => {
-        try {
-            const { data: { session } } = await supabase.auth.getSession();
-            const res = await fetch(`${process.env.EXPO_PUBLIC_BACKEND_URL}/api/volunteers/join-team`, {
-                method: 'POST',
-                headers: { 
-                    'Authorization': `Bearer ${session?.access_token}`,
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({ roleId: team.id, joinPolicy: team.join_policy })
-            });
+  const respond = async (item: Schedule, status: 'accepted' | 'declined') => {
+    if (submitting.current || !item.events?.id) return;
+    submitting.current = true;
+    setBusyId(item.id);
+    try {
+      await respondToVolunteerSchedule(String(item.events.id), String(item.id), status);
+      setSchedule(previous => previous.map(entry => entry.id === item.id ? { ...entry, status } : entry));
+    } catch { Alert.alert('Could not update your response', 'Please try again.'); }
+    finally { submitting.current = false; setBusyId(null); }
+  };
+  const join = async (team: Team) => {
+    if (submitting.current) return;
+    submitting.current = true;
+    setBusyId(team.id);
+    try {
+      await joinVolunteerTeam(String(team.id));
+      Alert.alert(team.join_policy === 'open' ? 'You joined the team' : 'Request sent', team.join_policy === 'open' ? 'Your team leader will help you get started.' : 'Your team leader will review your request.');
+      setAttempt(value => value + 1);
+    } catch { Alert.alert('Could not join this team', 'Please try again or contact your church.'); }
+    finally { submitting.current = false; setBusyId(null); }
+  };
+  const card = { backgroundColor: theme.card, borderColor: theme.border, borderWidth: 1, borderRadius: 20, padding: 20, marginBottom: 16 };
+  const retry = () => setAttempt(value => value + 1);
+  const pending = schedule.filter(item => item.status === 'pending');
+  const accepted = schedule.filter(item => item.status === 'accepted');
+  const date = (value: string) => Number.isNaN(Date.parse(value)) ? '' : new Date(value).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' });
 
-            if (res.ok) {
-                Alert.alert("Success", team.join_policy === 'open' ? "You are now on the team!" : "Your request has been sent to the team leader.");
-                fetchData(); // Refresh to move it to "My Teams"
-            } else {
-                const err = await res.json();
-                Alert.alert("Notice", err.error);
-            }
-        } catch (error) {
-            Alert.alert("Error", "Could not join team.");
-        }
-    };
-
-    if (!userCongregationId) {
-        return (
-            <View className="flex-1 justify-center items-center p-8 bg-white dark:bg-black">
-                <Stack.Screen options={{ title: 'Volunteer Hub' }} />
-                <ShieldAlert size={48} color={theme.text} className="mb-4 opacity-20" />
-                <Text className="text-xl font-bold dark:text-white mb-2 text-center">Connect to a Church</Text>
-                <Text className="text-gray-500 text-center">You must join a digital congregation to volunteer and view schedules.</Text>
-            </View>
-        );
-    }
-
-    return (
-        <View style={{ flex: 1, backgroundColor: theme.background }}>
-            <Stack.Screen options={{ title: 'Volunteer Hub', headerBackTitle: 'Back' }} />
-            
-            {/* Custom Tab Bar */}
-            <View className="flex-row p-2 mx-4 mt-4 bg-gray-100 dark:bg-gray-900 rounded-xl">
-                <TouchableOpacity 
-                    onPress={() => setActiveTab('schedule')}
-                    className={`flex-1 py-2.5 items-center rounded-lg ${activeTab === 'schedule' ? 'bg-white dark:bg-gray-800 shadow-sm' : ''}`}
-                >
-                    <Text className={`font-bold text-sm ${activeTab === 'schedule' ? 'text-gray-900 dark:text-white' : 'text-gray-500'}`}>My Schedule</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                    onPress={() => setActiveTab('browse')}
-                    className={`flex-1 py-2.5 items-center rounded-lg ${activeTab === 'browse' ? 'bg-white dark:bg-gray-800 shadow-sm' : ''}`}
-                >
-                    <Text className={`font-bold text-sm ${activeTab === 'browse' ? 'text-gray-900 dark:text-white' : 'text-gray-500'}`}>Browse Teams</Text>
-                </TouchableOpacity>
-            </View>
-
-            {isLoading ? (
-                <View className="flex-1 justify-center items-center">
-                    <ActivityIndicator size="large" color="#6366f1" />
-                </View>
-            ) : (
-                <ScrollView 
-                    className="flex-1" 
-                    contentContainerStyle={{ padding: 20 }}
-                    refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
-                >
-                    
-                    {activeTab === 'schedule' && (
-                        <View className="space-y-6">
-                            {/* Action Required Section */}
-                            {schedule.filter(s => s.status === 'pending').length > 0 && (
-                                <View>
-                                    <Text className="text-xs font-bold uppercase tracking-widest text-amber-600 mb-3">Action Required</Text>
-                                    {schedule.filter(s => s.status === 'pending').map(item => (
-                                        <View key={item.id} className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-amber-200 dark:border-amber-900/30 mb-3 shadow-sm">
-                                            <View className="flex-row items-center gap-2 mb-2">
-                                                <View className="w-3 h-3 rounded-full" style={{ backgroundColor: item.volunteer_roles.color_code }} />
-                                                <Text className="font-bold text-gray-900 dark:text-white">{item.volunteer_roles.name}</Text>
-                                            </View>
-                                            <Text className="text-lg font-serif dark:text-white mb-1">{item.events.title}</Text>
-                                            <Text className="text-sm text-gray-500 mb-6 flex-row items-center">
-                                                <Clock size={12} /> {new Date(item.events.event_date).toLocaleString()}
-                                            </Text>
-                                            
-                                            <div className="flex-row gap-3">
-                                                <TouchableOpacity 
-                                                    onPress={() => respondToSchedule(item.id, 'accepted')}
-                                                    className="flex-1 bg-indigo-600 py-3 rounded-xl items-center flex-row justify-center"
-                                                >
-                                                    <CheckCircle2 size={16} color="white" className="mr-2" />
-                                                    <Text className="text-white font-bold text-sm">Accept</Text>
-                                                </TouchableOpacity>
-                                                <TouchableOpacity 
-                                                    onPress={() => respondToSchedule(item.id, 'declined')}
-                                                    className="flex-1 bg-gray-100 dark:bg-gray-800 py-3 rounded-xl items-center flex-row justify-center"
-                                                >
-                                                    <XCircle size={16} color={theme.text} className="mr-2" />
-                                                    <Text className="font-bold text-sm dark:text-white">Decline</Text>
-                                                </TouchableOpacity>
-                                            </div>
-                                        </View>
-                                    ))}
-                                </View>
-                            )}
-
-                            {/* Upcoming Accepted Schedule */}
-                            <View>
-                                <Text className="text-xs font-bold uppercase tracking-widest text-gray-400 mb-3 mt-4">Upcoming Accepted</Text>
-                                {schedule.filter(s => s.status === 'accepted').length === 0 ? (
-                                    <Text className="text-gray-500 italic text-center py-4">You have no upcoming scheduled dates.</Text>
-                                ) : (
-                                    schedule.filter(s => s.status === 'accepted').map(item => (
-                                        <View key={item.id} className="bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-100 dark:border-gray-800 mb-3 flex-row items-center justify-between">
-                                            <View>
-                                                <Text className="font-bold text-gray-900 dark:text-white mb-1">{item.events.title}</Text>
-                                                <Text className="text-xs text-gray-500">{new Date(item.events.event_date).toLocaleDateString()}</Text>
-                                            </View>
-                                            <View className="bg-gray-50 dark:bg-gray-800 px-3 py-1.5 rounded-lg flex-row items-center gap-2">
-                                                <View className="w-2 h-2 rounded-full" style={{ backgroundColor: item.volunteer_roles.color_code }} />
-                                                <Text className="text-xs font-bold dark:text-white">{item.volunteer_roles.name}</Text>
-                                            </View>
-                                        </View>
-                                    ))
-                                )}
-                            </View>
-                        </View>
-                    )}
-
-                    {activeTab === 'browse' && (
-                        <View className="space-y-6">
-                            <Text className="text-gray-500 mb-4">Find a place to serve. Some teams are open to join immediately, while others require a quick chat with the leader first.</Text>
-                            
-                            {availableTeams.map(team => (
-                                <View key={team.id} className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-100 dark:border-gray-800 mb-4 shadow-sm">
-                                    <View className="flex-row items-start justify-between mb-2">
-                                        <View className="flex-row items-center gap-3">
-                                            <View className="w-4 h-12 rounded-full shadow-inner" style={{ backgroundColor: team.color_code }} />
-                                            <View>
-                                                <Text className="text-lg font-bold text-gray-900 dark:text-white">{team.name}</Text>
-                                                <Text className="text-xs text-gray-400 uppercase tracking-widest mt-0.5">
-                                                    {team.join_policy === 'open' ? 'Open to All' : 'Approval Required'}
-                                                </Text>
-                                            </View>
-                                        </View>
-                                    </View>
-                                    
-                                    <Text className="text-sm text-gray-600 dark:text-gray-300 my-4 leading-relaxed">
-                                        {team.description || 'Join this team to help serve the church family.'}
-                                    </Text>
-                                    
-                                    <TouchableOpacity 
-                                        onPress={() => handleJoinTeam(team)}
-                                        className="bg-indigo-50 dark:bg-indigo-900/30 py-3 rounded-xl items-center flex-row justify-center border border-indigo-100 dark:border-indigo-800"
-                                    >
-                                        <Text className="text-indigo-700 dark:text-indigo-300 font-bold text-sm">
-                                            {team.join_policy === 'open' ? 'Join Team' : 'Request to Join'}
-                                        </Text>
-                                    </TouchableOpacity>
-                                </View>
-                            ))}
-                        </View>
-                    )}
-
-                    <View className="h-12" />
-                </ScrollView>
-            )}
-        </View>
-    );
+  return <View style={{ flex: 1, backgroundColor: theme.background }}>
+    <Stack.Screen options={{ title: 'Volunteer Hub', headerBackTitle: 'Back' }} />
+    {authLoading ? <ScreenState title="Loading your church" loading /> : !user || !userCongregationId ?
+      <ScreenState title="Connect to a church" message="Join your church to find teams and see your volunteer schedule." /> : <>
+      <View accessibilityRole="tablist" style={{ flexDirection: 'row', margin: 20, padding: 4, borderRadius: 16, backgroundColor: theme.muted, gap: 4 }}>
+        {(['schedule', 'browse'] as const).map(value => <Pressable key={value} accessibilityRole="tab" accessibilityState={{ selected: tab === value }} onPress={() => setTab(value)} style={{ flex: 1, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: tab === value ? theme.tint : 'transparent' }}>
+          <Text style={{ fontSize: 15, fontWeight: '600', color: tab === value ? theme.onTint : theme.mutedForeground }}>{value === 'schedule' ? 'My schedule' : 'Browse teams'}</Text>
+        </Pressable>)}
+      </View>
+      {loading ? <ScreenState title={tab === 'schedule' ? 'Loading your schedule' : 'Finding teams'} loading /> : error ?
+        <ScreenState title={accessDenied ? 'Volunteer access is restricted' : tab === 'schedule' ? 'Schedule unavailable' : 'Teams unavailable'} message={accessDenied ? 'Your account doesn’t have access to this church’s volunteer information. Ask your church leader for help getting connected.' : 'We couldn’t load this right now. Please try again.'} actionLabel={accessDenied ? 'Back to Sanctuary' : undefined} onRetry={accessDenied ? () => router.dismissTo('/') : retry} /> :
+        <ScrollView contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 40 }} refreshControl={<RefreshControl refreshing={false} onRefresh={retry} tintColor={theme.tint} />}>
+          {tab === 'schedule' ? <>
+            {pending.length > 0 && <Text style={{ color: theme.tint, fontWeight: '700', fontSize: 18, marginBottom: 16 }}>Your response needed</Text>}
+            {pending.map(item => <View key={item.id} style={card}>
+              <Text style={{ color: theme.tint, fontSize: 14, fontWeight: '600', marginBottom: 8 }}>{item.volunteer_roles?.name}</Text>
+              <Text style={{ color: theme.text, fontSize: 20, fontWeight: '600', marginBottom: 8 }}>{item.events?.title}</Text>
+              <Text style={{ color: theme.mutedForeground, fontSize: 14, lineHeight: 22, marginBottom: item.events?.location ? 8 : 20 }}>{date(item.events!.event_date)}</Text>
+              {!!item.events?.location && <Text style={{ color: theme.mutedForeground, fontSize: 14, lineHeight: 22, marginBottom: 20 }}>{item.events.location}</Text>}
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                {(['accepted', 'declined'] as const).map(status => <Pressable key={status} accessibilityRole="button" accessibilityState={{ disabled: busyId !== null, busy: busyId === item.id }} disabled={busyId !== null} onPress={() => void respond(item, status)} style={{ flex: 1, minHeight: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center', backgroundColor: status === 'accepted' ? theme.action : theme.muted, opacity: busyId !== null ? 0.5 : 1 }}>
+                  <Text style={{ fontWeight: '600', color: status === 'accepted' ? theme.onAction : theme.text }}>{status === 'accepted' ? 'Accept' : 'Decline'}</Text>
+                </Pressable>)}
+              </View>
+            </View>)}
+            <Text style={{ color: theme.text, fontSize: 20, fontWeight: '600', marginBottom: 16 }}>Upcoming dates</Text>
+            {accepted.length === 0 ? <View style={card}>
+              <CalendarDays color={theme.tint} size={28} />
+              <Text style={{ color: theme.text, fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 8 }}>Nothing scheduled yet</Text>
+              <Text style={{ color: theme.mutedForeground, fontSize: 16, lineHeight: 25 }}>Accepted volunteer dates will appear here.</Text>
+            </View> : accepted.map(item => <View key={item.id} style={card}>
+              <Text style={{ color: theme.text, fontSize: 18, fontWeight: '600', marginBottom: 8 }}>{item.events?.title}</Text>
+              <Text style={{ color: theme.mutedForeground, fontSize: 14, lineHeight: 22 }}>{date(item.events!.event_date)}</Text>
+              {!!item.events?.location && <Text style={{ color: theme.mutedForeground, fontSize: 14, lineHeight: 22, marginTop: 8 }}>{item.events.location}</Text>}
+              <Text style={{ color: theme.tint, fontSize: 14, marginTop: 12 }}>{item.volunteer_roles?.name}</Text>
+            </View>)}
+          </> : <>
+            <Text style={{ color: theme.mutedForeground, fontSize: 16, lineHeight: 25, marginBottom: 20 }}>Find a place to serve. Join an open team or request to meet its leader.</Text>
+            {teams.length === 0 && <View style={card}>
+              <Users color={theme.tint} size={28} />
+              <Text style={{ color: theme.text, fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 8 }}>No teams listed yet</Text>
+              <Text style={{ color: theme.mutedForeground, fontSize: 16, lineHeight: 25 }}>Your church will list available teams here.</Text>
+            </View>}
+            {teams.map(team => {
+              const membership = memberships.find(item => String(item.volunteer_roles?.id) === String(team.id));
+              const alreadyJoined = membership?.status === 'active';
+              const awaitingApproval = membership?.status === 'pending_approval';
+              return <View key={team.id} style={card}>
+              <Text style={{ color: theme.text, fontSize: 20, fontWeight: '600', marginBottom: 8 }}>{team.name}</Text>
+              <Text style={{ color: theme.tint, fontSize: 13, fontWeight: '600' }}>{team.join_policy === 'open' ? 'Open to everyone' : 'Leader approval required'}</Text>
+              <Text style={{ color: theme.mutedForeground, fontSize: 16, lineHeight: 25, marginVertical: 16 }}>{team.description || 'Help serve your church family.'}</Text>
+              {alreadyJoined || awaitingApproval ? <View style={{ minHeight: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.muted }}>
+                <Text style={{ color: theme.text, fontWeight: '600' }}>{alreadyJoined ? 'You’re on this team' : 'Awaiting leader approval'}</Text>
+              </View> : <Pressable accessibilityRole="button" accessibilityState={{ disabled: busyId !== null, busy: busyId === team.id }} disabled={busyId !== null} onPress={() => void join(team)} style={{ minHeight: 48, borderRadius: 12, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.action, opacity: busyId !== null ? 0.5 : 1 }}>
+                <Text style={{ color: theme.onAction, fontWeight: '600' }}>{team.join_policy === 'open' ? 'Join team' : 'Request to join'}</Text>
+              </Pressable>}
+            </View>;
+            })}
+          </>}
+        </ScrollView>}
+    </>}
+  </View>;
 }

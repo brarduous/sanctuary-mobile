@@ -5,6 +5,7 @@ import 'react-native-url-polyfill/auto';
 
 const SECURE_STORE_CHUNK_PREFIX = '__chunked__:';
 const SECURE_STORE_CHUNK_SIZE = 1800;
+const developmentStorage = new Map<string, string>();
 
 const getChunkKey = (key: string, index: number) => `${key}__chunk_${index}`;
 
@@ -29,40 +30,55 @@ const removeChunkedValue = async (key: string) => {
 // SecureStore Adapter for Supabase
 const ExpoSecureStoreAdapter = {
   getItem: async (key: string) => {
-    const storedValue = await SecureStore.getItemAsync(key);
+    try {
+      const storedValue = await SecureStore.getItemAsync(key);
 
-    if (!storedValue?.startsWith(SECURE_STORE_CHUNK_PREFIX)) {
-      return storedValue;
+      if (!storedValue?.startsWith(SECURE_STORE_CHUNK_PREFIX)) {
+        return storedValue;
+      }
+
+      const chunkCount = Number(storedValue.slice(SECURE_STORE_CHUNK_PREFIX.length));
+      const chunks = await Promise.all(
+        Array.from({ length: chunkCount }, (_, index) => SecureStore.getItemAsync(getChunkKey(key, index)))
+      );
+
+      if (chunks.some((chunk) => chunk === null)) {
+        await removeChunkedValue(key);
+        return null;
+      }
+
+      return chunks.join('');
+    } catch (error) {
+      if (!__DEV__) throw error;
+      return developmentStorage.get(key) ?? null;
     }
-
-    const chunkCount = Number(storedValue.slice(SECURE_STORE_CHUNK_PREFIX.length));
-    const chunks = await Promise.all(
-      Array.from({ length: chunkCount }, (_, index) => SecureStore.getItemAsync(getChunkKey(key, index)))
-    );
-
-    if (chunks.some((chunk) => chunk === null)) {
-      await removeChunkedValue(key);
-      return null;
-    }
-
-    return chunks.join('');
   },
   setItem: async (key: string, value: string) => {
-    await removeChunkedValue(key);
+    try {
+      await removeChunkedValue(key);
 
-    if (value.length <= SECURE_STORE_CHUNK_SIZE) {
-      await SecureStore.setItemAsync(key, value);
-      return;
+      if (value.length <= SECURE_STORE_CHUNK_SIZE) {
+        await SecureStore.setItemAsync(key, value);
+        return;
+      }
+
+      const chunks = value.match(new RegExp(`.{1,${SECURE_STORE_CHUNK_SIZE}}`, 'g')) ?? [];
+      await SecureStore.setItemAsync(key, `${SECURE_STORE_CHUNK_PREFIX}${chunks.length}`);
+      await Promise.all(
+        chunks.map((chunk, index) => SecureStore.setItemAsync(getChunkKey(key, index), chunk))
+      );
+    } catch (error) {
+      if (!__DEV__) throw error;
+      developmentStorage.set(key, value);
     }
-
-    const chunks = value.match(new RegExp(`.{1,${SECURE_STORE_CHUNK_SIZE}}`, 'g')) ?? [];
-    await SecureStore.setItemAsync(key, `${SECURE_STORE_CHUNK_PREFIX}${chunks.length}`);
-    await Promise.all(
-      chunks.map((chunk, index) => SecureStore.setItemAsync(getChunkKey(key, index), chunk))
-    );
   },
-  removeItem: (key: string) => {
-    return removeChunkedValue(key);
+  removeItem: async (key: string) => {
+    try {
+      await removeChunkedValue(key);
+    } catch (error) {
+      if (!__DEV__) throw error;
+      developmentStorage.delete(key);
+    }
   },
 };
 

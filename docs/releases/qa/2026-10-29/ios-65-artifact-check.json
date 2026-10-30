@@ -1,0 +1,13 @@
+{
+  "platform": "ios",
+  "version": "1.2.11",
+  "build": "65",
+  "bundleId": "us.sanctuaryapp.app",
+  "commit": "b2fb713ff12bd66cdfc4a51e235f3a9d2ffd4788",
+  "ipaSha256": "245a151efe97228c0effa567306e5131588280ea80efec7968d2f37b5ac5232f",
+  "productionApiPresent": true,
+  "productionDatabasePresent": true,
+  "stagingDatabasePresent": false,
+  "loopbackQaApiPresent": false,
+  "dynamicTextReflowPresent": true
+}

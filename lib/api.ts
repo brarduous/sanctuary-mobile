@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { supabase } from './supabase';
 
-console.log("[API] api.ts module loaded (Native)");
 
 const BACKEND_API_URL = process.env.EXPO_PUBLIC_BACKEND_URL || 'https://api.sanctuaryapp.us';
 
@@ -12,6 +11,44 @@ const apiClient = axios.create({
     'Accept': 'application/json',
   },
 });
+
+export const fetchVolunteerSchedule = async () => {
+  const { data } = await apiClient.get('/api/v1/volunteers/hub');
+  if (!Array.isArray(data?.schedule)) throw new Error('Invalid volunteer schedule');
+  return data.schedule;
+};
+
+export const fetchVolunteerTeams = async (congregationId: number) => {
+  const { data } = await apiClient.get(`/api/v1/volunteers/browse-teams/${congregationId}`);
+  if (!Array.isArray(data)) throw new Error('Invalid volunteer teams');
+  return data;
+};
+
+export const fetchVolunteerMemberships = async () => {
+  const { data } = await apiClient.get('/api/v1/volunteers/hub');
+  if (!Array.isArray(data?.myTeams)) throw new Error('Invalid volunteer memberships');
+  return data.myTeams;
+};
+
+export const respondToVolunteerSchedule = async (eventId: string, assignmentId: string, status: 'accepted' | 'declined') => {
+  await apiClient.post(`/api/v1/events/${encodeURIComponent(eventId)}/respond`, { assignmentId, status });
+};
+
+export const joinVolunteerTeam = async (roleId: string) => {
+  await apiClient.post('/api/v1/volunteers/join-team', { roleId });
+};
+
+export const fetchGivingStatus = async (congregationId: number) => {
+  const { data } = await apiClient.get(`/api/v1/stripe/status/${congregationId}/public`);
+  if (typeof data?.isGivingEnabled !== 'boolean') throw new Error('Invalid giving status');
+  return data.isGivingEnabled;
+};
+
+export const createGivingCheckout = async (amount: number, fund: string, congregationId: number) => {
+  const { data } = await apiClient.post('/api/v1/stripe/checkout', { amount, fund, congregationId });
+  if (typeof data?.url !== 'string' || !data.url.startsWith('https://')) throw new Error('Invalid checkout URL');
+  return data.url;
+};
 
 let isRefreshing = false;
 let failedQueue: any[] = [];
@@ -49,6 +86,10 @@ export const setAuthToken = (token: string | null) => {
 
 export const updateNotificationTimeZone = async (timeZone: string) => {
   await apiClient.post('/api/notifications/timezone', { timeZone });
+};
+
+export const registerNotificationCapabilities = async (expoPushToken:string,appVersion:string) => {
+  await apiClient.post('/api/notifications/capabilities',{expoPushToken,appVersion,features:['discoveries']});
 };
 
 export const recordNotificationOpen = async (deliveryId: string) => {
@@ -268,21 +309,23 @@ export const checkAdviceLimit = async (userId: string) => {
     }
 }
 
-export const fetchAppOptions = async () => {
+export const fetchAppOptions = async (required = false) => {
     try {
       const response = await apiClient.get('/app-options');
       return response.data;
     } catch (error) {
+      if (required) throw error;
       console.error('Error fetching app options:', error);
       return null;
     }
 };
 
-export const fetchCategories = async () => {
+export const fetchCategories = async (required = false) => {
     try {
       const response = await apiClient.get('/categories');
       return response.data || [];
     } catch (error) {
+      if (required) throw error;
       console.error('Error fetching categories:', error);
       return [];
     }
@@ -298,12 +341,12 @@ export const fetchUserFollowedCategories = async (userId: string) => {
     }
 };
 
-export const updateUserProfile = async (userId: string, updates: any) => {
+export const updateUserProfile = async (userId: string, updates: any, required = false) => {
     try {
       const response = await apiClient.post('/user-profile/' + userId, updates);        
-      console.log('Updated user profile:', response.data);
       return response.data;
     } catch (error) {
+      if (required) throw error;
       console.error('Error updating user profile:', error);
       return null;
     }
@@ -322,11 +365,12 @@ export const updatePersonalGrowth = async (
     return response.data?.data || null;
 };
 
-export const updateUserFollowedCategories = async (userId: string, categoryIds: number[]) => {
+export const updateUserFollowedCategories = async (userId: string, categoryIds: number[], required = false) => {
     try {
       const response = await apiClient.post('/user-followed-categories/' + userId, { categoryIds });
       return response.data;
     } catch (error) {
+      if (required) throw error;
       console.error('Error updating user categories:', error);
       return null;
     }
@@ -426,8 +470,8 @@ export const fetchDevotionalById = async (id: string) => {
             };
         }
     } catch (error) {
-        console.error('Error fetching devotional by id:', error);
-        return null;
+        if ((error as { code?: string })?.code === 'PGRST116') return null;
+        throw error;
     }
 };
 
@@ -470,7 +514,7 @@ export const fetchNewsArticles = async (params: {
     limit?: number;
     topic_id?: string;
     category_id?: string;
-    category_ids?: string; 
+    category_ids?: string | number[];
     q?: string;
   }) => {
     try {
@@ -481,12 +525,11 @@ export const fetchNewsArticles = async (params: {
         return response.data.results || [];
       }
       const response = await apiClient.get('/scriptural-outlooks', {
-        params: params
+        params: { ...params, category_ids: Array.isArray(params.category_ids) ? params.category_ids.join(',') : params.category_ids }
       });
       return response.data;
     } catch (error) {
-      console.error('Error fetching news articles:', error);
-      return [];
+      throw error;
     }
 };
 export const fetchNewsList = async () => {
@@ -502,7 +545,6 @@ export const fetchNewsList = async () => {
 };
 
 export const fetchNewsById = async (id: string) => {
-  console.log("[API] fetchNewsById called with id:", id);
     try {
       const response = await apiClient.get(`/scriptural-outlooks/${id}`);
       return response.data;
@@ -695,14 +737,17 @@ export type SpotifyTrack = {
   provider: 'spotify';
 };
 
-export const searchSpotifyArtists = async (q: string) => {
+export const searchSpotifyArtists = async (q: string, required = false) => {
   try {
-    if (!q.trim()) return [];
+    const name = q.trim().replace(/["\\]/g, ' ').trim();
+    if (!name) return [];
     const response = await apiClient.get('/api/music/spotify/artists', {
-      params: { q, limit: 8 },
+      // Restrict Spotify's fuzzy search to the artist name the user entered.
+      params: { q: `artist:"${name}"`, limit: 8 },
     });
     return response.data || [];
   } catch (error) {
+    if (required) throw error;
     console.error('[API] Error searching Spotify artists:', error);
     return [];
   }
@@ -719,7 +764,7 @@ export const recommendSpotifyTrack = async (params: {
     const response = await apiClient.post('/api/music/spotify/recommend-track', params);
     return response.data?.track || null;
   } catch (error) {
-    console.error('[API] Error recommending Spotify track:', error);
+    console.warn('[API] Spotify recommendation unavailable', axios.isAxiosError(error) ? error.response?.status : 'network');
     return null;
   }
 };
@@ -790,25 +835,19 @@ export const fetchChurchJourney = async (journeyId: string) =>
 export const updateChurchJourneyProgress = async (journeyId: string, itemId: string, payload: { opened?: boolean; completed?: boolean; saved?: boolean; response?: Record<string, unknown> }) =>
   (await apiClient.put(`/api/journeys/${journeyId}/items/${itemId}/progress`, payload)).data.data;
 
-export const fetchStudyDetails = async (studyId: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    // Re-using the backend route you already built for the clergy app!
-    const response = await apiClient.get(`/bible-study/${studyId}`);
-    const lessons_response = await apiClient.get(`/bible-study-lessons/${studyId}`);  
-    const studyData = response.data;
-    studyData.lessons = lessons_response.data;
-    return studyData;
+const memberContentPath = (congregationId: number | null, kind: string, id: string) => {
+    if (!congregationId) throw new Error('Connect to a church to view its content.');
+    return `/api/congregations/${congregationId}/content/${kind}/${encodeURIComponent(id)}`;
 };
 
-export const fetchLessonDetail = async (lessonId: string) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    const response = await apiClient.get(`/bible-study-lessons/detail/${lessonId}`);
-    return response.data;
-};
-export const fetchMessageDetail = async (messageId: string) => {
-    const response = await apiClient.get(`/messages/detail/${messageId}`);
-    return response.data;
-};
+export const fetchStudyDetails = async (studyId: string, congregationId: number | null) =>
+    (await apiClient.get(memberContentPath(congregationId, 'studies', studyId))).data;
+
+export const fetchLessonDetail = async (lessonId: string, congregationId: number | null) =>
+    (await apiClient.get(memberContentPath(congregationId, 'lessons', lessonId))).data;
+
+export const fetchMessageDetail = async (messageId: string, congregationId: number | null) =>
+    (await apiClient.get(memberContentPath(congregationId, 'messages', messageId))).data;
 
 export const fetchRandomPrayer = async (congregationId?: number | null) => {
     try {

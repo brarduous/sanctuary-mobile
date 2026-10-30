@@ -1,8 +1,11 @@
+import ReadingControls from '@/components/ReadingControls';
+import { Layout } from '@/constants/Layout';
 import ScriptureLinkifier from '@/components/ScriptureLinkifier';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { useAuth } from '@/context/AuthContext';
 import { fetchAdviceById, fetchPersonalGrowth, updatePersonalGrowth } from '@/lib/api';
+import { adviceShareText } from '@/lib/contentShare';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { ArrowLeft, BookOpen, Check, MessageCircleQuestion, Play, Share2, Sparkles, Square } from 'lucide-react-native';
@@ -171,10 +174,10 @@ export default function AdviceDetailScreen() {
 
     const handleShare = async () => {
         if (!advice) return;
-        const adviceText = getAdviceText();
+        if (!guidance || typeof guidance === 'string' || !guidance.steps.length) return;
         try {
             await Share.share({
-                message: `Situation: ${advice.situation}\n\nGuidance:\n${adviceText}\n\nShared via Sanctuary App`,
+                message: adviceShareText(guidance.steps, guidance.scripture_reading?.reference),
             });
         } catch (error) {
             console.error(error);
@@ -279,22 +282,7 @@ export default function AdviceDetailScreen() {
                     </Text>
                 </View>
 
-                {/* Audio Controls */}
-                <View className="flex-row items-center mb-6 justify-center space-x-6">
-                   <Pressable 
-                        onPress={handleSpeak}
-                        className="flex-row items-center px-6 py-3 rounded-full"
-                        style={{ backgroundColor: isSpeaking ? Colors.gray : theme.tint }}
-                   >
-                        {isSpeaking ? 
-                            <Square size={18} color={theme.background} fill={theme.background} /> : 
-                            <Play size={18} color={theme.background} fill={theme.background} />
-                        }
-                        <Text className="font-bold ml-2" style={{ color: theme.background }}>
-                            {isSpeaking ? "Stop Reading" : "Listen to Guidance"}
-                        </Text>
-                   </Pressable>
-                </View>
+                <View style={{ marginBottom: 24 }}><ReadingControls speaking={isSpeaking} onPress={handleSpeak} label="Listen to guidance" theme={theme} /></View>
 
                 {guidance && typeof guidance !== 'string' ? (
                     <View className="mb-10">

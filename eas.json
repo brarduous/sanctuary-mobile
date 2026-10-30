@@ -14,6 +14,17 @@
         "EXPO_PUBLIC_BACKEND_URL": "https://api.sanctuaryapp.us"
       }
     },
+    "device-qa": {
+      "extends": "production",
+      "distribution": "internal",
+      "autoIncrement": false,
+      "env": {
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "android": {
@@ -21,7 +32,8 @@
       },
       "env": {
         "EXPO_PUBLIC_BACKEND_URL": "https://api.sanctuaryapp.us"
-      }
+      },
+      "environment": "production"
     }
   },
   "submit": {
@@ -37,7 +49,8 @@
     "internal": {
       "android": {
         "track": "internal",
-        "releaseStatus": "completed"
+        "releaseStatus": "completed",
+        "changesNotSentForReview": true
       }
     },
     "open-testing": {

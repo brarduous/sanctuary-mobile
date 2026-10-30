@@ -1,0 +1,39 @@
+{
+  "buildId": "4a6720ca-4ec3-4c2d-a575-3c9e0fe154c6",
+  "gitBase": "3957f8da961bbdaf7b7320838624bdf1cafd9382",
+  "note": "The workspace also had pre-existing, uncommitted content-sharing changes before the EAS archive upload. This QA preserves those source files and does not commit them. Hashes document the working-tree additions; the scripts directory is excluded by .easignore. These changes were subsequently committed as 58913bf; committed file hashes match the QA archive source.",
+  "files": [
+    {
+      "path": "app/advice/[id].tsx",
+      "sha256": "810ff149caef81ba8039fe788b698e21ceefcec89f61328ffae26890ebc1982f",
+      "includedInArchive": true
+    },
+    {
+      "path": "app/devotional/[id].tsx",
+      "sha256": "c0909ddd73fdb3d5d7ab91d1ff263a0975a0f4640f0b865167b5b992fc7cb0ed",
+      "includedInArchive": true
+    },
+    {
+      "path": "app/news/[id].tsx",
+      "sha256": "8c0a4bebc0b407262da2d95859b69b1149ea6f3e369a3f08b6526d41f0a02c03",
+      "includedInArchive": true
+    },
+    {
+      "path": "package.json",
+      "sha256": "d4a3a572b2d9f20657997477833cd177adc08d10d7022b9c2586d06c0162555c",
+      "includedInArchive": true
+    },
+    {
+      "path": "lib/contentShare.ts",
+      "sha256": "5bf7252800a9389f45dabf672bf919acd633aa44aa90087034517b237969453d",
+      "includedInArchive": true
+    },
+    {
+      "path": "scripts/check-content-share.mjs",
+      "sha256": "6725452c62089349177d6272434da782ee026e60e8fbcf11e3a8c6c57f113cc2",
+      "includedInArchive": false
+    }
+  ],
+  "committedSource": "58913bf02d1131db713ca8107e06cd2e69999fae",
+  "committedFilesMatch": true
+}

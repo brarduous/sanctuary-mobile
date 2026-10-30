@@ -4,9 +4,10 @@ import { useAuth } from '@/context/AuthContext';
 import { submitPrayerRequest } from '@/lib/api';
 import { Stack, useRouter } from 'expo-router';
 import { CheckCircle2, Globe, ShieldCheck, Users } from 'lucide-react-native';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
+import { useHeaderHeight } from '@react-navigation/elements';
 import {
-    ActivityIndicator, Keyboard, KeyboardAvoidingView, Platform, ScrollView,
+    ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView,
     Text, TextInput, TouchableOpacity,
     View
 } from 'react-native';
@@ -17,39 +18,39 @@ import AudioMicButton from '@/components/AudioMicButton';
 
 type VisibilityTier = 'public_anonymous' | 'congregation' | 'pastor';
 
+function VisibilityCard({ tier, title, description, icon: Icon, disabled = false, selected, theme, onSelect }: {
+    tier: VisibilityTier; title: string; description: string; icon: typeof Users; disabled?: boolean;
+    selected: boolean; theme: typeof Colors.light; onSelect: (tier: VisibilityTier) => void;
+}) {
+    return <TouchableOpacity
+        activeOpacity={0.8}
+        accessibilityRole="radio"
+        accessibilityState={{ selected, disabled }}
+        disabled={disabled}
+        onPress={() => onSelect(tier)}
+        style={{ padding: 16, marginBottom: 12, borderRadius: 16, borderWidth: 1, borderColor: selected ? theme.tint : theme.border, backgroundColor: selected ? theme.accentSoft : theme.card, opacity: disabled ? 0.45 : 1, flexDirection: 'row', alignItems: 'flex-start', gap: 16 }}
+    >
+        <View style={{ padding: 12, borderRadius: 24, marginTop: 4, backgroundColor: selected ? theme.tint : theme.muted }}><Icon size={20} color={selected ? theme.onTint : theme.text} /></View>
+        <View style={{ flex: 1 }}>
+            <Text style={{ color: theme.text, fontSize: 16, fontWeight: '700', marginBottom: 6, paddingRight: selected ? 24 : 0 }}>{title}</Text>
+            <Text style={{ color: theme.mutedForeground, fontSize: 13, lineHeight: 20 }}>{description}</Text>
+        </View>
+        {selected ? <View accessibilityElementsHidden importantForAccessibility="no-hide-descendants" style={{ position: 'absolute', top: 16, right: 16 }}><CheckCircle2 size={20} color={theme.tint} /></View> : null}
+    </TouchableOpacity>;
+}
+
 export default function NewPrayerScreen() {
     const router = useRouter();
-    const { user, userCongregationId } = useAuth(); 
+    const { userCongregationId } = useAuth();
     const theme = Colors[useColorScheme() ?? 'light'];
     const insets = useSafeAreaInsets();
+    const headerHeight = useHeaderHeight();
 
     const [requestText, setRequestText] = useState('');
     const [visibility, setVisibility] = useState<VisibilityTier>(userCongregationId ? 'congregation' : 'public_anonymous');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-    useEffect(() => {
-        const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
-        const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
-
-        const showSub = Keyboard.addListener(showEvent, (event) => {
-            setKeyboardHeight(event.endCoordinates?.height ?? 0);
-        });
-
-        const hideSub = Keyboard.addListener(hideEvent, () => {
-            setKeyboardHeight(0);
-        });
-
-        return () => {
-            showSub.remove();
-            hideSub.remove();
-        };
-    }, []);
-
     const footerBasePadding = Math.max(insets.bottom, 12);
-    const footerKeyboardOffset = Platform.OS === 'android' ? keyboardHeight : 0;
-    const footerHeightEstimate = 92;
 
     const handleSubmit = async () => {
         if (!requestText.trim()) {
@@ -66,7 +67,7 @@ export default function NewPrayerScreen() {
                 visibility,
                 congregationId: userCongregationId
             });
-            
+
             router.back();
         } catch (err: any) {
             setError(err.message || "Something went wrong. Please try again.");
@@ -74,61 +75,23 @@ export default function NewPrayerScreen() {
         }
     };
 
-    const VisibilityCard = ({ 
-        tier, title, description, icon: Icon, disabled = false 
-    }: { 
-        tier: VisibilityTier; title: string; description: string; icon: any; disabled?: boolean;
-    }) => {
-        const isSelected = visibility === tier;
-        
-        return (
-            <TouchableOpacity 
-                activeOpacity={0.8}
-                disabled={disabled}
-                onPress={() => setVisibility(tier)}
-                className={`p-4 mb-3 rounded-2xl border-2 flex-row items-start gap-4 transition-all ${
-                    disabled ? 'opacity-40 border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50' :
-                    isSelected 
-                        ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20' 
-                        : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-[#1E293B]'
-                }`}
-            >
-                <View className={`p-3 rounded-full mt-1 ${isSelected ? 'bg-indigo-500' : 'bg-slate-100 dark:bg-slate-800'}`}>
-                    <Icon size={20} color={isSelected ? 'white' : theme.text} />
-                </View>
-                <View className="flex-1">
-                    <Text className={`font-bold text-base mb-1 ${isSelected ? 'text-indigo-900 dark:text-indigo-300' : 'text-slate-900 dark:text-white'}`}>
-                        {title}
-                    </Text>
-                    <Text className={`text-xs leading-tight ${isSelected ? 'text-indigo-700/80 dark:text-indigo-300/80' : 'text-slate-500 dark:text-slate-400'}`}>
-                        {description}
-                    </Text>
-                </View>
-                {isSelected && (
-                    <View className="absolute top-4 right-4">
-                        <CheckCircle2 size={20} color="#6366f1" />
-                    </View>
-                )}
-            </TouchableOpacity>
-        );
-    };
-
     return (
-        <KeyboardAvoidingView 
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+            keyboardVerticalOffset={headerHeight}
             style={{ flex: 1, backgroundColor: theme.background }}
         >
             <Stack.Screen options={{ title: 'Share a Prayer Need', headerBackTitle: 'Back' }} />
-            
+
             <ScrollView
                 className="flex-1"
                 contentContainerStyle={{
                     padding: 20,
-                    paddingBottom: footerHeightEstimate + footerBasePadding + 20,
+                    paddingBottom: 20,
                 }}
                 keyboardShouldPersistTaps="handled"
             >
-                
+
                 {error && (
                     <View className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 p-4 rounded-xl mb-6">
                         <Text className="text-red-600 dark:text-red-400 font-medium text-sm">{error}</Text>
@@ -149,7 +112,7 @@ export default function NewPrayerScreen() {
                         multiline
                         numberOfLines={4}
                         placeholder="Type or hold the mic to speak..."
-                        placeholderTextColor="#94A3B8"
+                        placeholderTextColor={theme.mutedForeground}
                         value={requestText}
                         onChangeText={setRequestText}
                         editable={!isSubmitting}
@@ -163,10 +126,12 @@ export default function NewPrayerScreen() {
                         <View className="flex-row items-center gap-3">
                             <AudioMicButton
                                 onTranscription={(text) => setRequestText((prev) => prev ? prev + ' ' + text : text)}
-                                tintColor="#6366f1" // Indigo to match the selected state
+                                tintColor={theme.tint}
+                                accessibilityLabel="Hold to record your prayer request"
+                                disabled={isSubmitting}
                             />
-                            <Text style={{ color: '#94A3B8', fontSize: 12 }}>
-                                {requestText.length > 0 ? `${requestText.length} chars` : 'Hold to record'}
+                            <Text style={{ color: theme.mutedForeground, fontSize: 13 }}>
+                                Hold to record
                             </Text>
                         </View>
                     </View>
@@ -176,24 +141,27 @@ export default function NewPrayerScreen() {
                     Who should see this?
                 </Text>
 
-                <VisibilityCard 
+                <VisibilityCard
                     tier="pastor"
+                    selected={visibility === 'pastor'} theme={theme} onSelect={setVisibility}
                     title="To My Pastor (Private)"
                     description="Shared only with the pastoral team. Your name will be attached so they can follow up and care for you."
                     icon={ShieldCheck}
                     disabled={!userCongregationId}
                 />
 
-                <VisibilityCard 
+                <VisibilityCard
                     tier="congregation"
+                    selected={visibility === 'congregation'} theme={theme} onSelect={setVisibility}
                     title="To My Church Family"
                     description="Shared with your local church's prayer wall. Your name will be visible so your church family can support you."
                     icon={Users}
                     disabled={!userCongregationId}
                 />
 
-                <VisibilityCard 
+                <VisibilityCard
                     tier="public_anonymous"
+                    selected={visibility === 'public_anonymous'} theme={theme} onSelect={setVisibility}
                     title="To The Public (Anonymous)"
                     description="Shared globally. Your name and photo will be hidden. Anyone on the app can pray for this."
                     icon={Globe}
@@ -209,29 +177,28 @@ export default function NewPrayerScreen() {
 
             {/* Sticky Submit Button */}
             <View
-                className="px-5 pt-4 border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-black"
+                className="px-5 pt-4 border-t"
                 style={{
-                    position: 'absolute',
-                    left: 0,
-                    right: 0,
-                    bottom: footerKeyboardOffset,
+                    backgroundColor: theme.background,
+                    borderColor: theme.border,
                     paddingBottom: footerBasePadding,
                 }}
             >
-                <TouchableOpacity 
+                <TouchableOpacity
                     onPress={handleSubmit}
                     disabled={isSubmitting || !requestText.trim()}
-                    className={`p-4 rounded-xl items-center flex-row justify-center shadow-lg ${
-                        isSubmitting || !requestText.trim() ? 'bg-indigo-400' : 'bg-indigo-600'
-                    }`}
+                    accessibilityRole="button"
+                    accessibilityState={{ disabled: isSubmitting || !requestText.trim(), busy: isSubmitting }}
+                    className="p-4 rounded-xl items-center flex-row justify-center"
+                    style={{ minHeight: 52, backgroundColor: theme.action, opacity: isSubmitting || !requestText.trim() ? 0.45 : 1 }}
                 >
                     {isSubmitting ? (
                         <>
-                            <ActivityIndicator color="white" className="mr-2" />
-                            <Text className="text-white font-bold text-lg">Submitting...</Text>
+                            <ActivityIndicator color={theme.onAction} className="mr-2" />
+                            <Text className="font-bold text-lg" style={{ color: theme.onAction }}>Submitting...</Text>
                         </>
                     ) : (
-                        <Text className="text-white font-bold text-lg">Share Prayer Request</Text>
+                        <Text className="font-bold text-lg" style={{ color: theme.onAction }}>Share Prayer Request</Text>
                     )}
                 </TouchableOpacity>
             </View>

@@ -1,15 +1,19 @@
+import ScreenState from '@/components/ScreenState';
+import ReadingContent from '@/components/ReadingContent';
+import ReadingControls from '@/components/ReadingControls';
+import { Layout } from '@/constants/Layout';
 import ScriptureLinkifier from '@/components/ScriptureLinkifier';
 import SpotifyTrackCard from '@/components/SpotifyTrackCard';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { fetchDevotionalById, recommendSpotifyTrack, SpotifyTrack } from '@/lib/api';
+import { devotionalShareText } from '@/lib/contentShare';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
-import { ArrowLeft, BookOpen, Play, Share2, Square } from 'lucide-react-native';
+import { ArrowLeft, Share2 } from 'lucide-react-native';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { ActivityIndicator, Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
-import Markdown from 'react-native-markdown-display';
+import { Platform, Pressable, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import RNShare from 'react-native-share';
 import ViewShot from 'react-native-view-shot';
@@ -21,7 +25,6 @@ type ShortFormSlide = {
 
 export default function DevotionalDetailScreen() {
     const { id } = useLocalSearchParams();
-    console.log("Devotional ID:", id);
     const router = useRouter();
     const { showActionSheetWithOptions } = useActionSheet();
     const colorScheme = useColorScheme() ?? 'light';
@@ -32,6 +35,14 @@ export default function DevotionalDetailScreen() {
     const [recommendedTrack, setRecommendedTrack] = useState<SpotifyTrack | null>(null);
     const [loading, setLoading] = useState(true);
     const [isSpeaking, setIsSpeaking] = useState(false);
+    const [loadError, setLoadError] = useState(false);
+    const [loadAttempt, setLoadAttempt] = useState(0);
+    const readingContent = useMemo(() => {
+        const content = devotional?.content || '';
+        const match = content.match(/^\s*#{1,6}\s+(.+?)\s*\n/);
+        return match && match[1].trim().toLowerCase() === devotional?.title?.trim().toLowerCase()
+            ? content.slice(match[0].length).trimStart() : content;
+    }, [devotional?.content, devotional?.title]);
 
     const shortFormSlides = useMemo<ShortFormSlide[]>(() => {
         const slides = devotional?.short_form?.slides;
@@ -46,30 +57,33 @@ export default function DevotionalDetailScreen() {
     }, [devotional?.short_form]);
 
     useEffect(() => {
+        let active = true;
+        setLoading(true);
+        setLoadError(false);
+        setRecommendedTrack(null);
         async function load() {
-            if (id) {
-                const data = await fetchDevotionalById(id as string);
-                console.log("Fetched Devotional Data:", data);
-                if (data?.content) {
-                    //data.content includes \n for new lines. Let's handle that here
-                    data.content = data.content.replace(/\\n/g, '\n');
-                }
-                setDevotional(data);
+            try {
+                const data = id ? await fetchDevotionalById(String(id)) : null;
+                if (!active) return;
+                const normalized = data ? { ...data, content: data.content?.replace(/\\n/g, '\n') } : null;
+                setDevotional(normalized);
                 setLoading(false);
-
-                if (data) {
+                if (normalized) {
                     const track = await recommendSpotifyTrack({
-                        query: data.song_title || undefined,
-                        title: data.title,
-                        scripture: data.scripture,
-                        content: data.content,
-                    });
-                    setRecommendedTrack(track);
+                        query: normalized.song_title || undefined,
+                        title: normalized.title,
+                        scripture: normalized.scripture,
+                        content: normalized.content,
+                    }).catch(() => null);
+                    if (active) setRecommendedTrack(track);
                 }
+            } catch {
+                if (active) { setLoadError(true); setLoading(false); }
             }
         }
         load();
-    }, [id]);
+        return () => { active = false; Speech.stop(); };
+    }, [id, loadAttempt]);
 
     useEffect(() => {
         return () => {
@@ -80,7 +94,7 @@ export default function DevotionalDetailScreen() {
     const handleShare = async () => {
         if (!devotional) return;
         const options = shortFormSlides.length === 3
-            ? ['Instagram story gallery', 'Instagram post gallery', 'Share devotional text', 'Cancel']
+            ? ['Instagram story gallery', 'Instagram post gallery', 'Share quick takeaway', 'Share devotional text', 'Cancel']
             : ['Share devotional text', 'Cancel'];
         const cancelButtonIndex = options.length - 1;
 
@@ -103,15 +117,15 @@ export default function DevotionalDetailScreen() {
                     return;
                 }
 
-                await shareText();
+                await shareText(shortFormSlides.length !== 3 || selectedIndex === 3);
             }
         );
     };
 
-    const shareText = async () => {
+    const shareText = async (full = false) => {
         try {
             await Share.share({
-                message: `${devotional.title}\n\n"${devotional.scripture}"\n\n${devotional.content}\n\nShared via Sanctuary App`,
+                message: devotionalShareText({ ...devotional, slides: shortFormSlides }, full),
             });
         } catch (error) {
             console.error(error);
@@ -172,33 +186,18 @@ export default function DevotionalDetailScreen() {
         }
     };
 
-    if (loading) {
-        return (
-            <View className="flex-1 items-center justify-center bg-background">
-                <ActivityIndicator size="large" color={theme.tint} />
-            </View>
-        );
-    }
-
-    if (!devotional) {
-        return (
-            <View className="flex-1 items-center justify-center p-4">
-                <Text style={{ color: theme.text }}>Devotional not found.</Text>
-                <Pressable onPress={() => router.back()} className="mt-4 p-2">
-                    <Text style={{ color: theme.tint }}>Go Back</Text>
-                </Pressable>
-            </View>
-        );
-    }
+    if (loading) return <ScreenState title="Opening devotional" message="Preparing your reflection." loading />;
+    if (loadError) return <ScreenState title="Devotional unavailable" message="We couldn’t load this reflection. Please try again." onRetry={() => setLoadAttempt(attempt => attempt + 1)} />;
+    if (!devotional) return <ScreenState title="Devotional not found" message="This reflection is no longer available." actionLabel="Back to Sanctuary" onRetry={() => router.dismissTo('/')} />;
 
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['top', 'bottom']}>
-            <View className="flex-row items-center justify-between px-4 py-2 border-b border-gray-100 dark:border-gray-800">
-                <Pressable onPress={() => router.back()} className="p-2">
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 8, borderBottomWidth: 1, borderBottomColor: theme.border }}>
+                <Pressable onPress={() => router.canGoBack() ? router.back() : router.replace('/')} accessibilityRole="button" accessibilityLabel="Back" style={{ padding: 12 }}>
                     <ArrowLeft size={24} color={theme.text} />
                 </Pressable>
                 <Text style={{ color: theme.text, fontWeight: 'bold' }}>Devotional</Text>
-                <Pressable onPress={handleShare} className="p-2">
+                <Pressable onPress={handleShare} accessibilityRole="button" accessibilityLabel="Share devotional" style={{ padding: 12 }}>
                     <Share2 size={24} color={theme.text} />
                 </Pressable>
             </View>
@@ -239,72 +238,32 @@ export default function DevotionalDetailScreen() {
             )}
             
             <ScrollView contentContainerStyle={{ padding: 20 }}>
-                 <View className="items-center mb-8">
-                    <View className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 items-center justify-center mb-4">
-                        <BookOpen size={24} color="#d97706" />
-                    </View>
-                    <Text className="text-3xl font-serif font-bold text-center mb-2 leading-tight" style={{ color: theme.text }}>
+                <View style={{ marginBottom: 24 }}>
+                    <Text accessibilityRole="header" style={{ fontSize: 28, lineHeight: 36, fontFamily: Layout.serif, fontWeight: '700', color: theme.text }}>
                         {devotional.title}
                     </Text>
-                    <Text className="text-center font-serif italic opacity-70" style={{ color: theme.text }}>
-                        {new Date(devotional.created_at).toLocaleDateString(undefined, {
-                            weekday: 'long',
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric'
-                        })}
-                    </Text>
+                    {devotional.created_at && !Number.isNaN(new Date(devotional.created_at).getTime()) && <Text style={{ fontSize: 14, lineHeight: 21, color: theme.mutedForeground, marginTop: 12 }}>
+                        {new Date(devotional.created_at).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                    </Text>}
                 </View>
+                {devotional.scripture && <View style={{ backgroundColor: theme.accentSoft, borderLeftWidth: 3, borderLeftColor: theme.tint, padding: 20, borderRadius: 16, marginBottom: 24 }}>
+                    <ScriptureLinkifier text={devotional.scripture} />
+                </View>}
 
-                {/* Scripture Card */}
-                <View className="bg-amber-50 dark:bg-slate-900 border-l-4 border-amber-500 p-6 rounded-r-xl mb-8">
-                    <ScriptureLinkifier
-                        text={devotional.scripture}
-                    />
-                </View>
-
-                {/* Audio Controls */}
-                <View className="flex-row items-center mb-8 justify-center">
-                   <Pressable 
-                        onPress={handleSpeak}
-                        className="flex-row items-center px-6 py-3 rounded-full"
-                        style={{ backgroundColor: isSpeaking ? Colors.gray : theme.tint }}
-                   >
-                        {isSpeaking ? 
-                            <Square size={18} color={theme.background} fill={theme.background} /> : 
-                            <Play size={18} color={theme.background} fill={theme.background} />
-                        }
-                        <Text className="font-bold ml-2" style={{ color: theme.background }}>
-                            {isSpeaking ? "Stop Reading" : "Listen to Devotional"}
-                        </Text>
-                   </Pressable>
-                </View>
+                <View style={{ marginBottom: 24 }}><ReadingControls speaking={isSpeaking} onPress={handleSpeak} label="Listen to devotional" theme={theme} /></View>
 
                 <SpotifyTrackCard track={recommendedTrack} theme={theme} />
 
                 {/* Content */}
                 <View className="mb-10">
-                    <Markdown
-                        style={{
-                            body: { color: theme.text, fontSize: 17, lineHeight: 26, fontFamily: 'serif' },
-                            paragraph: { marginTop: 0, marginBottom: 14 },
-                            strong: { fontWeight: '700' },
-                            em: { fontStyle: 'italic' },
-                            bullet_list: { marginVertical: 8 },
-                            ordered_list: { marginVertical: 8 },
-                            list_item: { color: theme.text, fontSize: 17, lineHeight: 24 },
-                            link: { color: theme.tint },
-                        }}
-                    >
-                        {devotional.content}
-                    </Markdown>
+                    <ReadingContent content={readingContent} horizontalPadding={24} />
                 </View>
 
                 {/* Prayer Section */}
                 {devotional.prayer && (
-                     <View className="bg-blue-50 dark:bg-slate-900 p-6 rounded-xl mb-10 border border-blue-100 dark:border-slate-800">
-                        <Text className="text-xs font-bold text-blue-600 uppercase tracking-wider mb-3 text-center">Prayer for Today</Text>
-                        <Text className="text-lg font-serif text-slate-800 dark:text-slate-200 leading-relaxed italic text-center">
+                     <View style={{ backgroundColor: theme.card, padding: 20, borderRadius: 20, marginBottom: 24, borderWidth: 1, borderColor: theme.border }}>
+                        <Text accessibilityRole="header" style={{ fontSize: 16, fontWeight: '600', color: theme.tint, marginBottom: 12 }}>Prayer for Today</Text>
+                        <Text style={{ fontSize: 17, lineHeight: 28, fontFamily: Layout.serif, color: theme.text, fontStyle: 'italic' }}>
                             "{devotional.prayer}"
                         </Text>
                     </View>

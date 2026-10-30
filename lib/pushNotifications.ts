@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
 import { router } from 'expo-router';
 import { supabase } from './supabase';
-import { recordNotificationOpen } from './api';
+import { recordNotificationOpen, registerNotificationCapabilities } from './api';
 
 const LEGACY_NOTIFICATION_CLEANUP_KEY = 'notification-migration:server-scheduling-v1';
 
@@ -34,15 +34,9 @@ async function registerForPushNotificationsAsync() {
 
   if (Device.isDevice) {
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
-    let finalStatus = existingStatus;
-    if (existingStatus !== 'granted') {
-      const { status } = await Notifications.requestPermissionsAsync();
-      finalStatus = status;
-    }
-    if (finalStatus !== 'granted') {
-      handleRegistrationError('Permission not granted to get push token for push notification!');
-      return;
-    }
+    // Mount/foreground/token refresh must never prompt for permission. The
+    // existing onboarding Enable Notifications action requests it explicitly.
+    if (existingStatus !== 'granted') return;
     const projectId =
       Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
     if (!projectId) {
@@ -64,7 +58,9 @@ async function registerForPushNotificationsAsync() {
       handleRegistrationError(`${e}`);
     }
   } else {
-    handleRegistrationError('Must use physical device for push notifications');
+    // Push tokens are unavailable in simulators. This is an expected capability
+    // difference, not an error the user needs to resolve.
+    return undefined;
   }
 }
 
@@ -93,6 +89,7 @@ export const usePushNotifications = () => {
     const responseListener = useRef<Notifications.EventSubscription | null>(null);
     const tokenListener = useRef<Notifications.EventSubscription | null>(null);
     const registrationInProgress = useRef(false);
+    const lastResponseId = useRef<string | null>(null);
 
     const refreshPushToken = useCallback(async () => {
       if (registrationInProgress.current) return;
@@ -127,16 +124,27 @@ export const usePushNotifications = () => {
         setNotification(notification);
       });
   
-      responseListener.current = Notifications.addNotificationResponseReceivedListener(response => {
+      let mounted = true;
+      const handleResponse = (response: Notifications.NotificationResponse) => {
+        if (!mounted) return;
+        const responseId = `${response.notification.request.identifier}:${response.actionIdentifier}`;
+        if (lastResponseId.current === responseId) return;
+        lastResponseId.current = responseId;
         const url = response.notification.request.content.data?.url;
         const deliveryId = response.notification.request.content.data?.notificationDeliveryId;
         if (typeof deliveryId === 'string') void recordNotificationOpen(deliveryId);
-        if (typeof url === 'string' && url.startsWith('/')) {
+        if (typeof url === 'string' && url.startsWith('/') && !url.startsWith('//')) {
           router.push(url as never);
         }
-      });
+        void Notifications.clearLastNotificationResponseAsync().catch(() => undefined);
+      };
+      responseListener.current = Notifications.addNotificationResponseReceivedListener(handleResponse);
+      if (Platform.OS !== 'web') void Notifications.getLastNotificationResponseAsync().then(response => {
+        if (response) handleResponse(response);
+      }).catch(error => console.warn('Initial notification response unavailable:', error));
   
       return () => {
+        mounted = false;
         appStateListener.remove();
         tokenListener.current?.remove();
         notificationListener.current &&
@@ -172,5 +180,7 @@ export const usePushNotifications = () => {
         return;
     }
 
+    try {await registerNotificationCapabilities(token,Constants.expoConfig?.version || 'unknown');}
+    catch {console.warn('Trivia notification capabilities are not registered yet.');}
     console.log('Push token saved to profile:', data.user_id);
   };

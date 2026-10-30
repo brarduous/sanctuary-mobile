@@ -1,0 +1,17 @@
+{
+  "buildId": "4a6720ca-4ec3-4c2d-a575-3c9e0fe154c6",
+  "version": "1.2.11",
+  "versionCode": 137,
+  "sha256": "f70a9505c8af8d9a0503f561dc25aa90271192f93d619193ced1df308000a531",
+  "bytes": 97139382,
+  "abis": [
+    "arm64-v8a"
+  ],
+  "checks": {
+    "productionApi": true,
+    "productionDatabase": true,
+    "stagingDatabase": false,
+    "qaEndpoint": false
+  },
+  "sourceManifest": "replacement-source-manifest.json"
+}

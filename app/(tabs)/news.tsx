@@ -1,5 +1,6 @@
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
+import ScreenState from '@/components/ScreenState';
 import { useAuth } from '@/context/AuthContext';
 import {
     fetchCategories,
@@ -40,11 +41,18 @@ type Article = {
     id: number;
     article_title: string;
     created_at: string;
+    publish_date?: string | null;
     article_thumbnail_url?: string;
     ai_outlook?: {
         synopsis?: string;
     };
 };
+
+function ArticleThumbnail({ uri }: { uri: string }) {
+    const [failed, setFailed] = useState(false);
+    if (failed) return null;
+    return <Image source={{ uri }} onError={() => setFailed(true)} style={{ width: 80, height: 80, borderRadius: 12 }} contentFit="cover" transition={200} />;
+}
 
 export default function NewsScreen() {
     const { user } = useAuth();
@@ -69,6 +77,7 @@ export default function NewsScreen() {
     const [hasMore, setHasMore] = useState(true);
     const [page, setPage] = useState(1);
     const [refreshing, setRefreshing] = useState(false);
+    const [feedError, setFeedError] = useState(false);
 
     // Initial Load
     const initData = useCallback(async () => {
@@ -113,6 +122,7 @@ export default function NewsScreen() {
 
         if (!append) setLoadingArticles(true);
         else setLoadingMore(true);
+        setFeedError(false);
 
         try {
             const data = await fetchNewsArticles(params);
@@ -126,8 +136,9 @@ export default function NewsScreen() {
             } else {
                 setArticles(newArticles);
             }
-        } catch (e) {
-            console.error(e);
+        } catch {
+            setFeedError(true);
+            setHasMore(false);
         } finally {
             setLoadingArticles(false);
             setLoadingMore(false);
@@ -161,6 +172,14 @@ export default function NewsScreen() {
         fetchFeed(activeFilter, searchQuery, 1, userCategoryIds);
     };
 
+    const browseAllNews = () => {
+        setSearchQuery('');
+        setActiveFilter('all');
+        setPage(1);
+        setHasMore(true);
+        void fetchFeed('all', '', 1, userCategoryIds);
+    };
+
     const loadMore = () => {
         if (!hasMore || loadingMore || loadingArticles) return;
         const nextPage = page + 1;
@@ -173,6 +192,10 @@ export default function NewsScreen() {
         const now = new Date();
         const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
+        if (Number.isNaN(date.getTime())) return '';
+        if (diffInSeconds < 0) return date.toLocaleDateString();
+        if (diffInSeconds < 60) return 'Just now';
+
         if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
         if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
         if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
@@ -182,16 +205,16 @@ export default function NewsScreen() {
 
     // Components
     const renderHeader = () => (
-        <View className="px-5 pt-4 pb-2" style={{ backgroundColor: 'transparent' }}>
+        <View className="px-5 pt-4 pb-2" style={{ backgroundColor: theme.background }}>
             {loadingSynopsis ? (
-                <View className="rounded-[24px] p-6 h-40 items-center justify-center border " style={{ backgroundColor: theme.card }}>
+                <View className="rounded-[24px] p-6 h-40 items-center justify-center border " style={{ backgroundColor: theme.card, borderColor: theme.border }}>
                     <ActivityIndicator color="#D4A373" />
                 </View>
             ) : synopsis ? (
-                <View className="rounded-[24px] border  p-6 mb-2" style={{ backgroundColor: theme.card }}>
+                <View className="rounded-[24px] border  p-6 mb-2" style={{ backgroundColor: theme.card, borderColor: theme.border }}>
                     <View className="flex-row justify-between items-start mb-4">
-                        <Text className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Daily Outlook</Text>
-                        <Text className="text-[10px] text-slate-400">
+                        <Text className="text-xs font-bold uppercase tracking-widest" style={{ color: theme.mutedForeground }}>Daily Outlook</Text>
+                        <Text className="text-xs" style={{ color: theme.mutedForeground }}>
                             {new Date(synopsis.created_at).toLocaleDateString()}
                         </Text>
                     </View>
@@ -200,7 +223,7 @@ export default function NewsScreen() {
                         {synopsis.synopsis}
                     </Text>
                     {synopsis.scripture && (
-                        <View className="mt-4 pt-4 border-t  flex-row gap-2">
+                        <View className="mt-4 pt-4 border-t  flex-row gap-2" style={{ borderColor: theme.border }}>
                             <BookOpen size={16} color="#64748B" className="mt-0.5" />
                             <Text className="text-xs italic text-slate-500 font-medium flex-1">
                                 {synopsis.scripture}
@@ -213,9 +236,9 @@ export default function NewsScreen() {
     );
 
     const renderStickyHeader = () => (
-        <View style={{ backgroundColor: `${theme.background}F2` }} className="px-5 pt-2 pb-4 border-b  backdrop-blur-md">
+        <View style={{ backgroundColor: theme.background, borderColor: theme.border }} className="px-5 pt-2 pb-4 border-b">
             {/* Search */}
-            <View className="border border-slate-200 rounded-xl flex-row items-center px-4 h-11 mb-3" style={{ backgroundColor: theme.card }}>
+            <View className="border border-slate-200 rounded-xl flex-row items-center px-4 h-11 mb-3" style={{ backgroundColor: theme.card, borderColor: theme.border }}>
                 <Search size={16} color="#94A3B8" />
                 <TextInput
                     placeholder="Search articles..."
@@ -238,10 +261,10 @@ export default function NewsScreen() {
                                 ? 'bg-slate-900 border-slate-900'
                                 : 'border-slate-200'
                             }`}
-                        style={activeFilter !== 'my_feed' ? { backgroundColor: theme.card } : undefined}
+                        style={{ minHeight: 44, justifyContent: 'center', backgroundColor: activeFilter === 'my_feed' ? theme.tint : theme.card, borderColor: activeFilter === 'my_feed' ? theme.tint : theme.border }}
                     >
                         <Text className={`text-xs font-bold ${activeFilter === 'my_feed' ? 'text-white' : ''
-                            }`} style={activeFilter !== 'my_feed' ? { color: theme.text } : undefined}>My Feed</Text>
+                            }`} style={{ color: activeFilter === 'my_feed' ? theme.onTint : theme.text }}>My Feed</Text>
                     </Pressable>
                 )}
 
@@ -251,10 +274,10 @@ export default function NewsScreen() {
                             ? 'bg-slate-900 border-slate-900'
                             : 'border-slate-200'
                         }`}
-                    style={activeFilter !== 'all' ? { backgroundColor: theme.card } : undefined}
+                    style={{ minHeight: 44, justifyContent: 'center', backgroundColor: activeFilter === 'all' ? theme.tint : theme.card, borderColor: activeFilter === 'all' ? theme.tint : theme.border }}
                 >
                     <Text className={`text-xs font-bold ${activeFilter === 'all' ? 'text-white' : ''
-                        }`} style={activeFilter !== 'all' ? { color: theme.text } : undefined}>All News</Text>
+                        }`} style={{ color: activeFilter === 'all' ? theme.onTint : theme.text }}>All News</Text>
                 </Pressable>
 
                 {categories.map(cat => (
@@ -265,10 +288,10 @@ export default function NewsScreen() {
                                 ? 'bg-slate-900 border-slate-900'
                                 : 'border-slate-200'
                             } ${userCategoryIds.includes(cat.id) ? 'border-l-4 border-l-[#D4A373]' : ''}`}
-                        style={activeFilter !== cat.id.toString() ? { backgroundColor: theme.card } : undefined}
+                        style={{ minHeight: 44, justifyContent: 'center', backgroundColor: activeFilter === cat.id.toString() ? theme.tint : theme.card, borderColor: activeFilter === cat.id.toString() ? theme.tint : theme.border }}
                     >
                         <Text className={`text-xs font-bold ${activeFilter === cat.id.toString() ? 'text-white' : ''
-                            }`} style={activeFilter !== cat.id.toString() ? { color: theme.text } : undefined}>{cat.name}</Text>
+                            }`} style={{ color: activeFilter === cat.id.toString() ? theme.onTint : theme.text }}>{cat.name}</Text>
                     </Pressable>
                 ))}
             </ScrollView>
@@ -279,75 +302,56 @@ export default function NewsScreen() {
         <Pressable
             onPress={() => router.push(`/news/${item.id}` as any)}
             className="rounded-2xl p-4 border  flex-row gap-4 mt-4 mx-5 active:scale-[0.99]"
-            style={{ backgroundColor: theme.card }}
+            style={{ backgroundColor: theme.card, borderColor: theme.border }}
         >
-            {item.article_thumbnail_url ? (
-                <Image
-                    source={{ uri: item.article_thumbnail_url }}
-                    style={{ width: 90, height: 90, borderRadius: 12, backgroundColor: '#E2E8F0' }}
-                    contentFit="cover"
-                    transition={300}
-                />
-            ) : (
-                <View className="w-[90px] h-[90px] rounded-xl bg-slate-100 items-center justify-center">
-                    <BookOpen size={24} color="#CBD5E1" />
-                </View>
-            )}
+            {item.article_thumbnail_url ? <ArticleThumbnail key={item.article_thumbnail_url} uri={item.article_thumbnail_url} /> : null}
 
             <View className="flex-1 justify-between py-1">
                 <View>
-                    <Text className="font-serif font-bold leading-snug text-[15px] mb-2" numberOfLines={3} style={{ color: theme.text }}>
+                    <Text className="font-serif font-bold leading-snug text-base mb-2" numberOfLines={3} style={{ color: theme.text }}>
                         {item.article_title}
                     </Text>
                     <View className="flex-row items-center gap-1">
-                        <Calendar size={10} color="#94A3B8" />
-                        <Text className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                            {getRelativeTime(item.created_at)}
+                        <Calendar size={13} color={theme.mutedForeground} />
+                        <Text className="text-xs font-medium" style={{ color: theme.mutedForeground }}>
+                            {getRelativeTime(item.publish_date || item.created_at)}
                         </Text>
                     </View>
                 </View>
 
                 <View className="flex-row items-center mt-2">
-                    <Text className="text-[#D4A373] text-xs font-bold mr-1">Read Outlook</Text>
-                    <ChevronRight size={12} color="#D4A373" />
+                    <Text className="text-xs font-bold mr-1" style={{ color: theme.tint }}>Read Outlook</Text>
+                    <ChevronRight size={12} color={theme.tint} />
                 </View>
             </View>
         </Pressable>
     );
 
-    const listData = [{ id: 'sticky-header' } as any, ...articles];
-
     return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: 'transparent' }} edges={['top']}>
-            <Stack.Screen options={{ headerShown: false }} />
+        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['left', 'right']}>
+
 
             <FlatList
                 style={{ paddingVertical: 2 }}
-                data={listData}
+                data={articles}
                 keyExtractor={(item) => item.id.toString()}
-                renderItem={({ item, index }) => {
-                    if (index === 0) return renderStickyHeader();
-                    return renderArticle({ item });
-                }}
-                // ListHeaderComponent={renderHeader}
+                renderItem={renderArticle}
+                ListHeaderComponent={renderStickyHeader()}
                 stickyHeaderIndices={[0]}
                 onEndReached={loadMore}
                 onEndReachedThreshold={0.5}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D4A373" />}
                 ListEmptyComponent={
-                    loadingArticles ? (
-                        <View className="mt-8">
-                            <ActivityIndicator color="#D4A373" />
-                            <Text className="text-center text-slate-400 text-xs mt-2">Loading Articles...</Text>
-                        </View>
-                    ) : (
-                        <View className="py-20 items-center">
-                            <Text className="text-slate-400">No articles found.</Text>
-                        </View>
-                    )
+                    loadingArticles ? <ScreenState title="Loading articles" loading /> : feedError ?
+                        <ScreenState title="News unavailable" message="We couldn’t load these articles. Please try again." onRetry={handleSearch} /> :
+                        <ScreenState title="No articles found"
+                            message={searchQuery.trim() ? 'Try another search or browse all news.' : activeFilter!=='all' ? 'There are no articles here yet. Explore the latest from all topics.' : 'Check back for new articles.'}
+                            actionLabel={searchQuery.trim() || activeFilter!=='all' ? 'Browse all news':'Refresh news'}
+                            onRetry={searchQuery.trim() || activeFilter!=='all' ? browseAllNews:handleSearch}/>
                 }
                 ListFooterComponent={
-                    loadingMore ? <ActivityIndicator className="py-4" color="#D4A373" /> : (hasMore ? null : <View className="h-20" />)
+                    loadingMore ? <ActivityIndicator className="py-4" color={theme.tint} /> : feedError && articles.length > 0 ?
+                        <ScreenState title="More articles unavailable" message="Your loaded articles are still available. Try loading the next page again." onRetry={() => { void fetchFeed(activeFilter, searchQuery, page, userCategoryIds, true); }} /> : (hasMore ? null : <View className="h-20" />)
                 }
             />
         </SafeAreaView>

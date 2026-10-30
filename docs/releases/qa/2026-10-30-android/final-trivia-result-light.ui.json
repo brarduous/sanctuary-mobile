@@ -1,0 +1,128 @@
+[
+  {
+    "label": "Navigate up",
+    "bounds": "[0,95][158,253]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.widget.ImageButton"
+  },
+  {
+    "label": "Daily Trivia",
+    "bounds": "[202,136][477,212]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Bible",
+    "bounds": "[56,295][138,352]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Easy",
+    "bounds": "[917,295][995,352]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Correct. Correct answer: trees",
+    "bounds": "[56,665][1024,860]",
+    "clickable": true,
+    "enabled": false,
+    "class": "android.widget.Button"
+  },
+  {
+    "label": "Correct",
+    "bounds": "[205,696][988,753]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "trees",
+    "bounds": "[205,761][988,829]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Response time",
+    "bounds": "[56,1151][506,1208]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Win streak",
+    "bounds": "[574,1151][1024,1208]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "18.9s",
+    "bounds": "[56,1216][506,1299]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "1 day",
+    "bounds": "[574,1216][1024,1299]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Read Mark 8:22-26 in WEB in the Bible reader",
+    "bounds": "[104,1409][976,1533]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.view.View"
+  },
+  {
+    "label": "Mark 8:22-26",
+    "bounds": "[104,1436][807,1504]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "WEB",
+    "bounds": "[828,1442][905,1499]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Done",
+    "bounds": "[56,2064][526,2205]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.widget.Button"
+  },
+  {
+    "label": "Done",
+    "bounds": "[239,2100][342,2168]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Share result",
+    "bounds": "[554,2064][1024,2205]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.widget.Button"
+  },
+  {
+    "label": "Share result",
+    "bounds": "[703,2100][946,2168]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  }
+]

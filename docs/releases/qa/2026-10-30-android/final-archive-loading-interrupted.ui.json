@@ -1,0 +1,23 @@
+[
+  {
+    "label": "Navigate up",
+    "bounds": "[0,95][158,253]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.widget.ImageButton"
+  },
+  {
+    "label": "Daily Trivia",
+    "bounds": "[202,136][477,212]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Loading question",
+    "bounds": "[511,340][569,397]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.FrameLayout"
+  }
+]

@@ -1,0 +1,12 @@
+{
+  "platform": "android",
+  "version": "1.2.11",
+  "build": "137",
+  "commit": "b2fb713ff12bd66cdfc4a51e235f3a9d2ffd4788",
+  "aabSha256": "bce66015b2c14ef0aee5cdacf171abf2fc6193dd3643b91b5622a43d41169fd7",
+  "productionApiPresent": true,
+  "productionDatabasePresent": true,
+  "stagingDatabasePresent": false,
+  "loopbackQaApiPresent": false,
+  "dynamicTextReflowPresent": true
+}
