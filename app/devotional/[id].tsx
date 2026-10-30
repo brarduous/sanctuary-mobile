@@ -7,6 +7,7 @@ import SpotifyTrackCard from '@/components/SpotifyTrackCard';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { fetchDevotionalById, recommendSpotifyTrack, SpotifyTrack } from '@/lib/api';
+import { devotionalShareText } from '@/lib/contentShare';
 import { useActionSheet } from '@expo/react-native-action-sheet';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
@@ -93,7 +94,7 @@ export default function DevotionalDetailScreen() {
     const handleShare = async () => {
         if (!devotional) return;
         const options = shortFormSlides.length === 3
-            ? ['Instagram story gallery', 'Instagram post gallery', 'Share devotional text', 'Cancel']
+            ? ['Instagram story gallery', 'Instagram post gallery', 'Share quick takeaway', 'Share devotional text', 'Cancel']
             : ['Share devotional text', 'Cancel'];
         const cancelButtonIndex = options.length - 1;
 
@@ -116,15 +117,15 @@ export default function DevotionalDetailScreen() {
                     return;
                 }
 
-                await shareText();
+                await shareText(shortFormSlides.length !== 3 || selectedIndex === 3);
             }
         );
     };
 
-    const shareText = async () => {
+    const shareText = async (full = false) => {
         try {
             await Share.share({
-                message: `${devotional.title}\n\n"${devotional.scripture}"\n\n${devotional.content}\n\nShared via Sanctuary App`,
+                message: devotionalShareText({ ...devotional, slides: shortFormSlides }, full),
             });
         } catch (error) {
             console.error(error);

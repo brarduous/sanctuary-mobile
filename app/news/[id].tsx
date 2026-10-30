@@ -5,6 +5,7 @@ import ScriptureLinkifier from '@/components/ScriptureLinkifier';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
 import { fetchNewsById } from '@/lib/api';
+import { newsShareText } from '@/lib/contentShare';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Speech from 'expo-speech';
 import { ArrowLeft, Calendar, Share2 } from 'lucide-react-native';
@@ -68,14 +69,14 @@ export default function NewsDetailScreen() {
     const handleShare = async () => {
         if (!news) return;
         const outlook = getAiOutlook();
-        const references = scriptureReferences(outlook);
-        const content = outlook 
-            ? `Synopsis: ${outlook.synopsis || ''}\n\nOutlook: ${outlook.outlook || ''}${references ? `\n\nScripture: ${references}` : ''}`
-            : (news.article_title || news.headline);
-
         try {
             await Share.share({
-                message: `${news.article_title || news.headline}\n\n${content}\n\nRead more on Sanctuary.`,
+                message: newsShareText({
+                    title: news.article_title || news.headline,
+                    summary: outlook?.newsSummary || outlook?.synopsis,
+                    reflection: outlook?.thoughtToRemember,
+                    sourceUrl: news.article_url,
+                }),
             });
         } catch (error) {
             console.error(error);
@@ -173,7 +174,7 @@ export default function NewsDetailScreen() {
                             {/* Synopsis */}
                             {outlook.synopsis && (
                                 <View className="mb-6">
-                                    <Text style={{ color: theme.mutedForeground, fontSize: 13, lineHeight: 20, fontWeight: '700', letterSpacing: 1, marginBottom: 12 }}>SYNOPSIS</Text>
+                                    <Text style={{ color: theme.mutedForeground, fontSize: 13, lineHeight: 20, fontWeight: '700', letterSpacing: 1, marginBottom: 12 }}>THE QUICK READ</Text>
                                     <Text style={{ color: theme.text, fontFamily: Layout.serif, ...Layout.body }}>{outlook.synopsis}</Text>
                                     
                                 </View>
