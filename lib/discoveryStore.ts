@@ -7,7 +7,7 @@ export const discoveryProgressKey = (account: string | null) => `discovery:v1:pr
 const BUNDLE = 'discovery:v1:bundle';
 const roundIndex=(account:string|null)=>`discovery:v1:rounds:${account || 'guest'}`;
 const roundKey=(account:string|null,id:string,revision:number)=>`${roundIndex(account)}:${id}:${revision}`;
-const fromServer=(row:NonNullable<SyncResult['completion']>):DiscoveryCompletion=>({eventId:row.event_id,discoveryId:row.discovery_id,revision:row.revision,mode:row.mode,optionId:row.option_id,occurredAt:row.occurred_at,localDate:row.local_date,timeZone:row.time_zone,...(typeof row.elapsed_ms==='number' ? {elapsedMs:row.elapsed_ms}:{}),...(row.outcome ? {outcome:row.outcome}:{}),...(row.puzzle_date ? {puzzleDate:row.puzzle_date}:{})});
+const fromServer=(row:NonNullable<SyncResult['completion']>):DiscoveryCompletion=>({eventId:row.event_id,discoveryId:row.discovery_id,revision:row.revision,mode:row.mode,optionId:row.option_id,occurredAt:row.occurred_at,localDate:row.local_date,timeZone:row.time_zone,...(typeof row.elapsed_ms==='number' ? {elapsedMs:row.elapsed_ms}:{}),...(row.outcome ? {outcome:row.outcome}:{}),...(row.puzzle_date ? {puzzleDate:row.puzzle_date}:{}),...(row.set_position ? {setPosition:row.set_position}:{})});
 
 // This is the only writer. A single queue serializes read/modify/write and sync
 // acknowledgements so a concurrent tap cannot be lost when a request completes.

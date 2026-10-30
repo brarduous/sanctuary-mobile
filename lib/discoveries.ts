@@ -8,7 +8,7 @@ import type { Discovery, DiscoveryBundle, DiscoveryCompletion, SyncResult } from
 const BASE = `${process.env.EXPO_PUBLIC_BACKEND_URL || 'https://api.sanctuaryapp.us'}/api/v1/discoveries`;
 // Isolate simulator preview data from real account progress/outboxes. This is a
 // storage namespace only: it never bypasses authentication or publication rules.
-const localPreview=__DEV__ && ['http://127.0.0.1:4013','http://localhost:4013'].includes(process.env.EXPO_PUBLIC_BACKEND_URL || '');
+const localPreview=__DEV__ && ['http://127.0.0.1:4013','http://localhost:4013','http://127.0.0.1:4014','http://localhost:4014'].includes(process.env.EXPO_PUBLIC_BACKEND_URL || '');
 const storageKey=(key:string)=>localPreview ? `discovery-preview:${key}`:key;
 export const discoveryStore = createDiscoveryStore({
   getItem:key=>AsyncStorage.getItem(storageKey(key)),
@@ -27,8 +27,8 @@ async function request(path: string, options: RequestInit = {}, account?: string
     return await fetch(`${BASE}${path}`, { ...options, signal: controller.signal, headers: { 'Content-Type':'application/json', ...(session ? { Authorization:`Bearer ${session.access_token}` } : {}), ...options.headers } });
   } finally { clearTimeout(timeout); }
 }
-export async function fetchDiscoveryBundle(installationId: string, timeZone: string, etag?: string): Promise<DiscoveryBundle | null> {
-  const response = await request(`/bundle?installationId=${encodeURIComponent(installationId)}&timeZone=${encodeURIComponent(timeZone)}`,{headers:etag ? {'If-None-Match':`"${etag}"`} : {}});
+export async function fetchDiscoveryBundle(installationId: string, timeZone: string, etag?: string, date?:string): Promise<DiscoveryBundle | null> {
+  const response = await request(`/bundle?dailySet=1&installationId=${encodeURIComponent(installationId)}&timeZone=${encodeURIComponent(timeZone)}${date ? `&date=${encodeURIComponent(date)}`:''}`,{headers:etag ? {'If-None-Match':`"${etag}"`} : {}});
   if (response.status === 304) return null;
   if (!response.ok) throw new Error('Discoveries could not refresh. Your saved discoveries are still available.');
   const body: unknown = await response.json();

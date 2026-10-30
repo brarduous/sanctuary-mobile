@@ -94,7 +94,7 @@ export function DiscoveryProvider({children}: {children:React.ReactNode}) {
 
   const complete = useCallback(async (item:Discovery,mode:DiscoveryCompletion['mode'],optionId?:string,timing?:TriviaTiming) => {
     const owner = account;
-    const event:DiscoveryCompletion = {eventId:Crypto.randomUUID(),discoveryId:item.id,revision:item.revision,mode,optionId:optionId || null,occurredAt:new Date().toISOString(),localDate:discoveryLocalDate(),timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',outcome:mode==='answered' ? optionId===item.correctOptionId ? 'correct':'incorrect' : timing?.timedOut ? 'timeout':'revealed',puzzleDate:item.publicationDate,...timing};
+    const event:DiscoveryCompletion = {eventId:Crypto.randomUUID(),discoveryId:item.id,revision:item.revision,mode,optionId:optionId || null,occurredAt:new Date().toISOString(),localDate:discoveryLocalDate(),timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',outcome:mode==='answered' ? optionId===item.correctOptionId ? 'correct':'incorrect' : timing?.timedOut ? 'timeout':'revealed',puzzleDate:item.publicationDate,...(item.setPosition ? {setPosition:item.setPosition}:{}),...timing};
     const next = await discoveryStore.complete(owner,event);
     if (active.current === owner) setProgress(next);
     if (owner) void discoveryStore.sync(owner,discoverySessionId,events => sendDiscoveryCompletions(owner,events)).then(async () => {

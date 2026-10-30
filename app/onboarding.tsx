@@ -604,8 +604,8 @@ export default function OnboardingScreen() {
                                 <View style={{ height: 1, backgroundColor: theme.border, marginHorizontal: 16 }} />
                                 <NotificationToggle
                                     icon={<BookOpen size={20} color="#a67631" />}
-                                    title="Daily Trivia"
-                                    description="An evening nudge when you haven’t played today."
+                                    title="Trivia"
+                                    description="An evening nudge when your three questions aren’t finished."
                                     value={pushTrivia}
                                     onValueChange={setPushTrivia}
                                     theme={theme}

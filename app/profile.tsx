@@ -668,7 +668,7 @@ export default function ProfileScreen() {
                             <View className="mb-6 rounded-xl border border-slate-200 dark:border-slate-800" style={{backgroundColor:theme.card}}>
                                 {[
                                     ['Daily devotional','A quiet invitation to read and reflect',devotionalNotifications,setDevotionalNotifications],
-                                    ['Daily trivia','An evening reminder when you haven’t played',triviaNotifications,setTriviaNotifications],
+                                    ['Trivia','An evening reminder when your three questions aren’t finished',triviaNotifications,setTriviaNotifications],
                                     ['Wisdom check-in','An occasional invitation to seek guidance',adviceNotifications,setAdviceNotifications],
                                     ['Important news','High-impact stories through Scripture',newsNotifications,setNewsNotifications],
                                 ].map(([label,description,value,setter],index)=><View key={String(label)} className={`flex-row items-center gap-3 p-4 ${index ? 'border-t border-slate-200 dark:border-slate-800':''}`}>
