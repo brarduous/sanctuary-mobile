@@ -14,6 +14,14 @@
         "EXPO_PUBLIC_BACKEND_URL": "https://api.sanctuaryapp.us"
       }
     },
+    "device-qa": {
+      "extends": "production",
+      "distribution": "internal",
+      "autoIncrement": false,
+      "android": {
+        "buildType": "apk"
+      }
+    },
     "production": {
       "autoIncrement": true,
       "android": {
