@@ -1,0 +1,149 @@
+[
+  {
+    "label": "Sanctuary",
+    "bounds": "[45,152][263,217]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.view.View"
+  },
+  {
+    "label": "Open your profile",
+    "bounds": "[923,123][1046,247]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.widget.Button"
+  },
+  {
+    "label": "Friday, October 30",
+    "bounds": "[56,343][761,400]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Good Morning, Friend.",
+    "bounds": "[56,411][761,591]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.view.View"
+  },
+  {
+    "label": "Sign in",
+    "bounds": "[795,343][1024,467]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.widget.Button"
+  },
+  {
+    "label": "Sign in",
+    "bounds": "[840,371][979,439]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "JAMES 1:19",
+    "bounds": "[416,709][663,763]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "NIV",
+    "bounds": "[509,774][570,825]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Read full scripture passage",
+    "bounds": "[112,1435][809,1559]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.widget.Button"
+  },
+  {
+    "label": "Read full passage",
+    "bounds": "[278,1469][600,1523]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Share verse of the day",
+    "bounds": "[844,1435][968,1559]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.widget.Button"
+  },
+  {
+    "label": "Daily reflection",
+    "bounds": "[120,1689][421,1757]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.view.View"
+  },
+  {
+    "label": "General Edition",
+    "bounds": "[741,1694][995,1751]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Home",
+    "bounds": "[0,2071][270,2205]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.view.View"
+  },
+  {
+    "label": "Home",
+    "bounds": "[93,2163][177,2205]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Bible",
+    "bounds": "[270,2071][540,2205]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.view.View"
+  },
+  {
+    "label": "Bible",
+    "bounds": "[370,2163][440,2205]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Guidance",
+    "bounds": "[540,2071][810,2205]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.view.View"
+  },
+  {
+    "label": "Guidance",
+    "bounds": "[610,2163][740,2205]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "News",
+    "bounds": "[810,2071][1080,2205]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.view.View"
+  },
+  {
+    "label": "News",
+    "bounds": "[906,2163][984,2205]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  }
+]

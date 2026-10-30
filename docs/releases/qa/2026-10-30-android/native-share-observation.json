@@ -1,0 +1,13 @@
+{
+  "sharePayload": "I answered Sanctuary trivia correctly today!\nhttps://sanctuaryapp.us/discoveries",
+  "chooserOpened": true,
+  "returnedToSameResult": true,
+  "sentOrCopied": false,
+  "afterDismiss": [
+    "Daily Trivia",
+    "18.9s",
+    "1 day",
+    "Share result",
+    "Share result"
+  ]
+}

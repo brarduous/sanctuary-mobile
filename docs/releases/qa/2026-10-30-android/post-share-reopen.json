@@ -1,0 +1,14 @@
+[
+  {
+    "attempt": 1,
+    "seconds": 2.6,
+    "savedResultVisible": true,
+    "downloadError": false
+  },
+  {
+    "attempt": 2,
+    "seconds": 2.7,
+    "savedResultVisible": true,
+    "downloadError": false
+  }
+]

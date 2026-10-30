@@ -1,0 +1,58 @@
+[
+  {
+    "label": "Navigate up",
+    "bounds": "[0,95][158,253]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.widget.ImageButton"
+  },
+  {
+    "label": "Daily Trivia",
+    "bounds": "[202,136][477,212]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Bible",
+    "bounds": "[56,295][138,352]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Easy",
+    "bounds": "[917,295][995,352]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "20 seconds",
+    "bounds": "[56,613][1024,709]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.view.View"
+  },
+  {
+    "label": "Wrong choices disappear as you play.",
+    "bounds": "[56,754][1024,819]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Start question",
+    "bounds": "[56,865][1024,1006]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.widget.Button"
+  },
+  {
+    "label": "Start question",
+    "bounds": "[397,901][682,969]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  }
+]

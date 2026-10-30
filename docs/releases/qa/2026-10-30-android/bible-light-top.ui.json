@@ -1,0 +1,135 @@
+[
+  {
+    "label": "Choose book and chapter",
+    "bounds": "[39,153][166,280]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.widget.Button"
+  },
+  {
+    "label": "Genesis 1",
+    "bounds": "[433,115][647,184]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Choose translation, current version WEB",
+    "bounds": "[445,195][635,319]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.widget.Button"
+  },
+  {
+    "label": "WEB \u25bc",
+    "bounds": "[478,231][600,282]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Reading settings",
+    "bounds": "[914,153][1041,280]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.widget.Button"
+  },
+  {
+    "label": "1\u00a0In the beginning, God created the heavens and the earth.",
+    "bounds": "[56,397][1024,549]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "3\u00a0God said, \u201cLet there be light,\u201d and there was light.",
+    "bounds": "[56,932][1024,1084]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Prev",
+    "bounds": "[39,1908][248,2024]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.view.ViewGroup"
+  },
+  {
+    "label": "Prev",
+    "bounds": "[136,1938][218,1992]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Ch. 2",
+    "bounds": "[822,1908][1041,2024]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.view.ViewGroup"
+  },
+  {
+    "label": "Ch. 2",
+    "bounds": "[851,1938][943,1992]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Home",
+    "bounds": "[0,2071][270,2205]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.view.View"
+  },
+  {
+    "label": "Home",
+    "bounds": "[93,2163][177,2205]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Bible",
+    "bounds": "[270,2071][540,2205]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.view.View"
+  },
+  {
+    "label": "Bible",
+    "bounds": "[370,2163][440,2205]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "Guidance",
+    "bounds": "[540,2071][810,2205]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.view.View"
+  },
+  {
+    "label": "Guidance",
+    "bounds": "[610,2163][740,2205]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  },
+  {
+    "label": "News",
+    "bounds": "[810,2071][1080,2205]",
+    "clickable": true,
+    "enabled": true,
+    "class": "android.view.View"
+  },
+  {
+    "label": "News",
+    "bounds": "[906,2163][984,2205]",
+    "clickable": false,
+    "enabled": true,
+    "class": "android.widget.TextView"
+  }
+]

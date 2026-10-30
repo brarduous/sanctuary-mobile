@@ -1,0 +1,31 @@
+{
+  "capturedAt": "2026-10-30T13:35:39.375761+00:00",
+  "easBuildId": "c2073d72-7944-4e61-9d46-c016a6603ba7",
+  "buildProfile": "device-qa",
+  "configuration": "Release APK",
+  "version": "1.2.11",
+  "versionCode": 137,
+  "gitBase": "a8d8eade5a7760093930c18ef8863f885e3a78ef",
+  "profileCommit": "d1c6373",
+  "appVisualSource": "2e5fb4e",
+  "device": {
+    "model": "Samsung SM-S926U",
+    "androidVersion": "17",
+    "apiLevel": 37,
+    "resolution": "1080x2340"
+  },
+  "apkSha256": "e99ac960d649804006fccefa4b810557bfb4499181b2fe15c92b8ae82fbcd60e",
+  "hermesBundleSha256": "c6cb8412ae5b99e79a1635cfe2e5e562970382ea2c473cfe22592319ea909c14",
+  "checks": {
+    "productionApi": true,
+    "productionDatabase": true,
+    "noStagingDatabase": true,
+    "noQaLoopback": true,
+    "latestPolish": true,
+    "googlePurchaseKeyPresent": true,
+    "dynamicTextReflow": true
+  },
+  "installation": "Play-installed 1.2.10 (133) rejected update because signatures differ. Owner authorized disturbing local app data; fresh install succeeded. Cloud account/content were not deleted.",
+  "storeSubmission": false,
+  "knownIssue": "Light-mode Android status icons remain white. Fixed in source 3957f8d; replacement build 4a6720ca-4ec3-4c2d-a575-3c9e0fe154c6 awaits hardware verification."
+}
