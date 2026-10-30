@@ -11,7 +11,7 @@ function storage(){const map=new Map();return {map,async getItem(k){return map.g
 const canonical=e=>({discovery_id:e.discoveryId,revision:e.revision,mode:e.mode,option_id:e.optionId,event_id:e.eventId,occurred_at:e.occurredAt,local_date:e.localDate,time_zone:e.timeZone});
 test('assessed difficulty is labeled in sharing and invalid bands are rejected',()=>{
  const graded={...item,difficulty:{rubricVersion:'discovery-difficulty-v1',level:'moderate',score:4}};
- assert.equal(discoveryDifficultyLabel(graded),'Moderate');assert.match(discoveryShareText(graded),/^Moderate · Daily Discovery/);assert.equal(isDiscovery(graded),true);
+ assert.equal(discoveryDifficultyLabel(graded),'Medium');assert.match(discoveryShareText(graded),/^Medium · Trivia/);assert.equal(isDiscovery(graded),true);
  assert.equal(isDiscovery({...graded,difficulty:{...graded.difficulty,level:'easy'}}),false);
  assert.equal(discoveryDifficultyLabel({...item,difficulty:undefined}),null,'legacy content does not receive an invented difficulty');
 });

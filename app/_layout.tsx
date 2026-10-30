@@ -136,7 +136,6 @@ function RootLayoutNav() {
       <View style={{ flex: 1, backgroundColor: theme.background }}>
         <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
         <Stack screenOptions={{
-          statusBarStyle: colorScheme === 'dark' ? 'light' : 'dark',
           headerStyle: { backgroundColor: theme.background },
           headerTintColor: theme.text,
           headerShadowVisible: false,
@@ -156,7 +155,7 @@ function RootLayoutNav() {
           <Stack.Screen name="prayer/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="advice/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="church/journey/[id]" options={{ headerShown: false }} />
-          <Stack.Screen name="discoveries/[id]" options={{ title: 'Daily Discovery', headerShown: true }} />
+          <Stack.Screen name="discoveries/[id]" options={{ title: 'Trivia', headerShown: true }} />
         </Stack>
       </View>
     </ThemeProvider>

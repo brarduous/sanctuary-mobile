@@ -12,7 +12,7 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "check:behavior": "node scripts/check-mobile-layout.mjs && node scripts/check-artist-preferences.mjs && node scripts/check-reading-html.mjs && node scripts/check-bible-passages.cjs && node scripts/check-invite-token.mjs && node scripts/check-auth-continuity.cjs && node scripts/check-revenuecat-identity.cjs && node scripts/check-native-actions.cjs && node scripts/check-lesson-content.mjs && node scripts/check-theme-contrast.mjs",
-    "test:discoveries": "node --test scripts/check-discoveries.mjs scripts/check-discovery-notifications.cjs scripts/check-discovery-game.mjs",
+    "test:discoveries": "node --test scripts/check-discoveries.mjs scripts/check-discovery-notifications.cjs scripts/check-discovery-game.mjs scripts/check-trivia-daily-set.mjs",
     "test:content-share": "node --test scripts/check-content-share.mjs"
   },
   "dependencies": {

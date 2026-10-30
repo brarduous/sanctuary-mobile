@@ -12,6 +12,9 @@ import { useDiscoveries } from '@/context/DiscoveryContext';
 import { eliminatedChoices, TRIVIA_DURATION_MS, triviaShareText, triviaStats, type TriviaTiming } from '@/lib/discoveryGame';
 import useTriviaRound from '@/components/useTriviaRound';
 import TriviaStats from '@/components/TriviaStats';
+import DailySetScore from '@/components/DailySetScore';
+import useDailySet from '@/components/useDailySet';
+import {DAILY_LABELS,dailySetResults,dailySetShareText} from '@/lib/discoveryDailySet';
 import type { Discovery } from '@/lib/discoveryCore';
 import { discoveryMetric, fetchDiscovery } from '@/lib/discoveries';
 
@@ -43,6 +46,9 @@ export default function DiscoveryScreen() {
   const currentId = useRef(id); currentId.current=id;
   const attemptedAutoReveal = useRef<string | null>(null);
   const completed = item ? progress.completions[item.id] : undefined;
+  const {items:setItems}=useDailySet(item?.publicationDate || today);
+  const setResults=dailySetResults(setItems,progress.completions);
+  const nextItem=setItems.find(entry=>entry.id!==item?.id && !progress.completions[entry.id]);
   const revealed = localReveal || Boolean(completed);
   const game=useTriviaRound(item?.id,item?.revision,revealed || saving || commitFailed);
   const roundIdentity=useRef(game.identity);roundIdentity.current=game.identity;
@@ -100,14 +106,15 @@ export default function DiscoveryScreen() {
   },[reveal,item,loading,completed,finish]);
   const share = async () => {
     if (!item || !completed) return;
-    try {discoveryMetric(item,'share_initiated');await Share.share({message:triviaShareText({outcome:completed.outcome,streak:stats.current,playedToday:completed.puzzleDate===today && completed.localDate===today}),title:'Sanctuary Trivia'});}
+    try {discoveryMetric(item,'share_initiated');await Share.share({message:setItems.length===3 ? dailySetShareText(item.publicationDate || today,setResults):triviaShareText({outcome:completed.outcome,streak:stats.current,playedToday:completed.puzzleDate===today && completed.localDate===today}),title:'Sanctuary Trivia'});}
     catch {Alert.alert('Sharing unavailable','Please try again.');}
   };
   const selected = completed?.revision===item?.revision && completed?.mode==='answered' ? completed.optionId : null;
-  const done = () => router.canGoBack() ? router.back() : router.replace('/(tabs)');
+  const done = () => item?.setPosition ? router.replace({pathname:'/discoveries',params:{date:item.publicationDate || today}}):router.canGoBack() ? router.back():router.replace('/(tabs)');
+  const continueSet = () => nextItem ? router.replace({pathname:'/discoveries/[id]',params:{id:nextItem.id}}):done();
   const outcomeLabel = completed?.outcome==='correct' ? 'Correct' : completed?.outcome==='timeout' ? 'Time’s up' : completed?.outcome==='incorrect' ? 'Not quite' : 'Answer revealed';
   return <View style={{flex:1,backgroundColor:theme.background}}>
-    <Stack.Screen options={{title:'Daily Trivia',headerShown:true,headerShadowVisible:false,headerBackButtonDisplayMode:'minimal'}}/>
+    <Stack.Screen options={{title:'Trivia',headerShown:true,headerShadowVisible:false,headerBackButtonDisplayMode:'minimal'}}/>
     {/* Native text can retain old measurements after a Dynamic Type change.
         Rebuild the content while keeping round/result state in this screen. */}
     <ScrollView key={`text-scale-${fontScale}`} style={{flex:1}} contentContainerStyle={{paddingHorizontal:20,paddingTop:10,paddingBottom:revealed ? 20:Math.max(insets.bottom,16),gap:12}}>
@@ -119,7 +126,7 @@ export default function DiscoveryScreen() {
       </View> : <>
         <View style={{gap:10}}>
           <View style={{...styles.row,justifyContent:'space-between',flexWrap:'wrap'}}>
-            <Text style={{...Typography.metadata,color:theme.mutedForeground}}>{item.kind==='biblical_text' ? 'Bible' : item.category}{item.traditionLabel ? ` · ${item.traditionLabel}` : ''}</Text>
+            <Text style={{...Typography.metadata,color:theme.mutedForeground}}>{item.setPosition ? `Question ${item.setPosition} of 3` : item.kind==='biblical_text' ? 'Bible' : item.category}{item.traditionLabel ? ` · ${item.traditionLabel}` : ''}</Text>
             <DifficultyBadge item={item}/>
           </View>
           {revealed || game.started ? <Text accessibilityRole="header" style={[styles.question,{color:theme.text},revealed ? {fontSize:20,lineHeight:28} : compactQuestion ? {fontSize:22,lineHeight:30}:null]}>{item.prompt}</Text> : null}
@@ -164,7 +171,7 @@ export default function DiscoveryScreen() {
           <Text style={{...Typography.helper,color:theme.text}}>{item.explanation}</Text>
           {item.correctionNotice ? <Text style={{...Typography.helper,color:theme.tint}}>Correction: {item.correctionNotice}</Text> : null}
           {completed && completed.revision!==item.revision ? <Text style={{...Typography.metadata,color:theme.mutedForeground}}>Updated answer and sources.</Text> : null}
-          <TriviaStats elapsedMs={completed?.elapsedMs} streak={stats.current}/>
+          {item.setPosition ? <View style={{gap:12}}><DailySetScore results={setResults}/><Text style={{...Typography.metadata,color:theme.mutedForeground}}>{setResults.filter(Boolean).length}/3 played · {setResults.filter(r=>r==='correct').length}/3 correct</Text></View>:<TriviaStats elapsedMs={completed?.elapsedMs} streak={stats.current}/>}
           {item.scriptureReference ? <DiscoveryScripture reference={item.scriptureReference}/> : item.sources[0] ? <Text style={{...Typography.metadata,color:theme.mutedForeground}}>{item.sources[0].locator}</Text> : null}
           <DiscoveryButton variant="quiet" label={showSources ? 'Hide sources' : 'View sources'} accessibilityState={{expanded:showSources}} onPress={() => setShowSources(value => !value)} icon={<BookOpen size={16} color={theme.tint} accessible={false}/>}/>
         </View> : null}
@@ -186,8 +193,8 @@ export default function DiscoveryScreen() {
       </>}
     </ScrollView>
     {item && revealed ? <View style={{paddingHorizontal:20,paddingTop:12,paddingBottom:Math.max(insets.bottom,12),borderTopWidth:1,borderTopColor:theme.border,backgroundColor:theme.background,flexDirection:stackResultActions ? 'column':'row',gap:10}}>
-      <View style={{flex:stackResultActions ? undefined:1}}><DiscoveryButton variant="primary" label="Done" onPress={done}/></View>
-      <View style={{flex:stackResultActions ? undefined:1}}><DiscoveryButton label="Share result" onPress={()=>{void share();}} icon={<Share2 size={17} color={theme.tint} accessible={false}/>}/></View>
+      <View style={{flex:stackResultActions ? undefined:1}}><DiscoveryButton variant="primary" label={item.setPosition ? nextItem ? `Next: ${DAILY_LABELS[nextItem.setPosition!-1]}`:'View your results':'Done'} onPress={item.setPosition ? continueSet:done}/></View>
+      <View style={{flex:stackResultActions ? undefined:1}}><DiscoveryButton label="Share your Results" onPress={()=>{void share();}} icon={<Share2 size={17} color={theme.tint} accessible={false}/>}/></View>
     </View>:null}
   </View>;
 }

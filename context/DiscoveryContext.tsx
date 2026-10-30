@@ -11,7 +11,7 @@ import type { TriviaTiming } from '@/lib/discoveryGame';
 const empty = (): DiscoveryProgress => ({total:0,completions:{},pending:{}});
 type DiscoveryContextValue = {
   bundle: DiscoveryBundle | null; today: string; selection: ReturnType<typeof selectDiscovery>; progress: DiscoveryProgress;
-  error: string | null; refresh: () => Promise<void>; complete: (item: Discovery, mode: DiscoveryCompletion['mode'], optionId?: string,timing?:TriviaTiming) => Promise<void>;
+  error: string | null; refresh: (force?:boolean) => Promise<void>; complete: (item: Discovery, mode: DiscoveryCompletion['mode'], optionId?: string,timing?:TriviaTiming) => Promise<void>;
   mergeGuest: () => Promise<void>; hasGuestProgress: boolean;
 };
 const Context = createContext<DiscoveryContextValue | null>(null);
@@ -31,7 +31,8 @@ export function DiscoveryProvider({children}: {children:React.ReactNode}) {
   const nextBundleRefresh = useRef(0);
   const refreshLatest = useRef<() => Promise<void>>(async () => undefined);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (force=false) => {
+    if(force)nextBundleRefresh.current=0;
     if (loading || refreshing.current) return;
     refreshing.current = true;
     const owner = account;
@@ -94,7 +95,7 @@ export function DiscoveryProvider({children}: {children:React.ReactNode}) {
 
   const complete = useCallback(async (item:Discovery,mode:DiscoveryCompletion['mode'],optionId?:string,timing?:TriviaTiming) => {
     const owner = account;
-    const event:DiscoveryCompletion = {eventId:Crypto.randomUUID(),discoveryId:item.id,revision:item.revision,mode,optionId:optionId || null,occurredAt:new Date().toISOString(),localDate:discoveryLocalDate(),timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',outcome:mode==='answered' ? optionId===item.correctOptionId ? 'correct':'incorrect' : timing?.timedOut ? 'timeout':'revealed',puzzleDate:item.publicationDate,...timing};
+    const event:DiscoveryCompletion = {eventId:Crypto.randomUUID(),discoveryId:item.id,revision:item.revision,mode,optionId:optionId || null,occurredAt:new Date().toISOString(),localDate:discoveryLocalDate(),timeZone:Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',outcome:mode==='answered' ? optionId===item.correctOptionId ? 'correct':'incorrect' : timing?.timedOut ? 'timeout':'revealed',puzzleDate:item.publicationDate,...(item.setPosition ? {setPosition:item.setPosition}:{}),...timing};
     const next = await discoveryStore.complete(owner,event);
     if (active.current === owner) setProgress(next);
     if (owner) void discoveryStore.sync(owner,discoverySessionId,events => sendDiscoveryCompletions(owner,events)).then(async () => {

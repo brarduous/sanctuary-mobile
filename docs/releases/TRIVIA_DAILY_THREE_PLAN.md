@@ -1,0 +1,11 @@
+> Current release candidate: seven approved daily sets (21 questions), twenty Trivia tests passing, native/browser journeys verified, and **Share your Results** is the final CTA. See [QA](qa/2026-10-30-native-three-journey.json) and [CMO sharing brief](TRIVIA_SOCIAL_BRIEF.md). Signed replacement builds and final review states are still pending. Earlier prototype notes below are historical.
+
+# Trivia: daily three — development checkpoint
+
+The owner requested a plan before the remaining execution and store resubmission. The full [execution plan](https://github.com/brarduous/sanctuary-backend/blob/feature/daily-trivia-three/docs/TRIVIA_EXECUTION_PLAN.md), [writing benchmarks](https://github.com/brarduous/sanctuary-backend/blob/feature/daily-trivia-three/docs/TRIVIA_EXCELLENCE_BENCHMARKS.md), and [reference-library design](https://github.com/brarduous/sanctuary-backend/blob/feature/daily-trivia-three/docs/TRIVIA_REFERENCE_LIBRARY_PLAN.md) live in the backend repository.
+
+This branch prototypes the feature name **Trivia**, three daily Easy/Medium/Hard questions, next-question flow, persistent individual results, three check/cross tiles, spoiler-free green/red share squares, dated links, and a perfect-set streak requiring all three correct. Unplayed questions remain neutral. Existing single-question completions remain readable.
+
+Validation at this checkpoint: TypeScript, all 19 Trivia tests, and the existing behavior checks passed. Native simulator/physical-device verification, signed artifact inspection, and store resubmission are still pending. The staged backend migration is not in production, and an excellent complete launch set has not yet been established. Live model generation stopped after the configured API project reported no credits remaining.
+
+No new mobile package has been built or submitted by this iteration. Last recorded store submissions were iOS 1.2.11 (66) and Android 138; inspect their current states before replacing them. Keep manual/managed publication holds. After source/content/QA gates pass, build from the final clean merged commit, inspect production endpoints in both signed bundles, upload/select the replacements, and verify actual Apple/Google review states. TestFlight/internal upload alone is not completion.
