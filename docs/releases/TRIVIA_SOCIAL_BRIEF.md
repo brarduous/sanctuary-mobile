@@ -2,6 +2,8 @@
 
 October 30, 2026: the browser game is live at https://sanctuaryapp.us/trivia. iOS 1.2.11 (67) is Waiting for Review; Android 139 is In review in Google Play. Both retain public release holds. Do not announce the updated native version as publicly available until the owner releases it after approval.
 
+October 31 update: Android **139 is approved and ready to publish**, with managed publishing still on. Public Play remains 1.2.10 (133). Google sign-in on the installed app was repaired by restoring its deleted production OAuth client; the owner confirmed a successful retry. See the [sign-in audit and release checks](GOOGLE_SIGN_IN.md). Apple's status was not rechecked during this repair.
+
 ## What people can share
 
 **Trivia** gives players three daily questions: Easy, Medium, Hard. Each question has a 20-second round, a short factual reveal and readable source context. The button is **Share your Results**.
