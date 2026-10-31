@@ -1,0 +1,60 @@
+{
+  "sourceCommit": "0003cd8c8c33025b879ffe0c03b592602b34b393",
+  "device": "Dedicated iPhone 17 Pro Max simulator, iOS 26.5",
+  "runtime": "Current 1.2.12 JavaScript served through Metro in the existing SDK 54 native QA shell; production services, isolated local guest",
+  "method": "Simulator Save Screen without a device mask; no compositing, generated UI or image retouching",
+  "results": "2/3 from normal local guest play; no personal account/progress used",
+  "shots": [
+    {
+      "file": "docs/store/2026-10-31/iphone/01-daily-scripture.png",
+      "dimensions": [
+        1320,
+        2868
+      ],
+      "format": "PNG",
+      "opaque": true,
+      "sha256": "3c6af9b09336bd98e951626727d5f3d8cedb5153ac01bcd53b76d772de33142e"
+    },
+    {
+      "file": "docs/store/2026-10-31/iphone/02-trivia-daily-three.png",
+      "dimensions": [
+        1320,
+        2868
+      ],
+      "format": "PNG",
+      "opaque": true,
+      "sha256": "651541f7765e4270629ee6ae95d933c9af2bae2945652a8007da90358a5b605b"
+    },
+    {
+      "file": "docs/store/2026-10-31/iphone/03-share-your-results.png",
+      "dimensions": [
+        1320,
+        2868
+      ],
+      "format": "PNG",
+      "opaque": true,
+      "sha256": "cb6b7299eb0bfafeec5337ae5fceba26b8fd691600c4a51eae2f7153cc84ecb6"
+    },
+    {
+      "file": "docs/store/2026-10-31/iphone/04-bible-reader.png",
+      "dimensions": [
+        1320,
+        2868
+      ],
+      "format": "PNG",
+      "opaque": true,
+      "sha256": "eee0778b5028ff5bf5151c684185fd20813206c75d0e6d8cb290046ad2333484"
+    },
+    {
+      "file": "docs/store/2026-10-31/iphone/05-science-briefing.png",
+      "dimensions": [
+        1320,
+        2868
+      ],
+      "format": "PNG",
+      "opaque": true,
+      "sha256": "4fac5500176cf5f395631c013cef23e04e0fe8d206a127da60cbe0ccc320f24c"
+    }
+  ],
+  "captureCorrection": "The Bible image was retaken after navigation settled, replacing an initial capture with clipped footer labels."
+}

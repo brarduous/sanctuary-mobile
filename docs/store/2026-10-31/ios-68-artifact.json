@@ -1,0 +1,18 @@
+{
+  "version": "1.2.12",
+  "build": "68",
+  "bundleId": "us.sanctuaryapp.app",
+  "sha256": "fdeefe07f3c0d3e45920c760928b7057ceea08ad5e3adfdf029396449b2f07e9",
+  "checks": {
+    "productionApi": true,
+    "productionDatabase": true,
+    "noStageDatabase": true,
+    "trivia": true,
+    "shareLabel": true,
+    "googleIosUrlScheme": true
+  },
+  "sourceCommit": "0003cd8c8c33025b879ffe0c03b592602b34b393",
+  "packagedGoogleWebClientId": "227530603982-dmkq0fmm06uakc7ac5rueooosrb5e8i0.apps.googleusercontent.com",
+  "packagedGoogleIosClientId": "227530603982-uj62ko7k4bqai0a42irca49umb9sgopg.apps.googleusercontent.com",
+  "oauthVerification": "Exact Hermes string table entries inspected from the signed IPA"
+}

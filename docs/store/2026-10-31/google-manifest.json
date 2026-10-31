@@ -1,0 +1,57 @@
+{
+  "source": "Apple captures reused at the owner\u2019s request",
+  "export": "1620\u00d72880 HTML canvas, background #f8f6f0; 1320\u00d72868 capture centered at x=150,y=6; browser JPEG export",
+  "visualReview": "All five current exports visually inspected; replacement Bible footer fully visible",
+  "shots": [
+    {
+      "file": "docs/store/2026-10-31/google-play/01-daily-scripture.jpg",
+      "dimensions": [
+        1620,
+        2880
+      ],
+      "sha256": "a539746981d4a68bf50f6aec522b2e245babbde4bab9efc097030513662b1f6d",
+      "format": "JPEG",
+      "colorMode": "RGB"
+    },
+    {
+      "file": "docs/store/2026-10-31/google-play/02-trivia-daily-three.jpg",
+      "dimensions": [
+        1620,
+        2880
+      ],
+      "sha256": "51c0e63172a65e4e32d0f458c693bb7e69b33efde6e7f57aefc6b59b5bf062ab",
+      "format": "JPEG",
+      "colorMode": "RGB"
+    },
+    {
+      "file": "docs/store/2026-10-31/google-play/03-share-your-results.jpg",
+      "dimensions": [
+        1620,
+        2880
+      ],
+      "sha256": "8ca041ed0e31bec8667e6c245bf43f8e265b4cac462910c1420e016476ac855b",
+      "format": "JPEG",
+      "colorMode": "RGB"
+    },
+    {
+      "file": "docs/store/2026-10-31/google-play/04-bible-reader.jpg",
+      "dimensions": [
+        1620,
+        2880
+      ],
+      "sha256": "5bfa52ffb8b87119a2a1e37fd58a68f9658522ff949537c7f86dcdb5df372f87",
+      "format": "JPEG",
+      "colorMode": "RGB"
+    },
+    {
+      "file": "docs/store/2026-10-31/google-play/05-science-briefing.jpg",
+      "dimensions": [
+        1620,
+        2880
+      ],
+      "sha256": "4533a624cfd93d07bcd3b60b7148d3a9c279379d6ceddc81756a0d78816ff836",
+      "format": "JPEG",
+      "colorMode": "RGB"
+    }
+  ]
+}
