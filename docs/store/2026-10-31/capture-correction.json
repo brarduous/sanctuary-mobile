@@ -1,0 +1,33 @@
+{
+  "reason": "The first Bible frame had clipped footer labels. It was retaken after the interface settled and visually rechecked before replacing both stores\u2019 image.",
+  "initialAppleSubmissionId": "e497bfd1-9ce2-4055-8c51-a15e81366a24",
+  "withdrawal": {
+    "at": "2026-10-31T15:38:42.570Z",
+    "submissionId": "e497bfd1-9ce2-4055-8c51-a15e81366a24",
+    "submissionState": "CANCELING",
+    "versionState": "WAITING_FOR_REVIEW",
+    "reason": "Replace Bible screenshot after final visual check found clipped navigation labels."
+  },
+  "initialGoogleEditId": "17554905500306639234",
+  "replacementImage": {
+    "at": "2026-10-31T15:44:35.349Z",
+    "replacedId": "19000019-2ce6-8113-8010-35e21351b481",
+    "id": "2ec00019-2ce6-8113-801e-2757e944360c",
+    "fileName": "04-bible-reader.png",
+    "bytes": 401222,
+    "sha256": "eee0778b5028ff5bf5151c684185fd20813206c75d0e6d8cb290046ad2333484",
+    "state": {
+      "errors": [],
+      "warnings": null,
+      "state": "UPLOAD_COMPLETE"
+    }
+  },
+  "oldCaptureBackup": "/Volumes/Lexar/sanctuary-capture-tools/rejected-bible-capture.png",
+  "googleConsolidation": {
+    "supersededCorrectedEditId": "08143119501461314891",
+    "finalEditId": "04676631694635823735",
+    "at": "2026-10-31T15:59:27.259Z",
+    "commitStatus": 200,
+    "note": "Removed earlier ready/in-review batches together, then uploaded and submitted only the final five images. All server hashes and ordered IDs verified. Console confirms one Phone screenshots change in review; managed publishing remains on."
+  }
+}

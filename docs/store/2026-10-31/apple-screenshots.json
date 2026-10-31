@@ -1,0 +1,77 @@
+{
+  "versionId": "ffb83bfb-6490-40ae-9782-61c4f2739871",
+  "setId": "15864a57-923a-4672-b026-2efb3ba4dba4",
+  "displayType": "APP_IPHONE_67",
+  "screenshots": [
+    {
+      "id": "8fc00019-2ce6-8113-8020-6b6d6a58337b",
+      "fileName": "01-daily-scripture.jpg",
+      "state": {
+        "errors": [],
+        "warnings": null,
+        "state": "COMPLETE"
+      },
+      "imageAsset": {
+        "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/E9FOCPRNrmx3cdMHhBOKbg/{w}x{h}bb.{f}",
+        "width": 1320,
+        "height": 2868
+      }
+    },
+    {
+      "id": "fa400019-2ce6-8113-800f-bb6c91875555",
+      "fileName": "02-trivia-daily-three.png",
+      "state": {
+        "errors": [],
+        "warnings": null,
+        "state": "COMPLETE"
+      },
+      "imageAsset": {
+        "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/fL9DwEMzbJAGVYxZNod5EQ/{w}x{h}bb.{f}",
+        "width": 1320,
+        "height": 2868
+      }
+    },
+    {
+      "id": "82800019-2ce6-8113-800c-dec27b67f9b7",
+      "fileName": "03-share-your-results.png",
+      "state": {
+        "errors": [],
+        "warnings": null,
+        "state": "COMPLETE"
+      },
+      "imageAsset": {
+        "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/UNoKu83LQDXWvn4q6vmUPw/{w}x{h}bb.{f}",
+        "width": 1320,
+        "height": 2868
+      }
+    },
+    {
+      "id": "2ec00019-2ce6-8113-801e-2757e944360c",
+      "fileName": "04-bible-reader.png",
+      "state": {
+        "errors": [],
+        "warnings": null,
+        "state": "COMPLETE"
+      },
+      "imageAsset": {
+        "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/g2iJzZ-6UjNcWnfpg8O-sw/{w}x{h}bb.{f}",
+        "width": 1320,
+        "height": 2868
+      }
+    },
+    {
+      "id": "a5c00019-2ce6-8113-8033-9d5beb590f8a",
+      "fileName": "05-science-briefing.png",
+      "state": {
+        "errors": [],
+        "warnings": null,
+        "state": "COMPLETE"
+      },
+      "imageAsset": {
+        "templateUrl": "https://is1-ssl.mzstatic.com/image/thumb/VXM0oYcXRwNJWW8wu8wMbA/{w}x{h}bb.{f}",
+        "width": 1320,
+        "height": 2868
+      }
+    }
+  ]
+}

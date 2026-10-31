@@ -1,0 +1,51 @@
+{
+  "at": "2026-10-31T15:59:27.259Z",
+  "packageName": "us.sanctuaryapp.app",
+  "locale": "en-US",
+  "imageType": "phoneScreenshots",
+  "editId": "04676631694635823735",
+  "commitStatus": 200,
+  "screenshotCount": 5,
+  "reusedAppleCaptures": true,
+  "dimensions": {
+    "width": 1620,
+    "height": 2880
+  },
+  "screenshots": [
+    {
+      "fileName": "01-daily-scripture.jpg",
+      "id": "7067879969086972785",
+      "sha256": "a539746981d4a68bf50f6aec522b2e245babbde4bab9efc097030513662b1f6d",
+      "bytes": 276444,
+      "url": "https://lh3.googleusercontent.com/RbFSQKL_lI4WWH2r53fXuFUsCmLhOFHRFn0IKPUaz40CHaIWhTyHX5a2kVdYI5AT2Y4"
+    },
+    {
+      "fileName": "02-trivia-daily-three.jpg",
+      "id": "8390675956194448311",
+      "sha256": "51c0e63172a65e4e32d0f458c693bb7e69b33efde6e7f57aefc6b59b5bf062ab",
+      "bytes": 159892,
+      "url": "https://lh3.googleusercontent.com/lpE4hqAoAZ7YAZpkxQ2qqvAWHeINhrStBF3_RNz6_vfy6PiDafrdk8K2t-Ey_q0NZw"
+    },
+    {
+      "fileName": "03-share-your-results.jpg",
+      "id": "13791268308661676182",
+      "sha256": "8ca041ed0e31bec8667e6c245bf43f8e265b4cac462910c1420e016476ac855b",
+      "bytes": 157672,
+      "url": "https://lh3.googleusercontent.com/xtq9hB0FB__Huw4Nua5J5y8tE5pLah_6r22a2l94nZ5CNZg7SidiLE13vBVMte_vw4CY"
+    },
+    {
+      "fileName": "04-bible-reader.jpg",
+      "id": "14628673730657743508",
+      "sha256": "5bfa52ffb8b87119a2a1e37fd58a68f9658522ff949537c7f86dcdb5df372f87",
+      "bytes": 313818,
+      "url": "https://lh3.googleusercontent.com/U0aQBydVFDiQhoY2nyB084_ly4_ZC2cZT8vQFMdY_OfiVu6t0cwcXVTrAcU9mRWBstkd"
+    },
+    {
+      "fileName": "05-science-briefing.jpg",
+      "id": "2483346130244192186",
+      "sha256": "4533a624cfd93d07bcd3b60b7148d3a9c279379d6ceddc81756a0d78816ff836",
+      "bytes": 203192,
+      "url": "https://lh3.googleusercontent.com/Q92KVI550r5e4m6w0JjCMzBttvEsmDfwQ6cDiFzbaTjVz3fQzBXD7kVpMHhTrwKRu0Fv"
+    }
+  ]
+}
