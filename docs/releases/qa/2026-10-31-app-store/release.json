@@ -1,0 +1,33 @@
+{
+  "releasedAt": "2026-10-31T14:28:21.470Z",
+  "appId": "6757966099",
+  "bundleId": "us.sanctuaryapp.app",
+  "version": "1.2.11",
+  "buildNumber": "67",
+  "versionId": "f073f565-7edb-4011-ae50-2eeffa71c4c8",
+  "buildId": "8da49782-2a47-4230-b9f4-36c4fd91466b",
+  "before": "PENDING_DEVELOPER_RELEASE",
+  "buildProcessingState": "VALID",
+  "releaseEndpoint": "POST https://api.appstoreconnect.apple.com/v1/appStoreVersionReleaseRequests",
+  "releaseHttpStatus": 201,
+  "releaseRequestId": "f073f565-7edb-4011-ae50-2eeffa71c4c8",
+  "after": "READY_FOR_SALE",
+  "authorization": "Owner requested App Store publication after Android publication.",
+  "method": "Existing EAS Submit App Store Connect API credential; browser sign-in page stalled. No new credentials or permissions.",
+  "publicListing": {
+    "observedAt": "2026-10-31T14:28:36.158Z",
+    "status": 200,
+    "resultCount": 1,
+    "app": {
+      "name": "Sanctuary: Daily Faith & Focus",
+      "bundleId": "us.sanctuaryapp.app",
+      "version": "1.2.10",
+      "currentVersionReleaseDate": "2026-10-13T00:21:40Z",
+      "trackViewUrl": "https://apps.apple.com/us/app/sanctuary-daily-faith-focus/id6757966099?uo=4"
+    }
+  },
+  "limitations": [
+    "The public US lookup still returned 1.2.10 immediately after release; device/storefront propagation of 1.2.11 was not yet observed.",
+    "No fresh physical-device install was performed."
+  ]
+}
