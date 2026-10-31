@@ -21,6 +21,8 @@ Before restoration, the sampled production activities included Android `DEVELOPE
 
 At this audit, Play showed **1.2.10 / 133** as the public production release. **139 (1.2.11) · Trivia** is now approved and **ready to publish**, with managed publishing still on. It has not been published by this repair. Inspected AABs 133, 135, 138 and 139 use the same upload certificate and packaged production Google IDs. See the [artifact audit](qa/2026-10-31-google-sign-in/audit.json).
 
+Subsequently, on October 31, the owner explicitly authorized publication. Build **139** was published to production and Google Play confirms **Available on Google Play**; see the [publication record](TRIVIA_SOCIAL_BRIEF.md). The artifact audit above retains the state observed during the earlier sign-in repair.
+
 ## Checks required before every Android release
 
 1. Inspect the actual signed production artifact, not just `.env.local`: verify the package, packaged web audience, production API/database, version code and upload certificate. Record the artifact hash. EAS secret variables can be available to cloud builds even when omitted from the Plaintext/Sensitive log listing.
