@@ -1,0 +1,20 @@
+{
+  "platform": "android",
+  "version": "1.2.12",
+  "build": "140",
+  "easBuildId": "d3f0737c-54ac-4a00-acba-eb88c157fe0a",
+  "sourceCommit": "dc17c7ab9a73ee5ca9c5900c20af963715c6988b",
+  "sha256": "ff0f69e4dcded46dcfdb1c6381f02bb8f9b2ed371552d7fcc33979e71293a4dc",
+  "packageName": "us.sanctuaryapp.app",
+  "uploadCertificateSHA1": "48:4F:61:4C:EA:0E:8F:DD:1E:90:93:13:9F:4F:A2:E9:2A:C0:FE:5E",
+  "checks": {
+    "productionAPI": true,
+    "productionDatabase": true,
+    "noStagingDatabase": true,
+    "webGoogleClient": true,
+    "proArchiveUI": true,
+    "cleanShareLink": true,
+    "releaseNotDebuggable": true
+  },
+  "note": "Google Play App Signing remains the existing configuration; the upload certificate is distinct from the Play signing certificate. No physical-device sign-in is claimed."
+}

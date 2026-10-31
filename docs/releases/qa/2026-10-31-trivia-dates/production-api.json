@@ -1,0 +1,29 @@
+{
+  "today": {
+    "status": 200,
+    "count": 3,
+    "dates": [
+      "2026-10-31"
+    ]
+  },
+  "past": {
+    "status": 403,
+    "body": {
+      "error": {
+        "code": "TRIVIA_PRO_REQUIRED",
+        "message": "Past Trivia games are included with Sanctuary Pro.",
+        "requestId": "d96be17d-466a-42ec-a9f0-4a6a1d90e933"
+      }
+    }
+  },
+  "future": {
+    "status": 400,
+    "body": {
+      "error": {
+        "code": "DISCOVERY_INVALID",
+        "message": "Choose a released daily trivia date.",
+        "requestId": "b5f74e17-f2af-46b3-8847-94b498d35359"
+      }
+    }
+  }
+}

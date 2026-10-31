@@ -1,0 +1,18 @@
+{
+  "platform": "ios",
+  "version": "1.2.12",
+  "build": "69",
+  "easBuildId": "2bfa80fc-5616-4567-bf7d-6df7632248cd",
+  "sourceCommit": "dc17c7ab9a73ee5ca9c5900c20af963715c6988b",
+  "sha256": "9ba7d5485284e8846b881d9e6baab5c095a10c01e8c554e375975144b453384f",
+  "checks": {
+    "productionAPI": true,
+    "productionDatabase": true,
+    "noStagingDatabase": true,
+    "webGoogleClient": true,
+    "iosGoogleClient": true,
+    "proArchiveUI": true,
+    "cleanShareLink": true,
+    "googleScheme": true
+  }
+}

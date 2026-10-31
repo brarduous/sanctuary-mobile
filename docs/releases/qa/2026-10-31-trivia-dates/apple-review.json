@@ -1,0 +1,19 @@
+{
+  "at": "2026-10-31T16:35:50.805Z",
+  "version": "1.2.12",
+  "build": "69",
+  "appleBuildId": "7f6a89c6-e44f-4c0d-a9a5-84bba5b3e197",
+  "versionId": "ffb83bfb-6490-40ae-9782-61c4f2739871",
+  "submissionId": "af422ab3-38a0-46b2-a613-68c7c0590300",
+  "submissionState": "WAITING_FOR_REVIEW",
+  "versionState": "WAITING_FOR_REVIEW",
+  "releaseType": "AFTER_APPROVAL",
+  "screenshotIds": [
+    "8fc00019-2ce6-8113-8020-6b6d6a58337b",
+    "fa400019-2ce6-8113-800f-bb6c91875555",
+    "82800019-2ce6-8113-800c-dec27b67f9b7",
+    "2ec00019-2ce6-8113-801e-2757e944360c",
+    "a5c00019-2ce6-8113-8033-9d5beb590f8a"
+  ],
+  "supersedes": "970fd64f-25b6-48bd-bf40-7eb652a003bc"
+}

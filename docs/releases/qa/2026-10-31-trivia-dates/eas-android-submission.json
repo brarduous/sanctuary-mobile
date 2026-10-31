@@ -1,0 +1,12 @@
+{
+  "at": "2026-10-31T16:45:46.713Z",
+  "id": "4d177acb-93e9-43a0-bdb6-4b72748839a5",
+  "status": "FINISHED",
+  "platform": "ANDROID",
+  "androidConfig": {
+    "track": "production",
+    "releaseStatus": "COMPLETED",
+    "rollout": null
+  },
+  "error": null
+}
