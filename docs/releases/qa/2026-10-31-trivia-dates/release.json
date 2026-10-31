@@ -1,0 +1,71 @@
+{
+  "capturedAt": "2026-10-31T16:47:20.539582+00:00",
+  "web": {
+    "production": "https://sanctuaryapp.us/trivia",
+    "commit": "bc38946b17ec5ab302a07ab475fe430b73770a80",
+    "deployment": "dpl_G99ydA6JrcY5Fj3Bf3MM93CuohQn",
+    "state": "READY",
+    "prs": [
+      6,
+      7
+    ]
+  },
+  "backend": {
+    "commit": "09cd4278448fdf71ebdc30ec944a213308f492d4",
+    "deployment": "dep-dbj1e715efls73dhc1m0",
+    "state": "live",
+    "pr": 20,
+    "testsPassed": 207,
+    "ciRun": "41219490449"
+  },
+  "mobile": {
+    "sourceCommit": "dc17c7ab9a73ee5ca9c5900c20af963715c6988b",
+    "mergedCommit": "46d4b9e",
+    "pr": 9,
+    "clientTestsPassed": 7,
+    "typecheck": "passed"
+  },
+  "googleScreenshots": {
+    "editId": "04676631694635823735",
+    "state": "published",
+    "managedPublishing": true,
+    "confirmedBy": "google-screenshots-published.jpg"
+  },
+  "limitations": [
+    "Native visual QA used current JavaScript in the dedicated iOS simulator QA shell, not execution of the signed device IPA or Play-signed AAB.",
+    "Pro archive fetches and completions were verified against the actual SQL migrations in an isolated test database; no real production account tier or purchase was changed.",
+    "New native sharing controls require store approval and installation of the updated builds."
+  ],
+  "ios": {
+    "version": "1.2.12",
+    "build": 69,
+    "state": "WAITING_FOR_REVIEW",
+    "submission": "af422ab3-38a0-46b2-a613-68c7c0590300",
+    "automaticReleaseAfterApproval": true
+  },
+  "android": {
+    "version": "1.2.12",
+    "build": 140,
+    "easSubmission": "4d177acb-93e9-43a0-bdb6-4b72748839a5",
+    "track": "production",
+    "submissionState": "FINISHED",
+    "playState": "RUNNING_QUICK_CHECKS",
+    "managedPublishing": true,
+    "publicationPendingApproval": true,
+    "consoleProof": "google-140-checks.jpg"
+  },
+  "validation": {
+    "backendTests": 207,
+    "clientTests": 7,
+    "archiveCompletionTest": "passed; original puzzle date and actual play date retained",
+    "webTypecheck": "passed",
+    "mobileTypecheck": "passed",
+    "webCiRuns": [
+      "41219173518",
+      "41219762221"
+    ],
+    "browserGuestFlows": "today without query, future-link normalization, archive gate, older question archive gate",
+    "nativeQA": "current-source iOS simulator results, share-sheet date and guest Pro gate",
+    "signedArtifacts": "iOS 69 and Android 140 inspected; production API/database and Google client configuration retained"
+  }
+}
