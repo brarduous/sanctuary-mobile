@@ -1,0 +1,60 @@
+{
+  "date": "2026-10-31",
+  "package": "us.sanctuaryapp.app",
+  "googleProjectId": "glory-app-437300",
+  "googleProjectNumber": "227530603982",
+  "restoredClientId": "227530603982-sh58idp0aq3b3uflnnofvun8v61hjs64.apps.googleusercontent.com",
+  "deletedDateShown": "2026-09-30",
+  "deletionCause": "Not established",
+  "repair": "Restored existing production Android OAuth client; Google confirmed restoration",
+  "playCertificateSha1": "87:B2:8B:56:02:2A:0D:5E:C3:ED:71:6F:DE:52:EF:CD:06:1F:2E:83",
+  "playCertificateSha256": "20:77:2E:8A:67:95:E3:0B:8F:04:30:E4:EB:9C:E7:40:BA:50:80:11:11:5C:26:E6:31:4B:75:38:2E:EB:03:FE",
+  "artifacts": [
+    {
+      "versionCode": 133,
+      "sha256": "7640a7db93eff15bd2afc484c50041c5a5132355f72d5e77cc5402580f374f40",
+      "uploadCertificateSha1": "48:4F:61:4C:EA:0E:8F:DD:1E:90:93:13:9F:4F:A2:E9:2A:C0:FE:5E",
+      "uploadCertificateSha256": "91:16:6D:08:91:69:49:EF:D4:C9:B6:52:6F:19:FE:CE:D7:5E:E7:D9:1D:88:72:DA:AD:9F:2D:CB:D2:7B:6D:AB",
+      "packagedWebClientId": "227530603982-dmkq0fmm06uakc7ac5rueooosrb5e8i0.apps.googleusercontent.com",
+      "packagedIosClientId": "227530603982-uj62ko7k4bqai0a42irca49umb9sgopg.apps.googleusercontent.com"
+    },
+    {
+      "versionCode": 135,
+      "sha256": "16faa70a45644091428f5fbff35959178a3ac5c0adf99e9cb00acb632105bc2e",
+      "uploadCertificateSha1": "48:4F:61:4C:EA:0E:8F:DD:1E:90:93:13:9F:4F:A2:E9:2A:C0:FE:5E",
+      "uploadCertificateSha256": "91:16:6D:08:91:69:49:EF:D4:C9:B6:52:6F:19:FE:CE:D7:5E:E7:D9:1D:88:72:DA:AD:9F:2D:CB:D2:7B:6D:AB",
+      "packagedWebClientId": "227530603982-dmkq0fmm06uakc7ac5rueooosrb5e8i0.apps.googleusercontent.com",
+      "packagedIosClientId": "227530603982-uj62ko7k4bqai0a42irca49umb9sgopg.apps.googleusercontent.com"
+    },
+    {
+      "versionCode": 138,
+      "sha256": "2cad231ffd57f6815a82f818b3eacce9f54942c2ef630f7d5d973c86e8dc0f3f",
+      "uploadCertificateSha1": "48:4F:61:4C:EA:0E:8F:DD:1E:90:93:13:9F:4F:A2:E9:2A:C0:FE:5E",
+      "uploadCertificateSha256": "91:16:6D:08:91:69:49:EF:D4:C9:B6:52:6F:19:FE:CE:D7:5E:E7:D9:1D:88:72:DA:AD:9F:2D:CB:D2:7B:6D:AB",
+      "packagedWebClientId": "227530603982-dmkq0fmm06uakc7ac5rueooosrb5e8i0.apps.googleusercontent.com",
+      "packagedIosClientId": "227530603982-uj62ko7k4bqai0a42irca49umb9sgopg.apps.googleusercontent.com"
+    },
+    {
+      "versionCode": 139,
+      "sha256": "2d0201e88b7d9b22e858cf2aaa4aae46fd0bb9a41a508209935cee9e8a1f45f6",
+      "uploadCertificateSha1": "48:4F:61:4C:EA:0E:8F:DD:1E:90:93:13:9F:4F:A2:E9:2A:C0:FE:5E",
+      "uploadCertificateSha256": "91:16:6D:08:91:69:49:EF:D4:C9:B6:52:6F:19:FE:CE:D7:5E:E7:D9:1D:88:72:DA:AD:9F:2D:CB:D2:7B:6D:AB",
+      "packagedWebClientId": "227530603982-dmkq0fmm06uakc7ac5rueooosrb5e8i0.apps.googleusercontent.com",
+      "packagedIosClientId": "227530603982-uj62ko7k4bqai0a42irca49umb9sgopg.apps.googleusercontent.com"
+    }
+  ],
+  "productionProviderMatchesPackagedAudience": true,
+  "ownerRetry": "Sign-in works now",
+  "productionTelemetryAfterRepair": {
+    "google_sign_in_token_received": 1,
+    "google_sign_in_success": 1
+  },
+  "newBinaryRequired": false,
+  "publicPlayVersionCode": 133,
+  "approvedHeldPlayVersionCode": 139,
+  "managedPublishing": "on",
+  "limitations": [
+    "Owner did not supply installed version number; successful retry is not a fresh build-139 install test.",
+    "No physical device was connected for agent testing."
+  ]
+}
