@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {isDiscovery} from '../lib/discoveryCore.ts';
+import {formatTriviaDate,isTriviaDate,shiftTriviaDate,triviaDateAccess} from '../lib/discoveryDates.ts';
 import {dailySetForDate,dailySetResults,dailySetShareText,dailySetStreak} from '../lib/discoveryDailySet.ts';
 import {createDiscoveryStore} from '../lib/discoveryStore.ts';
 const date='2026-10-30';
@@ -29,7 +30,9 @@ test('share rows represent all 64 combinations honestly without questions or ans
   assert.equal(text.split('\n')[1],outcomes.map(r=>r==='correct' ? '🟩':r ? '🟥':'⬜').join(''));
   assert.ok(text.includes(`${outcomes.filter(r=>r==='correct').length}/3 correct`));
   assert.equal(text.includes('/3 played'),played<3);
-  assert.ok(text.endsWith('/trivia?date=2026-10-30'));
+  assert.equal(text.split('\n')[0],'Sanctuary Trivia · 10/30/2026');
+  assert.ok(text.endsWith('https://sanctuaryapp.us/trivia'));
+  assert.equal(text.includes('?date='),false);
   for(const spoiler of ['option-1','Mark','Jesus','correct answer','Sycamore'])assert.ok(!text.includes(spoiler));
  }
 });
@@ -56,4 +59,22 @@ test('three offline results survive restart, guest import and canonical server r
  await store.sync('member',async()=> 'member',async events=>({results:events.map(e=>({eventId:e.eventId,status:'accepted',completion:{discovery_id:e.discoveryId,revision:e.revision,event_id:e.eventId,mode:e.mode,option_id:e.optionId,occurred_at:e.occurredAt,local_date:e.localDate,time_zone:'UTC',outcome:e.setPosition===2 ? 'incorrect':'correct',puzzle_date:e.puzzleDate,set_position:e.setPosition}}))}));
  const progress=await store.progress('member');assert.equal(Object.keys(progress.pending).length,0);
  assert.deepEqual(dailySetResults(items,progress.completions),['correct','incorrect','correct']);
+});
+
+test('calendar formatting and archive access agree across web and mobile, including leap days and future links',async()=>{
+ const web=await import('../../sanctuary-layperson-web/src/lib/discoveryDailySet.ts');
+ assert.equal(web.dailySetShareText('2026-10-31',['correct','incorrect','correct']),dailySetShareText('2026-10-31',['correct','incorrect','correct']));
+ assert.equal(formatTriviaDate('2026-10-31'),'10/31/2026');
+ assert.equal(formatTriviaDate('2026-01-02'),'01/02/2026');
+ assert.equal(isTriviaDate('2026-02-30'),false);assert.equal(isTriviaDate('2024-02-29'),true);
+ assert.equal(formatTriviaDate('invalid'),'');
+ assert.equal(shiftTriviaDate('2026-11-01',-1),'2026-10-31');
+ assert.equal(shiftTriviaDate('2027-01-01',-1),'2026-12-31');
+ for(const pro of [true,false]){
+  assert.equal(triviaDateAccess('2026-10-31','2026-10-31',pro),'allowed');
+  assert.equal(triviaDateAccess('2026-11-01','2026-10-31',pro),'unavailable');
+  assert.equal(triviaDateAccess('2026-02-30','2026-10-31',pro),'unavailable');
+ }
+ assert.equal(triviaDateAccess('2026-10-30','2026-10-31',false),'pro-required');
+ assert.equal(triviaDateAccess('2026-10-30','2026-10-31',true),'allowed');
 });

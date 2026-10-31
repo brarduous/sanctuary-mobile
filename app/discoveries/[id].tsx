@@ -16,9 +16,13 @@ import DailySetScore from '@/components/DailySetScore';
 import useDailySet from '@/components/useDailySet';
 import {DAILY_LABELS,dailySetResults,dailySetShareText} from '@/lib/discoveryDailySet';
 import type { Discovery } from '@/lib/discoveryCore';
+import {useAuth} from '@/context/AuthContext';
+import {triviaDateAccess} from '@/lib/discoveryDates';
 import { discoveryMetric, fetchDiscovery } from '@/lib/discoveries';
 
 export default function DiscoveryScreen() {
+  const {user,profile}=useAuth();
+  const isPro=Boolean(user && profile?.user_id===user.id && profile?.subscription_tier==='pro');
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const {width,height,fontScale} = useWindowDimensions();
@@ -28,7 +32,7 @@ export default function DiscoveryScreen() {
   const {id,reveal} = useLocalSearchParams<{id:string;reveal?:string}>();
   const {bundle,today,progress,complete} = useDiscoveries();
   const theme = Colors[useColorScheme() ?? 'light'];
-  const cached = [...(bundle?.items || []),...(bundle?.evergreen || [])].find(item => item.id===id && (!item.publicationDate || item.publicationDate<=today) && !bundle?.withdrawnIds.includes(item.id));
+  const cached = [...(bundle?.items || []),...(bundle?.evergreen || [])].find(item => item.id===id && item.publicationDate && triviaDateAccess(item.publicationDate,today,isPro)==='allowed' && !bundle?.withdrawnIds.includes(item.id));
   const [item,setItem] = useState<Discovery | null>(cached || null);
   const [loading,setLoading] = useState(!cached);
   const [unavailable,setUnavailable] = useState(false);
@@ -49,6 +53,7 @@ export default function DiscoveryScreen() {
   const {items:setItems}=useDailySet(item?.publicationDate || today);
   const setResults=dailySetResults(setItems,progress.completions);
   const nextItem=setItems.find(entry=>entry.id!==item?.id && !progress.completions[entry.id]);
+  const access=item?.publicationDate ? triviaDateAccess(item.publicationDate,today,isPro):'allowed';
   const revealed = localReveal || Boolean(completed);
   const game=useTriviaRound(item?.id,item?.revision,revealed || saving || commitFailed);
   const roundIdentity=useRef(game.identity);roundIdentity.current=game.identity;
@@ -75,7 +80,7 @@ export default function DiscoveryScreen() {
   useEffect(() => {if (item && !revealed) discoveryMetric(item,'question_opened');},[item?.id]);
 
   const finish = useCallback(async (optionId?:string,timedOut=false) => {
-    if (!item || busy.current || unavailable || revealed) return;
+    if (!item || access!=='allowed' || busy.current || unavailable || revealed) return;
     const requested=item.id,identity=game.identity;
     if(!locked.current) {
       const elapsedMs=game.started ? game.readElapsed():undefined;
@@ -94,7 +99,7 @@ export default function DiscoveryScreen() {
     } catch(failure) {
       if(currentId.current===requested && roundIdentity.current===identity){setCommitFailed(true);setError(failure instanceof Error ? failure.message : 'Your result could not be saved.');}
     } finally {if(currentId.current===requested && roundIdentity.current===identity){busy.current=false;setSaving(false);}}
-  },[item,unavailable,revealed,complete,game.identity,game.started,game.readElapsed]);
+  },[item,access,unavailable,revealed,complete,game.identity,game.started,game.readElapsed]);
   useEffect(()=>{
     if(game.expired && item && !revealed && !commitFailed && timeoutAttempt.current!==game.identity){timeoutAttempt.current=game.identity;void finish(undefined,true);}
   },[game.expired,game.identity,item,revealed,commitFailed,finish]);
@@ -113,6 +118,7 @@ export default function DiscoveryScreen() {
   const done = () => item?.setPosition ? router.replace({pathname:'/discoveries',params:{date:item.publicationDate || today}}):router.canGoBack() ? router.back():router.replace('/(tabs)');
   const continueSet = () => nextItem ? router.replace({pathname:'/discoveries/[id]',params:{id:nextItem.id}}):done();
   const outcomeLabel = completed?.outcome==='correct' ? 'Correct' : completed?.outcome==='timeout' ? 'Time’s up' : completed?.outcome==='incorrect' ? 'Not quite' : 'Answer revealed';
+  if(access!=='allowed')return <><Stack.Screen options={{title:'Trivia'}}/><View style={{flex:1,backgroundColor:theme.background,padding:24,gap:16,justifyContent:'center'}}><Text style={{...Typography.helper,color:theme.text}}>{access==='pro-required' ? 'Past Trivia games are included with Sanctuary Pro.':'Future Trivia is not available yet.'}</Text>{access==='pro-required' ? <DiscoveryButton label="Explore Pro" onPress={()=>router.push('/paywall')}/>:null}<DiscoveryButton label="Play today’s three" onPress={()=>router.replace('/discoveries')}/></View></>;
   return <View style={{flex:1,backgroundColor:theme.background}}>
     <Stack.Screen options={{title:'Trivia',headerShown:true,headerShadowVisible:false,headerBackButtonDisplayMode:'minimal'}}/>
     {/* Native text can retain old measurements after a Dynamic Type change.
