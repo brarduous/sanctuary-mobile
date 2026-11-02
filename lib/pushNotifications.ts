@@ -22,7 +22,7 @@ Notifications.setNotificationHandler({
 });
 
 // 2. Register for push notifications function
-async function registerForPushNotificationsAsync() {
+export async function registerForPushNotificationsAsync() {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
       name: 'default',
@@ -160,8 +160,8 @@ export const usePushNotifications = () => {
     };
   };
 
-  export const savePushTokenToProfile = async (userId: string, token: string) => {
-    if (!userId || !token || !isExpoPushToken(token)) return;
+  export const savePushTokenToProfile = async (userId: string, token: string, strict=false) => {
+    if (!userId || !token || !isExpoPushToken(token)) {if(strict)throw new Error('Push registration is unavailable.');return;}
 
     const { data, error } = await supabase
         .from('user_profiles')
@@ -171,6 +171,7 @@ export const usePushNotifications = () => {
         .single();
 
     if (error) {
+        if(strict)throw new Error('Your phone could not register for reminders. Please try again.');
         console.error('Error saving push token to profile:', {
           code: error.code,
           message: error.message,
@@ -181,6 +182,6 @@ export const usePushNotifications = () => {
     }
 
     try {await registerNotificationCapabilities(token,Constants.expoConfig?.version || 'unknown');}
-    catch {console.warn('Trivia notification capabilities are not registered yet.');}
+    catch {if(strict)throw new Error('Evening reminders could not be registered. Please try again.');console.warn('Trivia notification capabilities are not registered yet.');}
     console.log('Push token saved to profile:', data.user_id);
   };

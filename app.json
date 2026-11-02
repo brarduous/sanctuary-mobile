@@ -2,7 +2,7 @@
   "expo": {
     "name": "Sanctuary",
     "slug": "sanctuary",
-    "version": "1.2.12",
+    "version": "1.2.13",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "sanctuary",
@@ -61,6 +61,16 @@
               "scheme": "https",
               "host": "www.sanctuaryapp.us",
               "pathPrefix": "/discoveries"
+            },
+            {
+              "scheme": "https",
+              "host": "sanctuaryapp.us",
+              "pathPrefix": "/trivia"
+            },
+            {
+              "scheme": "https",
+              "host": "www.sanctuaryapp.us",
+              "pathPrefix": "/trivia"
             }
           ],
           "category": [

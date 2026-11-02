@@ -1,7 +1,8 @@
 import { Tabs, useRouter } from 'expo-router';
-import { Book, Church, Home, MessageCircle, Newspaper, UserCircle } from 'lucide-react-native';
+import { BottomTabBar } from '@react-navigation/bottom-tabs';
+import { Book, Church, Home, MessageCircle, Ellipsis, ChevronLeft, UserCircle } from 'lucide-react-native';
 import React from 'react';
-import { Image, Pressable } from 'react-native'; // <-- Add Image import
+import { Image, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { useColorScheme } from '@/components/useColorScheme';
@@ -19,7 +20,16 @@ export default function TabLayout() {
   const avatarUrl = user?.user_metadata?.avatar_url || user?.user_metadata?.picture;
 
   return (
-    <Tabs
+    <Tabs backBehavior="history"
+      tabBar={props => {
+        // Keep legacy routes in the navigator, but omit them from the bar's
+        // rendered state so accessibility counts and selection stay truthful.
+        const routes = props.state.routes.filter(route => route.name !== 'news' && (route.name !== 'church' || Boolean(userCongregationId)));
+        const selected = props.state.routes[props.state.index];
+        const visibleIndex = routes.findIndex(route => route.key === selected?.key);
+        const index = visibleIndex >= 0 ? visibleIndex : Math.max(0, routes.findIndex(route => route.name === 'more'));
+        return <BottomTabBar {...props} state={{ ...props.state, routes, index, routeNames: routes.map(route => route.name) }} />;
+      }}
       screenOptions={{
         tabBarActiveTintColor: theme.tabIconSelected,
         tabBarInactiveTintColor: theme.tabIconDefault,
@@ -57,12 +67,12 @@ export default function TabLayout() {
         }
       }}>
       
-      {/* ... (Keep all your existing Tabs.Screen configurations below) ... */}
       <Tabs.Screen name="index" options={{ title: 'Sanctuary', tabBarLabel: 'Home', tabBarIcon: ({ color }) => <Home size={24} color={color} strokeWidth={2} /> }} />
       <Tabs.Screen name="bible" options={{ title: 'Scripture', headerShown: false, tabBarLabel: 'Bible', tabBarIcon: ({ color }) => <Book size={24} color={color} strokeWidth={2} /> }} />
-      <Tabs.Screen name="church" options={{ title: 'My Church', href: userCongregationId ? '/(tabs)/church' : null, tabBarIcon: ({ color }) => <Church size={24} color={color} strokeWidth={2} /> }} />
       <Tabs.Screen name="advice" options={{ title: 'Guidance', tabBarLabel: 'Guidance', tabBarIcon: ({ color }) => <MessageCircle size={24} color={color} strokeWidth={2} /> }} />
-      <Tabs.Screen name="news" options={{ title: 'Daily Briefing', tabBarLabel: 'News', tabBarIcon: ({ color }) => <Newspaper size={24} color={color} strokeWidth={2} /> }} />
+      <Tabs.Screen name="church" options={{ title: 'My Church', href: userCongregationId ? '/(tabs)/church' : null, tabBarIcon: ({ color }) => <Church size={24} color={color} strokeWidth={2} /> }} />
+      <Tabs.Screen name="more" options={{ title: 'More', tabBarIcon: ({ color }) => <Ellipsis size={24} color={color} strokeWidth={2} /> }} />
+      <Tabs.Screen name="news" options={{ title: 'Daily Briefing', href: null, headerLeft: () => <Pressable accessibilityRole="button" accessibilityLabel="Back to More" onPress={() => router.navigate('/(tabs)/more')} style={{ minHeight: 44, minWidth: 44, marginLeft: 8, alignItems: 'center', justifyContent: 'center' }}><ChevronLeft size={24} color={theme.text} /></Pressable> }} />
     </Tabs>
   );
 }

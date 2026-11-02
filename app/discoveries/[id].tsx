@@ -11,17 +11,19 @@ import { Layout, Typography } from '@/constants/Layout';
 import { useDiscoveries } from '@/context/DiscoveryContext';
 import { eliminatedChoices, TRIVIA_DURATION_MS, triviaShareText, triviaStats, type TriviaTiming } from '@/lib/discoveryGame';
 import useTriviaRound from '@/components/useTriviaRound';
+import useTriviaFeedback from '@/components/useTriviaFeedback';
 import TriviaStats from '@/components/TriviaStats';
 import DailySetScore from '@/components/DailySetScore';
 import useDailySet from '@/components/useDailySet';
-import {DAILY_LABELS,dailySetResults,dailySetShareText} from '@/lib/discoveryDailySet';
+import {DAILY_LABELS,dailySetResults,dailySetShareText,dailySetStreak} from '@/lib/discoveryDailySet';
 import type { Discovery } from '@/lib/discoveryCore';
 import {useAuth} from '@/context/AuthContext';
 import {triviaDateAccess} from '@/lib/discoveryDates';
-import { discoveryMetric, fetchDiscovery } from '@/lib/discoveries';
+import { discoveryMetric, triviaEntrySource, fetchDiscovery } from '@/lib/discoveries';
 
 export default function DiscoveryScreen() {
   const {user,profile}=useAuth();
+  const feedback=useTriviaFeedback();
   const isPro=Boolean(user && profile?.user_id===user.id && profile?.subscription_tier==='pro');
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -29,7 +31,8 @@ export default function DiscoveryScreen() {
   const compactQuestion = width<390 && height<740;
   const stackResultActions = width<360 || fontScale>1;
   const [showSources,setShowSources] = useState(false);
-  const {id,reveal} = useLocalSearchParams<{id:string;reveal?:string}>();
+  const {id,reveal,source:entry} = useLocalSearchParams<{id:string;reveal?:string;source?:string}>();
+  const metricSource=triviaEntrySource(entry);
   const {bundle,today,progress,complete} = useDiscoveries();
   const theme = Colors[useColorScheme() ?? 'light'];
   const cached = [...(bundle?.items || []),...(bundle?.evergreen || [])].find(item => item.id===id && item.publicationDate && triviaDateAccess(item.publicationDate,today,isPro)==='allowed' && !bundle?.withdrawnIds.includes(item.id));
@@ -58,7 +61,7 @@ export default function DiscoveryScreen() {
   const game=useTriviaRound(item?.id,item?.revision,revealed || saving || commitFailed);
   const roundIdentity=useRef(game.identity);roundIdentity.current=game.identity;
   const stats=useMemo(()=>triviaStats(Object.values(progress.completions),today),[progress,today]);
-  const removed=item ? eliminatedChoices(item,game.elapsed):[];
+  const removed=item ? eliminatedChoices(item,game.elapsed,game.durationMs):[];
 
   const load = useCallback(async () => {
     const requested=id;
@@ -77,29 +80,31 @@ export default function DiscoveryScreen() {
     void load();
   },[id,load,game.owner]);
   useEffect(() => {if (!item && cached && !unavailable) setItem(cached);},[cached,item,unavailable]);
-  useEffect(() => {if (item && !revealed) discoveryMetric(item,'question_opened');},[item?.id]);
+  useEffect(() => {if (item && !revealed) discoveryMetric(item,'question_opened',{source:metricSource});},[item?.id,metricSource]);
 
   const finish = useCallback(async (optionId?:string,timedOut=false) => {
     if (!item || access!=='allowed' || busy.current || unavailable || revealed) return;
     const requested=item.id,identity=game.identity;
     if(!locked.current) {
       const elapsedMs=game.started ? game.readElapsed():undefined;
-      if(elapsedMs!==undefined && elapsedMs>=TRIVIA_DURATION_MS){optionId=undefined;timedOut=true;}
-      if(optionId && elapsedMs!==undefined && eliminatedChoices(item,elapsedMs).includes(optionId))return;
+      if(elapsedMs!==undefined && elapsedMs>=(game.durationMs || TRIVIA_DURATION_MS)){optionId=undefined;timedOut=true;}
+      if(optionId && elapsedMs!==undefined && eliminatedChoices(item,elapsedMs,game.durationMs).includes(optionId))return;
+      if(optionId)feedback('selection');
       locked.current={optionId,timing:elapsedMs!==undefined ? {elapsedMs,timedOut}:undefined};
     }
     const submission=locked.current;
     busy.current=true;setSaving(true);setCommitFailed(false);setPendingChoice(submission.optionId || null);setError(null);
     try {
-      await complete(item,submission.optionId ? 'answered' : 'revealed',submission.optionId,submission.timing);
+      await complete(item,submission.optionId ? 'answered' : 'revealed',submission.optionId,submission.timing,metricSource);
       if(currentId.current!==requested || roundIdentity.current!==identity)return;
       setLocalReveal(true);setPendingChoice(null);
-      discoveryMetric(item,submission.optionId ? 'answer_committed' : 'direct_reveal');discoveryMetric(item,'explanation_viewed');
+      if(submission.optionId===item.correctOptionId)feedback('correct');
+      discoveryMetric(item,submission.optionId ? 'answer_committed' : 'direct_reveal',{source:metricSource});discoveryMetric(item,'explanation_viewed',{source:metricSource});
       AccessibilityInfo.announceForAccessibility(`${submission.timing?.timedOut ? 'Time’s up. ' : ''}The answer is ${item.choices.find(choice => choice.id===item.correctOptionId)?.text}. ${item.explanation}`);
     } catch(failure) {
       if(currentId.current===requested && roundIdentity.current===identity){setCommitFailed(true);setError(failure instanceof Error ? failure.message : 'Your result could not be saved.');}
     } finally {if(currentId.current===requested && roundIdentity.current===identity){busy.current=false;setSaving(false);}}
-  },[item,access,unavailable,revealed,complete,game.identity,game.started,game.readElapsed]);
+  },[item,access,unavailable,revealed,complete,game.identity,game.started,game.readElapsed,game.durationMs,feedback,metricSource]);
   useEffect(()=>{
     if(game.expired && item && !revealed && !commitFailed && timeoutAttempt.current!==game.identity){timeoutAttempt.current=game.identity;void finish(undefined,true);}
   },[game.expired,game.identity,item,revealed,commitFailed,finish]);
@@ -109,16 +114,19 @@ export default function DiscoveryScreen() {
   useEffect(() => {
     if (reveal==='1' && item && !completed && attemptedAutoReveal.current!==item.id) {attemptedAutoReveal.current=item.id;void finish();}
   },[reveal,item,loading,completed,finish]);
+  useEffect(()=>{
+    if(game.started && !game.reading && !game.expired && !revealed)AccessibilityInfo.announceForAccessibility('The 20-second countdown has begun.');
+  },[game.started,game.reading,game.expired,revealed]);
   const share = async () => {
     if (!item || !completed) return;
-    try {discoveryMetric(item,'share_initiated');await Share.share({message:setItems.length===3 ? dailySetShareText(item.publicationDate || today,setResults):triviaShareText({outcome:completed.outcome,streak:stats.current,playedToday:completed.puzzleDate===today && completed.localDate===today}),title:'Sanctuary Trivia'});}
+    try {discoveryMetric(item,'share_initiated',{source:metricSource});await Share.share({message:setItems.length===3 ? dailySetShareText(item.publicationDate || today,setResults):triviaShareText({outcome:completed.outcome,streak:stats.current,playedToday:completed.puzzleDate===today && completed.localDate===today}),title:'Sanctuary Trivia'});}
     catch {Alert.alert('Sharing unavailable','Please try again.');}
   };
   const selected = completed?.revision===item?.revision && completed?.mode==='answered' ? completed.optionId : null;
   const done = () => item?.setPosition ? router.replace({pathname:'/discoveries',params:{date:item.publicationDate || today}}):router.canGoBack() ? router.back():router.replace('/(tabs)');
-  const continueSet = () => nextItem ? router.replace({pathname:'/discoveries/[id]',params:{id:nextItem.id}}):done();
+  const continueSet = () => nextItem ? router.replace({pathname:'/discoveries/[id]',params:{id:nextItem.id,source:metricSource}}):done();
   const outcomeLabel = completed?.outcome==='correct' ? 'Correct' : completed?.outcome==='timeout' ? 'Time’s up' : completed?.outcome==='incorrect' ? 'Not quite' : 'Answer revealed';
-  if(access!=='allowed')return <><Stack.Screen options={{title:'Trivia'}}/><View style={{flex:1,backgroundColor:theme.background,padding:24,gap:16,justifyContent:'center'}}><Text style={{...Typography.helper,color:theme.text}}>{access==='pro-required' ? 'Past Trivia games are included with Sanctuary Pro.':'Future Trivia is not available yet.'}</Text>{access==='pro-required' ? <DiscoveryButton label="Explore Pro" onPress={()=>router.push('/paywall')}/>:null}<DiscoveryButton label="Play today’s three" onPress={()=>router.replace('/discoveries')}/></View></>;
+  if(access!=='allowed')return <><Stack.Screen options={{title:'Trivia'}}/><View style={{flex:1,backgroundColor:theme.background,padding:24,gap:16,justifyContent:'center'}}><Text style={{...Typography.helper,color:theme.text}}>{access==='pro-required' ? 'Past Trivia games are included with Sanctuary Pro.':'Future Trivia is not available yet.'}</Text>{access==='pro-required' ? <DiscoveryButton label="Explore Pro" onPress={()=>router.push('/paywall')}/>:null}<DiscoveryButton label="Play today’s three" onPress={()=>router.replace({pathname:'/discoveries',params:{source:metricSource}})}/></View></>;
   return <View style={{flex:1,backgroundColor:theme.background}}>
     <Stack.Screen options={{title:'Trivia',headerShown:true,headerShadowVisible:false,headerBackButtonDisplayMode:'minimal'}}/>
     {/* Native text can retain old measurements after a Dynamic Type change.
@@ -139,17 +147,17 @@ export default function DiscoveryScreen() {
         </View>
         {!revealed && !game.started ? <View style={{gap:16,paddingVertical:24}}>
           <Clock3 size={36} color={theme.tint} accessible={false}/>
-          <Text accessibilityRole="header" style={[styles.question,{color:theme.text}]}>20 seconds</Text>
-          <Text style={{...Typography.helper,color:theme.mutedForeground}}>Wrong choices disappear as you play.</Text>
-          <DiscoveryButton variant="primary" label={game.starting ? 'Starting…' : 'Start question'} disabled={!game.ready || game.starting} onPress={()=>{void game.start();}}/>
+          <Text accessibilityRole="header" style={[styles.question,{color:theme.text}]}>Take a moment to read.</Text>
+          <Text style={{...Typography.helper,color:theme.mutedForeground}}>Read for 20 seconds before the countdown begins. Answer whenever you’re ready. Wrong choices disappear during the countdown.</Text>
+          <DiscoveryButton variant="primary" label={game.starting ? 'Starting…' : 'Start question'} disabled={!game.ready || game.starting} onPress={()=>{void game.start().then(started=>{if(started)discoveryMetric(item,'round_started',{source:metricSource});});}}/>
           {game.error ? <><Text accessibilityRole="alert" style={{...Typography.helper,color:theme.error}}>{game.error}</Text>{!game.ready ? <DiscoveryButton label="Try again" onPress={game.retryRestore}/>:null}</>:null}
         </View>:null}
         {!revealed && game.started ? <View style={{gap:4}}>
           <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',flexWrap:'wrap'}}>
-            <View style={{...styles.row,minHeight:44}}><Clock3 size={16} color={theme.tint} accessible={false}/><Text style={{...Typography.formLabel,fontVariant:['tabular-nums'],color:theme.tint}}>{game.remaining}s</Text></View>
+            <View style={{...styles.row,minHeight:44}}><Clock3 size={16} color={theme.tint} accessible={false}/><Text style={{...Typography.formLabel,fontVariant:['tabular-nums'],color:theme.tint}}>{game.reading ? `Reading time · ${game.readingRemaining}s` : `${game.remaining}s`}</Text></View>
             {!commitFailed ? <DiscoveryButton variant="quiet" label={saving ? 'Saving…':'Reveal answer'} disabled={saving || game.expired} onPress={()=>{void finish();}}/>:null}
           </View>
-          <View accessibilityRole="progressbar" accessibilityLabel="Time remaining" accessibilityValue={{min:0,max:20,now:game.remaining,text:`${game.remaining} seconds remaining`}} style={{height:5,borderRadius:3,backgroundColor:theme.muted,overflow:'hidden'}}><View style={{height:5,width:`${game.remaining/20*100}%`,backgroundColor:theme.action}}/></View>
+          <View accessibilityRole="progressbar" accessibilityLabel={game.reading ? "Reading time before countdown":"Time remaining"} accessibilityValue={{min:0,max:20,now:game.remaining,text:game.reading ? `${game.readingRemaining} seconds before countdown. Answer whenever you are ready.`:`${game.remaining} seconds remaining`}} style={{height:5,borderRadius:3,backgroundColor:theme.muted,overflow:'hidden'}}><View style={{height:5,width:`${game.remaining/20*100}%`,backgroundColor:theme.action}}/></View>
         </View>:null}
         {revealed || game.started ? <View style={{gap:10}}>
           {item.choices.map((choice,index) => {
@@ -177,7 +185,7 @@ export default function DiscoveryScreen() {
           <Text style={{...Typography.helper,color:theme.text}}>{item.explanation}</Text>
           {item.correctionNotice ? <Text style={{...Typography.helper,color:theme.tint}}>Correction: {item.correctionNotice}</Text> : null}
           {completed && completed.revision!==item.revision ? <Text style={{...Typography.metadata,color:theme.mutedForeground}}>Updated answer and sources.</Text> : null}
-          {item.setPosition ? <View style={{gap:12}}><DailySetScore results={setResults}/><Text style={{...Typography.metadata,color:theme.mutedForeground}}>{setResults.filter(Boolean).length}/3 played · {setResults.filter(r=>r==='correct').length}/3 correct</Text></View>:<TriviaStats elapsedMs={completed?.elapsedMs} streak={stats.current}/>}
+          {item.setPosition ? <View style={{gap:12}}><DailySetScore results={setResults}/><Text style={{...Typography.metadata,color:theme.mutedForeground}}>{setResults.filter(Boolean).length}/3 played · {setResults.filter(r=>r==='correct').length}/3 correct</Text><Text style={{...Typography.metadata,color:theme.mutedForeground}}>{dailySetStreak(Object.values(progress.completions),today)}-day play streak · Any score counts.</Text></View>:<TriviaStats elapsedMs={completed?.elapsedMs} streak={stats.current}/>}
           {item.scriptureReference ? <DiscoveryScripture reference={item.scriptureReference}/> : item.sources[0] ? <Text style={{...Typography.metadata,color:theme.mutedForeground}}>{item.sources[0].locator}</Text> : null}
           <DiscoveryButton variant="quiet" label={showSources ? 'Hide sources' : 'View sources'} accessibilityState={{expanded:showSources}} onPress={() => setShowSources(value => !value)} icon={<BookOpen size={16} color={theme.tint} accessible={false}/>}/>
         </View> : null}
@@ -191,7 +199,7 @@ export default function DiscoveryScreen() {
               {evidence===source.id ? <ChevronDown size={18} color={theme.mutedForeground} accessible={false}/> : <ChevronRight size={18} color={theme.mutedForeground} accessible={false}/>}
             </DiscoveryPressable>
             {evidence===source.id ? <View style={{paddingHorizontal:16,paddingBottom:16,gap:12}}><Text style={{...Typography.readingBody,fontFamily:Layout.serif,color:theme.text}}>{source.excerpt}</Text><Text style={{...Typography.metadata,color:theme.mutedForeground}}>{source.rights}</Text></View> : null}
-            <DiscoveryPressable accessibilityRole="link" accessibilityHint="Opens the source website." onPress={() => {discoveryMetric(item,'source_opened');void Linking.openURL(source.url).catch(() => Alert.alert('Source unavailable','Try the saved excerpt.'));}} pressedStyle={{backgroundColor:theme.muted}} style={{minHeight:46,paddingHorizontal:16,paddingVertical:12,borderTopWidth:1,borderTopColor:theme.border,flexDirection:'row',alignItems:'center',gap:8}}>
+            <DiscoveryPressable accessibilityRole="link" accessibilityHint="Opens the source website." onPress={() => {discoveryMetric(item,'source_opened',{source:metricSource});void Linking.openURL(source.url).catch(() => Alert.alert('Source unavailable','Try the saved excerpt.'));}} pressedStyle={{backgroundColor:theme.muted}} style={{minHeight:46,paddingHorizontal:16,paddingVertical:12,borderTopWidth:1,borderTopColor:theme.border,flexDirection:'row',alignItems:'center',gap:8}}>
               <ExternalLink size={15} color={theme.tint} accessible={false}/><Text style={{...Typography.helper,color:theme.tint}}>Open website</Text>
             </DiscoveryPressable>
           </View>)}

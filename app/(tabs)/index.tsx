@@ -61,6 +61,8 @@ import ViewShot from "react-native-view-shot";
 
 import VerseOfTheDayCard from '@/components/VerseOfTheDayCard';
 import DailyDiscoveryCard from '@/components/DailyDiscoveryCard';
+import HomeNewsSection from '@/components/HomeNewsSection';
+import useScrollItemVisibility from '@/components/useScrollItemVisibility';
 import { useDiscoveries } from '@/context/DiscoveryContext';
 const bg1 = require('@/assets/images/votd-image-1.jpg');
 const bg2 = require('@/assets/images/votd-image-2.jpg');
@@ -79,6 +81,7 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 export default function HomeScreen() {
     const { refresh: refreshDiscoveries } = useDiscoveries();
+    const triviaVisibility = useScrollItemVisibility();
     const reducedMotion = useReducedMotion();
     const animateLayout = () => { if (!reducedMotion) LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut); };
     const { user, profile, refreshProfile, loading: authLoading } = useAuth();
@@ -423,6 +426,9 @@ export default function HomeScreen() {
     return (
         <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['left', 'right']}>
             <ScrollView
+                onLayout={triviaVisibility.onLayout}
+                onScroll={triviaVisibility.onScroll}
+                scrollEventThrottle={100}
                 contentContainerStyle={{ padding: Layout.gutter, paddingBottom: Layout.bottomPadding }}
                 refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.tint} />}
                 showsVerticalScrollIndicator={false}
@@ -457,6 +463,8 @@ export default function HomeScreen() {
                         </Pressable>
                     )}
                 </View>
+
+                <DailyDiscoveryCard visible={triviaVisibility.visible} onLayout={triviaVisibility.onItemLayout} />
 
                 {/* --- SCRIPTURE OF THE DAY (Renders Instantly) --- */}
                 {dailyScripture && (
@@ -601,7 +609,6 @@ export default function HomeScreen() {
                 )}
 
                 {/* --- RECOMMENDED VIDEOS --- */}
-                <DailyDiscoveryCard />
                 {recommendedVideos.length > 0 && (
                     <View style={{ marginBottom: Layout.sectionGap }}>
                         <Text accessibilityRole="header" style={{ ...Typography.formLabel, color: theme.text, marginBottom: 12 }}>
@@ -748,23 +755,7 @@ export default function HomeScreen() {
                     </Pressable>
                 )}
 
-                {/* --- 6. NEWS CARD --- */}
-                {dailyNews && (
-                    <View className="mb-10">
-                        <View className="flex-row items-end justify-between mb-3 px-1">
-                            <Text className="text-xs font-bold uppercase tracking-widest text-slate-400">Today's News Recap</Text>
-                            <Pressable onPress={() => router.push('/news')}>
-                                <Text className="text-xs font-bold uppercase tracking-wider" style={{ color: theme.text }}>View All</Text>
-                            </Pressable>
-                        </View>
-
-                        <Pressable onPress={() => router.push('/news')} className="p-5 rounded-2xl border border-slate-100 dark:border-slate-800 active:scale-[0.99]" style={{ backgroundColor: theme.card }}>
-                            <Text className="text-sm leading-relaxed" style={{ color: theme.mutedForeground }}>
-                                {dailyNews.synopsis || "Read today's Christian perspective on world events."}
-                            </Text>
-                        </Pressable>
-                    </View>
-                )}
+                <HomeNewsSection briefing={dailyNews} refreshing={refreshing} />
 
             </ScrollView>
 

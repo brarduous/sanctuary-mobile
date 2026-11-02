@@ -4,7 +4,7 @@ import {randomUUID} from 'node:crypto';
 import {readFileSync} from 'node:fs';
 import {isDiscovery} from '../lib/discoveryCore.ts';
 import {formatTriviaDate,isTriviaDate,shiftTriviaDate,triviaDateAccess} from '../lib/discoveryDates.ts';
-import {dailySetForDate,dailySetResults,dailySetShareText,dailySetStreak} from '../lib/discoveryDailySet.ts';
+import {dailySetForDate,dailySetResults,dailySetShareText,dailySetPerfectStreak} from '../lib/discoveryDailySet.ts';
 import {createDiscoveryStore} from '../lib/discoveryStore.ts';
 const date='2026-10-30';
 const items=[1,2,3].map(setPosition=>({id:randomUUID(),revision:1,publicationDate:date,setPosition}));
@@ -44,11 +44,11 @@ test('only the matching item revision/date contributes to the three-square resul
 });
 test('a perfect-set streak requires all three wins and survives a partial next day across DST',()=>{
  const day=(date,outcomes=['correct','correct','correct'])=>outcomes.map((outcome,i)=>({...done(items[i],outcome),puzzleDate:date,localDate:date}));
- assert.equal(dailySetStreak([...day('2026-10-31'),...day('2026-11-01')],'2026-11-01'),2);
- assert.equal(dailySetStreak([...day('2026-10-31'),day('2026-11-01')[0]],'2026-11-01'),1);
- assert.equal(dailySetStreak([...day('2026-10-31'),...day('2026-11-01',['correct','incorrect','correct'])],'2026-11-01'),0);
- assert.equal(dailySetStreak(day('2026-10-31').map(r=>({...r,localDate:'2026-11-01'})),'2026-11-01'),0);
- assert.equal(dailySetStreak([{...done(items[0]),setPosition:undefined}],'2026-10-30'),0,'legacy single questions cannot earn a perfect set');
+ assert.equal(dailySetPerfectStreak([...day('2026-10-31'),...day('2026-11-01')],'2026-11-01'),2);
+ assert.equal(dailySetPerfectStreak([...day('2026-10-31'),day('2026-11-01')[0]],'2026-11-01'),1);
+ assert.equal(dailySetPerfectStreak([...day('2026-10-31'),...day('2026-11-01',['correct','incorrect','correct'])],'2026-11-01'),0);
+ assert.equal(dailySetPerfectStreak(day('2026-10-31').map(r=>({...r,localDate:'2026-11-01'})),'2026-11-01'),0);
+ assert.equal(dailySetPerfectStreak([{...done(items[0]),setPosition:undefined}],'2026-10-30'),0,'legacy single questions cannot earn a perfect set');
 });
 test('three offline results survive restart, guest import and canonical server reconciliation',async()=>{
  const memory=new Map(),storage={async getItem(k){return memory.get(k)||null;},async setItem(k,v){memory.set(k,v);},async removeItem(k){memory.delete(k);}};

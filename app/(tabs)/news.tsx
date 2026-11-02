@@ -1,359 +1,148 @@
-import { useColorScheme } from '@/components/useColorScheme';
-import Colors from '@/constants/Colors';
-import ScreenState from '@/components/ScreenState';
-import { useAuth } from '@/context/AuthContext';
-import {
-    fetchCategories,
-    fetchDailyNewsSynopsis,
-    fetchNewsArticles,
-    fetchUserFollowedCategories
-} from '@/lib/api';
-import { Image } from 'expo-image';
-import { Stack, useRouter } from 'expo-router';
-import { BookOpen, Calendar, ChevronRight, Search } from 'lucide-react-native';
-import React, { useCallback, useEffect, useState } from 'react';
-import {
-    ActivityIndicator,
-    FlatList,
-    LayoutAnimation,
-    Platform,
-    Pressable,
-    RefreshControl,
-    ScrollView,
-    Text,
-    TextInput,
-    UIManager,
-    View
-} from 'react-native';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, FlatList, Modal, Pressable, RefreshControl, ScrollView, Text, TextInput, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ArrowRight, Search, SlidersHorizontal, X } from 'lucide-react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useColorScheme } from '@/components/useColorScheme';
+import ScreenState from '@/components/ScreenState';
+import NewsStoryCard from '@/components/NewsStoryCard';
+import NewsBriefingCard from '@/components/NewsBriefingCard';
+import Colors from '@/constants/Colors';
+import { Layout, Typography } from '@/constants/Layout';
+import { useAuth } from '@/context/AuthContext';
+import { fetchCategories, fetchDailyNewsSynopsis, fetchNewsArticles, fetchUserFollowedCategories } from '@/lib/api';
+import type { NewsArticle, NewsBriefing } from '@/lib/newsFeed';
 
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-    UIManager.setLayoutAnimationEnabledExperimental(true);
-}
-
-// Types
-type Category = {
-    id: number;
-    name: string;
-    recent_count?: number;
-};
-type Article = {
-    id: number;
-    article_title: string;
-    created_at: string;
-    publish_date?: string | null;
-    article_thumbnail_url?: string;
-    ai_outlook?: {
-        synopsis?: string;
-    };
-};
-
-function ArticleThumbnail({ uri }: { uri: string }) {
-    const [failed, setFailed] = useState(false);
-    if (failed) return null;
-    return <Image source={{ uri }} onError={() => setFailed(true)} style={{ width: 80, height: 80, borderRadius: 12 }} contentFit="cover" transition={200} />;
-}
-
+type Category = { id: number; name: string };
 export default function NewsScreen() {
-    const { user } = useAuth();
-    const router = useRouter();
-    const colorScheme = useColorScheme();
-    const theme = Colors[colorScheme ?? 'light'];
+  const { user } = useAuth(), account = user?.id || null;
+  const router = useRouter(), theme = Colors[useColorScheme() ?? 'light'];
+  const params = useLocalSearchParams<{ briefing?: string; request?: string }>();
+  const list = useRef<FlatList<NewsArticle>>(null);
+  const activeAccount = useRef(account); activeAccount.current = account;
+  const request = useRef(0), initialization = useRef(0), briefingRequest = useRef(0), appending = useRef(false);
+  const [synopsis, setSynopsis] = useState<NewsBriefing | null>(null);
+  const [briefingOpen, setBriefingOpen] = useState(false);
+  const [topicsOpen, setTopicsOpen] = useState(false), [topicSearch, setTopicSearch] = useState('');
+  const [categories, setCategories] = useState<Category[]>([]), [userCategoryIds, setUserCategoryIds] = useState<number[]>([]);
+  const [articles, setArticles] = useState<NewsArticle[]>([]), [feedOwner, setFeedOwner] = useState(account);
+  const [searchQuery, setSearchQuery] = useState(''), [submittedQuery, setSubmittedQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState('all');
+  const [loadingArticles, setLoadingArticles] = useState(true), [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true), [page, setPage] = useState(1);
+  const [refreshing, setRefreshing] = useState(false), [feedError, setFeedError] = useState(false);
 
-    // --- STATE ---
-    const [synopsis, setSynopsis] = useState<any>(null);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [articles, setArticles] = useState<Article[]>([]);
-    const [userCategoryIds, setUserCategoryIds] = useState<number[]>([]);
+  const loadBriefing = useCallback(async () => {
+    const sequence = ++briefingRequest.current;
+    const value = await fetchDailyNewsSynopsis();
+    if (sequence === briefingRequest.current) setSynopsis(value);
+  }, []);
 
-    // Filter State
-    const [searchQuery, setSearchQuery] = useState('');
-    const [activeFilter, setActiveFilter] = useState<'all' | 'my_feed' | string>('all');
+  const fetchFeed = useCallback(async (filter: string, query: string, pageNum: number, userCats: number[], append = false) => {
+    const sequence = ++request.current, owner = account;
+    const q = query.trim();
+    const options: Parameters<typeof fetchNewsArticles>[0] = { q, page: pageNum, limit: 10 };
+    if (filter === 'my_feed') options.category_ids = userCats;
+    else if (filter !== 'all') options.category_id = filter;
+    appending.current = append;
+    if (!append) setLoadingArticles(true); else setLoadingMore(true);
+    setFeedError(false);
+    try {
+      const rows = await fetchNewsArticles(options);
+      if (sequence !== request.current || activeAccount.current !== owner) return;
+      if (!Array.isArray(rows)) throw new Error('Invalid news feed');
+      setArticles(previous => append ? [...new Map([...previous, ...rows].map(item => [item.id, item])).values()] : rows);
+      setFeedOwner(owner); setPage(pageNum);
+      // Search returns one bounded result set; it does not accept pagination.
+      setHasMore(!q && rows.length === 10);
+    } catch {
+      if (sequence === request.current && activeAccount.current === owner) { setFeedError(true); setHasMore(false); }
+    } finally {
+      if (sequence === request.current && activeAccount.current === owner) {
+        setLoadingArticles(false); setLoadingMore(false); setRefreshing(false); appending.current = false;
+      }
+    }
+  }, [account]);
 
-    // Loading States
-    const [loadingSynopsis, setLoadingSynopsis] = useState(true);
-    const [loadingArticles, setLoadingArticles] = useState(true);
-    const [loadingMore, setLoadingMore] = useState(false);
-    const [hasMore, setHasMore] = useState(true);
-    const [page, setPage] = useState(1);
-    const [refreshing, setRefreshing] = useState(false);
-    const [feedError, setFeedError] = useState(false);
+  useEffect(() => {
+    const sequence = ++initialization.current;
+    request.current++; appending.current = false;
+    setArticles([]); setFeedOwner(account); setLoadingArticles(true); setLoadingMore(false);
+    setSearchQuery(''); setSubmittedQuery(''); setActiveFilter('all'); setUserCategoryIds([]);
+    void loadBriefing();
+    void (async () => {
+      const [all, followed] = await Promise.all([fetchCategories(), account ? fetchUserFollowedCategories(account) : Promise.resolve([])]);
+      if (sequence !== initialization.current) return;
+      const ids = (followed || []).map(Number);
+      setUserCategoryIds(ids);
+      setCategories([...(all || []).filter((cat: Category) => ids.includes(cat.id)), ...(all || []).filter((cat: Category) => !ids.includes(cat.id))]);
+      const filter = ids.length ? 'my_feed' : 'all';
+      setActiveFilter(filter);
+      await fetchFeed(filter, '', 1, ids);
+    })();
+    return () => { initialization.current++; request.current++; briefingRequest.current++; };
+  }, [account, fetchFeed, loadBriefing]);
 
-    // Initial Load
-    const initData = useCallback(async () => {
+  useEffect(() => {
+    if (params.briefing === 'open') { setBriefingOpen(true); list.current?.scrollToOffset({ offset: 0, animated: false }); }
+  }, [params.briefing, params.request]);
 
+  const changeFeed = (filter: string, query: string) => {
+    setActiveFilter(filter); setSubmittedQuery(query.trim()); setArticles([]); setHasMore(true); setLoadingMore(false);
+    void fetchFeed(filter, query, 1, userCategoryIds);
+  };
+  const handleSearch = () => changeFeed(searchQuery.trim() ? 'all' : activeFilter, searchQuery);
+  const browseAll = () => { setSearchQuery(''); changeFeed('all', ''); };
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([fetchFeed(activeFilter, submittedQuery, 1, userCategoryIds), loadBriefing()]);
+  };
+  const loadMore = () => {
+    if (!hasMore || appending.current || loadingMore || loadingArticles || submittedQuery) return;
+    void fetchFeed(activeFilter, submittedQuery, page + 1, userCategoryIds, true);
+  };
+  const filterLabel = activeFilter === 'my_feed' ? 'For you' : categories.find(cat => String(cat.id) === activeFilter)?.name || 'Latest stories';
+  const visibleCategories = categories.slice(0, 5);
+  const selectedCategory = categories.find(cat => String(cat.id) === activeFilter);
+  if (selectedCategory && !visibleCategories.some(cat => cat.id === selectedCategory.id)) visibleCategories.push(selectedCategory);
+  const filters = [...(userCategoryIds.length ? [{ id: 'my_feed', name: 'For you' }] : []), { id: 'all', name: 'All news' }, ...visibleCategories.map(cat => ({ id: String(cat.id), name: cat.name }))];
 
-        // 1. Load Synopsis
-        setLoadingSynopsis(true);
-        const synData = await fetchDailyNewsSynopsis();
-        setSynopsis(synData);
-        setLoadingSynopsis(false);
+  const header = <View style={{ padding: Layout.gutter, paddingBottom: 8, gap: 16 }}>
+    <View style={{ gap: 8 }}>
+      <Text accessibilityRole="header" style={{ fontFamily: Layout.serif, fontSize: 30, lineHeight: 38, color: theme.text }}>News, with perspective.</Text>
+    </View>
+    {synopsis?.synopsis ? <NewsBriefingCard briefing={synopsis} expanded={briefingOpen} onToggle={() => setBriefingOpen(open => !open)} /> : null}
+    <View style={{ minHeight: 50, flexDirection: 'row', alignItems: 'center', paddingLeft: 14, borderRadius: Layout.controlRadius, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.card, gap: 10 }}>
+      <Search size={19} color={theme.mutedForeground} accessible={false} />
+      <TextInput accessibilityLabel="Search news" placeholder="Find a story or topic" placeholderTextColor={theme.mutedForeground} value={searchQuery} onChangeText={setSearchQuery} onSubmitEditing={handleSearch} returnKeyType="search" style={{ ...Typography.helper, color: theme.text, flex: 1, paddingVertical: 12 }} />
+      {searchQuery ? <Pressable accessibilityRole="button" accessibilityLabel="Clear news search" onPress={() => { setSearchQuery(''); changeFeed(activeFilter, ''); }} style={{ minWidth: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}><X size={18} color={theme.mutedForeground} /></Pressable> : null}
+      <Pressable accessibilityRole="button" accessibilityLabel="Search articles" onPress={handleSearch} style={{ minWidth: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center' }}><ArrowRight size={20} color={theme.tint} /></Pressable>
+    </View>
+    <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
+    <ScrollView style={{ flex: 1 }} horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ gap: 8 }}>
+      {filters.map(filter => <Pressable key={filter.id} accessibilityRole="button" accessibilityState={{ selected: activeFilter === filter.id }} onPress={() => { setSearchQuery(''); changeFeed(filter.id, ''); }} style={{ minHeight: 44, paddingHorizontal: 16, paddingVertical: 10, justifyContent: 'center', borderRadius: 24, borderWidth: 1, borderColor: activeFilter === filter.id ? theme.tint : theme.border, backgroundColor: activeFilter === filter.id ? theme.selection : theme.card }}><Text style={{ ...Typography.metadata, fontWeight: '600', color: activeFilter === filter.id ? theme.tint : theme.text }}>{filter.name}</Text></Pressable>)}
+    </ScrollView>
+    <Pressable accessibilityRole="button" accessibilityLabel="Explore all news topics" onPress={() => { setTopicSearch(''); setTopicsOpen(true); }} style={{ minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: Layout.controlRadius, backgroundColor: theme.card, borderWidth: 1, borderColor: theme.border }}><SlidersHorizontal size={20} color={theme.tint} accessible={false} /></Pressable>
+    </View>
+    {submittedQuery || activeFilter !== 'all' ? <Text accessibilityRole="header" style={{ ...Typography.formLabel, color: theme.text, marginTop: 4 }}>{submittedQuery ? 'Search results' : filterLabel}</Text> : null}
+  </View>;
 
-        // 2. Load Categories
-        const [allCats, userFollowed] = await Promise.all([
-            fetchCategories(),
-            user && fetchUserFollowedCategories(user.id)
-        ]);
-
-        const followedIds = (userFollowed || []).map((id: any) => Number(id));
-        setUserCategoryIds(followedIds);
-
-        // Sort Categories
-        const followedCats = (allCats || []).filter((c: any) => followedIds.includes(c.id));
-        const otherCats = (allCats || []).filter((c: any) => !followedIds.includes(c.id));
-        // Sort logic if specific counts used, otherwise kept simple
-        setCategories([...followedCats, ...otherCats]);
-
-        // 3. Initial Feed
-        let initialFilter = followedIds.length > 0 ? 'my_feed' : 'all';
-        setActiveFilter(initialFilter);
-
-        await fetchFeed(initialFilter, '', 1, followedIds);
-    }, [user]);
-
-    const fetchFeed = async (filter: string, query: string, pageNum: number, userCats: number[], append = false) => {
-        let params: any = { q: query, page: pageNum, limit: 10 };
-
-        if (filter === 'my_feed') {
-            params.category_ids = userCats;
-        } else if (filter !== 'all') {
-            params.category_id = filter;
-        }
-
-        if (!append) setLoadingArticles(true);
-        else setLoadingMore(true);
-        setFeedError(false);
-
-        try {
-            const data = await fetchNewsArticles(params);
-            const newArticles = data || [];
-
-            if (newArticles.length < 10) setHasMore(false);
-            else setHasMore(true);
-
-            if (append) {
-                setArticles(prev => [...prev, ...newArticles]);
-            } else {
-                setArticles(newArticles);
-            }
-        } catch {
-            setFeedError(true);
-            setHasMore(false);
-        } finally {
-            setLoadingArticles(false);
-            setLoadingMore(false);
-            setRefreshing(false);
-        }
-    };
-
-    useEffect(() => {
-        initData();
-    }, [initData]);
-
-    const onRefresh = async () => {
-        setRefreshing(true);
-        setPage(1);
-        await initData();
-    };
-
-    // Handlers
-    const handleFilterChange = (filter: string) => {
-        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-        setActiveFilter(filter);
-        setPage(1);
-        setHasMore(true);
-        setArticles([]); // Clear to show loading
-        fetchFeed(filter, searchQuery, 1, userCategoryIds);
-    };
-
-    const handleSearch = () => {
-        setPage(1);
-        setHasMore(true);
-        fetchFeed(activeFilter, searchQuery, 1, userCategoryIds);
-    };
-
-    const browseAllNews = () => {
-        setSearchQuery('');
-        setActiveFilter('all');
-        setPage(1);
-        setHasMore(true);
-        void fetchFeed('all', '', 1, userCategoryIds);
-    };
-
-    const loadMore = () => {
-        if (!hasMore || loadingMore || loadingArticles) return;
-        const nextPage = page + 1;
-        setPage(nextPage);
-        fetchFeed(activeFilter, searchQuery, nextPage, userCategoryIds, true);
-    };
-
-    const getRelativeTime = (dateString: string) => {
-        const date = new Date(dateString);
-        const now = new Date();
-        const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-
-        if (Number.isNaN(date.getTime())) return '';
-        if (diffInSeconds < 0) return date.toLocaleDateString();
-        if (diffInSeconds < 60) return 'Just now';
-
-        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
-        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
-        if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
-
-        return date.toLocaleDateString();
-    };
-
-    // Components
-    const renderHeader = () => (
-        <View className="px-5 pt-4 pb-2" style={{ backgroundColor: theme.background }}>
-            {loadingSynopsis ? (
-                <View className="rounded-[24px] p-6 h-40 items-center justify-center border " style={{ backgroundColor: theme.card, borderColor: theme.border }}>
-                    <ActivityIndicator color="#D4A373" />
-                </View>
-            ) : synopsis ? (
-                <View className="rounded-[24px] border  p-6 mb-2" style={{ backgroundColor: theme.card, borderColor: theme.border }}>
-                    <View className="flex-row justify-between items-start mb-4">
-                        <Text className="text-xs font-bold uppercase tracking-widest" style={{ color: theme.mutedForeground }}>Daily Outlook</Text>
-                        <Text className="text-xs" style={{ color: theme.mutedForeground }}>
-                            {new Date(synopsis.created_at).toLocaleDateString()}
-                        </Text>
-                    </View>
-                    <Text className="text-xl font-serif mb-3 font-medium" style={{ color: theme.text }}>Today's Christian Outlook</Text>
-                    <Text className="leading-relaxed font-serif text-base" style={{ color: theme.text }}>
-                        {synopsis.synopsis}
-                    </Text>
-                    {synopsis.scripture && (
-                        <View className="mt-4 pt-4 border-t  flex-row gap-2" style={{ borderColor: theme.border }}>
-                            <BookOpen size={16} color="#64748B" className="mt-0.5" />
-                            <Text className="text-xs italic text-slate-500 font-medium flex-1">
-                                {synopsis.scripture}
-                            </Text>
-                        </View>
-                    )}
-                </View>
-            ) : null}
+  return <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['left', 'right']}>
+    <FlatList ref={list} data={feedOwner === account ? articles : []} keyExtractor={item => String(item.id)} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: Layout.sectionGap }}
+      renderItem={({ item, index }) => <View style={{ marginHorizontal: Layout.gutter, marginTop: 14 }}><NewsStoryCard article={item} featured={index === 0 && !submittedQuery} onPress={() => router.push({ pathname: '/news/[id]', params: { id: String(item.id) } })} /></View>}
+      ListHeaderComponent={header} onEndReached={loadMore} onEndReachedThreshold={0.4}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { void onRefresh(); }} tintColor={theme.tint} />}
+      ListEmptyComponent={loadingArticles ? <ScreenState title="Finding your stories" loading /> : feedError ? <ScreenState title="News could not load" message="Connect and try again. Your topics are saved." onRetry={handleSearch} /> : <ScreenState title="No stories here yet" message={submittedQuery ? 'Try another search or explore all news.' : 'Explore the latest stories from all topics.'} actionLabel="Browse all news" onRetry={browseAll} />}
+      ListFooterComponent={loadingMore ? <ActivityIndicator accessibilityLabel="Loading more stories" color={theme.tint} style={{ padding: 24 }} /> : feedError && articles.length ? <ScreenState title="More stories could not load" message="Your loaded stories are still here." onRetry={() => { void fetchFeed(activeFilter, submittedQuery, page + 1, userCategoryIds, true); }} /> : null}
+    />
+    <Modal visible={topicsOpen} animationType="none" presentationStyle="pageSheet" onRequestClose={() => setTopicsOpen(false)}>
+      <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }}>
+        <View style={{ padding: Layout.gutter, gap: 16 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}><Text accessibilityRole="header" style={{ ...Typography.editorialTitle, fontFamily: Layout.serif, color: theme.text, flex: 1 }}>Explore topics</Text><Pressable accessibilityRole="button" accessibilityLabel="Close news topics" onPress={() => setTopicsOpen(false)} style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' }}><X size={23} color={theme.text} /></Pressable></View>
+          <TextInput accessibilityLabel="Find a news topic" placeholder="Find a topic" placeholderTextColor={theme.mutedForeground} value={topicSearch} onChangeText={setTopicSearch} style={{ ...Typography.helper, color: theme.text, minHeight: 48, paddingHorizontal: 16, paddingVertical: 12, borderRadius: Layout.controlRadius, borderWidth: 1, borderColor: theme.border, backgroundColor: theme.card }} />
         </View>
-    );
-
-    const renderStickyHeader = () => (
-        <View style={{ backgroundColor: theme.background, borderColor: theme.border }} className="px-5 pt-2 pb-4 border-b">
-            {/* Search */}
-            <View className="border border-slate-200 rounded-xl flex-row items-center px-4 h-11 mb-3" style={{ backgroundColor: theme.card, borderColor: theme.border }}>
-                <Search size={16} color="#94A3B8" />
-                <TextInput
-                    placeholder="Search articles..."
-                    placeholderTextColor="#94A3B8"
-                    value={searchQuery}
-                    onChangeText={setSearchQuery}
-                    onSubmitEditing={handleSearch}
-                    returnKeyType="search"
-                    className="flex-1 ml-2 font-medium h-full"
-                    style={{ color: theme.text }}
-                />
-            </View>
-
-            {/* Chips */}
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
-                {userCategoryIds.length > 0 && (
-                    <Pressable
-                        onPress={() => handleFilterChange('my_feed')}
-                        className={`px-4 py-1.5 rounded-full border ${activeFilter === 'my_feed'
-                                ? 'bg-slate-900 border-slate-900'
-                                : 'border-slate-200'
-                            }`}
-                        style={{ minHeight: 44, justifyContent: 'center', backgroundColor: activeFilter === 'my_feed' ? theme.tint : theme.card, borderColor: activeFilter === 'my_feed' ? theme.tint : theme.border }}
-                    >
-                        <Text className={`text-xs font-bold ${activeFilter === 'my_feed' ? 'text-white' : ''
-                            }`} style={{ color: activeFilter === 'my_feed' ? theme.onTint : theme.text }}>My Feed</Text>
-                    </Pressable>
-                )}
-
-                <Pressable
-                    onPress={() => handleFilterChange('all')}
-                    className={`px-4 py-1.5 rounded-full border ${activeFilter === 'all'
-                            ? 'bg-slate-900 border-slate-900'
-                            : 'border-slate-200'
-                        }`}
-                    style={{ minHeight: 44, justifyContent: 'center', backgroundColor: activeFilter === 'all' ? theme.tint : theme.card, borderColor: activeFilter === 'all' ? theme.tint : theme.border }}
-                >
-                    <Text className={`text-xs font-bold ${activeFilter === 'all' ? 'text-white' : ''
-                        }`} style={{ color: activeFilter === 'all' ? theme.onTint : theme.text }}>All News</Text>
-                </Pressable>
-
-                {categories.map(cat => (
-                    <Pressable
-                        key={cat.id}
-                        onPress={() => handleFilterChange(cat.id.toString())}
-                        className={`px-4 py-1.5 rounded-full border ${activeFilter === cat.id.toString()
-                                ? 'bg-slate-900 border-slate-900'
-                                : 'border-slate-200'
-                            } ${userCategoryIds.includes(cat.id) ? 'border-l-4 border-l-[#D4A373]' : ''}`}
-                        style={{ minHeight: 44, justifyContent: 'center', backgroundColor: activeFilter === cat.id.toString() ? theme.tint : theme.card, borderColor: activeFilter === cat.id.toString() ? theme.tint : theme.border }}
-                    >
-                        <Text className={`text-xs font-bold ${activeFilter === cat.id.toString() ? 'text-white' : ''
-                            }`} style={{ color: activeFilter === cat.id.toString() ? theme.onTint : theme.text }}>{cat.name}</Text>
-                    </Pressable>
-                ))}
-            </ScrollView>
-        </View>
-    );
-
-    const renderArticle = ({ item }: { item: Article }) => (
-        <Pressable
-            onPress={() => router.push(`/news/${item.id}` as any)}
-            className="rounded-2xl p-4 border  flex-row gap-4 mt-4 mx-5 active:scale-[0.99]"
-            style={{ backgroundColor: theme.card, borderColor: theme.border }}
-        >
-            {item.article_thumbnail_url ? <ArticleThumbnail key={item.article_thumbnail_url} uri={item.article_thumbnail_url} /> : null}
-
-            <View className="flex-1 justify-between py-1">
-                <View>
-                    <Text className="font-serif font-bold leading-snug text-base mb-2" numberOfLines={3} style={{ color: theme.text }}>
-                        {item.article_title}
-                    </Text>
-                    <View className="flex-row items-center gap-1">
-                        <Calendar size={13} color={theme.mutedForeground} />
-                        <Text className="text-xs font-medium" style={{ color: theme.mutedForeground }}>
-                            {getRelativeTime(item.publish_date || item.created_at)}
-                        </Text>
-                    </View>
-                </View>
-
-                <View className="flex-row items-center mt-2">
-                    <Text className="text-xs font-bold mr-1" style={{ color: theme.tint }}>Read Outlook</Text>
-                    <ChevronRight size={12} color={theme.tint} />
-                </View>
-            </View>
-        </Pressable>
-    );
-
-    return (
-        <SafeAreaView style={{ flex: 1, backgroundColor: theme.background }} edges={['left', 'right']}>
-
-
-            <FlatList
-                style={{ paddingVertical: 2 }}
-                data={articles}
-                keyExtractor={(item) => item.id.toString()}
-                renderItem={renderArticle}
-                ListHeaderComponent={renderStickyHeader()}
-                stickyHeaderIndices={[0]}
-                onEndReached={loadMore}
-                onEndReachedThreshold={0.5}
-                refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#D4A373" />}
-                ListEmptyComponent={
-                    loadingArticles ? <ScreenState title="Loading articles" loading /> : feedError ?
-                        <ScreenState title="News unavailable" message="We couldn’t load these articles. Please try again." onRetry={handleSearch} /> :
-                        <ScreenState title="No articles found"
-                            message={searchQuery.trim() ? 'Try another search or browse all news.' : activeFilter!=='all' ? 'There are no articles here yet. Explore the latest from all topics.' : 'Check back for new articles.'}
-                            actionLabel={searchQuery.trim() || activeFilter!=='all' ? 'Browse all news':'Refresh news'}
-                            onRetry={searchQuery.trim() || activeFilter!=='all' ? browseAllNews:handleSearch}/>
-                }
-                ListFooterComponent={
-                    loadingMore ? <ActivityIndicator className="py-4" color={theme.tint} /> : feedError && articles.length > 0 ?
-                        <ScreenState title="More articles unavailable" message="Your loaded articles are still available. Try loading the next page again." onRetry={() => { void fetchFeed(activeFilter, searchQuery, page, userCategoryIds, true); }} /> : (hasMore ? null : <View className="h-20" />)
-                }
-            />
-        </SafeAreaView>
-    );
+        <FlatList data={categories.filter(cat => cat.name.toLowerCase().includes(topicSearch.trim().toLowerCase()))} keyExtractor={cat => String(cat.id)} keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding: Layout.gutter, paddingTop: 0, gap: 8 }} renderItem={({ item }) => <Pressable accessibilityRole="button" accessibilityState={{ selected: String(item.id) === activeFilter }} onPress={() => { setTopicsOpen(false); setSearchQuery(''); changeFeed(String(item.id), ''); }} style={{ minHeight: 56, padding: 16, borderRadius: Layout.controlRadius, backgroundColor: String(item.id) === activeFilter ? theme.selection : theme.card, borderWidth: 1, borderColor: String(item.id) === activeFilter ? theme.tint : theme.border }}><Text style={{ ...Typography.formLabel, color: theme.text }}>{item.name}</Text></Pressable>} ListEmptyComponent={<Text style={{ ...Typography.helper, color: theme.mutedForeground }}>No topics match. Try another word.</Text>} />
+      </SafeAreaView>
+    </Modal>
+  </SafeAreaView>;
 }

@@ -89,7 +89,7 @@ export const updateNotificationTimeZone = async (timeZone: string) => {
 };
 
 export const registerNotificationCapabilities = async (expoPushToken:string,appVersion:string) => {
-  await apiClient.post('/api/notifications/capabilities',{expoPushToken,appVersion,features:['discoveries']});
+  await apiClient.post('/api/notifications/capabilities',{expoPushToken,appVersion,features:['discoveries','trivia-daily-set-v1']});
 };
 
 export const recordNotificationOpen = async (deliveryId: string) => {
@@ -648,18 +648,24 @@ export const deletePrayer = async (prayerId: string) => {
     }
 };
 
-export const fetchRecommendedVideos = async () => {
+export type RecommendedVideo = {
+  id: string | number; title: string; video_url: string; thumbnail_url?: string; focus_areas?: string[];
+};
+export const fetchRecommendedVideos = async (options: { throwOnError?: boolean } = {}): Promise<RecommendedVideo[]> => {
   try {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
+      if (options.throwOnError) throw new Error('Please sign in again to load your videos.');
       return [];
     }
 
     const response = await apiClient.get('/recommended');
+    if (!Array.isArray(response.data)) throw new Error('Invalid video recommendations');
     return response.data;
   } catch (error) {
     console.error('[API] Error fetching recommended videos:', error);
+    if (options.throwOnError) throw error;
     return [];
   }
 };

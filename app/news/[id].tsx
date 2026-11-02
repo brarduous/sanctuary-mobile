@@ -63,6 +63,7 @@ export default function NewsDetailScreen() {
             ? outlook.citedPassages.map((passage: any) => passage?.reference).filter((reference: unknown): reference is string => typeof reference === 'string' && reference.trim().length > 0)
             : [];
         if (typeof outlook?.scriptureReference === 'string') references.unshift(outlook.scriptureReference);
+        if(typeof outlook?.tldr?.christianAssessment?.scriptureReference==='string')references.unshift(outlook.tldr.christianAssessment.scriptureReference);
         return [...new Set<string>(references.map((reference: string) => reference.trim()))].join('; ');
     };
 
@@ -174,11 +175,14 @@ export default function NewsDetailScreen() {
                             {/* Synopsis */}
                             {outlook.synopsis && (
                                 <View className="mb-6">
-                                    <Text style={{ color: theme.mutedForeground, fontSize: 13, lineHeight: 20, fontWeight: '700', letterSpacing: 1, marginBottom: 12 }}>THE QUICK READ</Text>
-                                    <Text style={{ color: theme.text, fontFamily: Layout.serif, ...Layout.body }}>{outlook.synopsis}</Text>
+                                    <Text style={{ color: theme.mutedForeground, fontSize: 13, lineHeight: 20, fontWeight: '700', letterSpacing: 1, marginBottom: 12 }}>TL;DR</Text>
+                                    <Text style={{ color: theme.text, fontFamily: Layout.serif, ...Layout.body }}>{outlook.tldr?.summary || outlook.synopsis}</Text>
+                                    {outlook.tldr?.christianAssessment ? <View style={{marginTop:16,paddingTop:14,borderTopWidth:1,borderColor:theme.border,gap:8}}><Text style={{color:theme.tint,fontSize:13,fontWeight:'700'}}>Christian assessment · {outlook.tldr.christianAssessment.label}</Text><ScriptureLinkifier text={`${outlook.tldr.christianAssessment.reason} (${outlook.tldr.christianAssessment.scriptureReference})`} textStyle={{...Layout.body,fontFamily:Layout.serif}}/></View>:null}
                                     
                                 </View>
                             )}
+
+                            {outlook.newsSummary && outlook.newsSummary!==outlook.synopsis ? <View style={{marginBottom:24,gap:12}}><Text style={{color:theme.text,fontSize:21,fontFamily:Layout.serif,fontWeight:'700'}}>A little more detail</Text><Text style={{color:theme.text,...Layout.body,fontFamily:Layout.serif}}>{outlook.newsSummary}</Text></View>:null}
 
                             {/* Scripture Reference */}
                             {references && (

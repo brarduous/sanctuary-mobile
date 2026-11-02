@@ -1,3 +1,4 @@
+import {participationStreak} from './triviaParticipation.ts';
 import {formatTriviaDate} from './discoveryDates.ts';
 import type {Discovery,DiscoveryBundle,DiscoveryCompletion} from './discoveryCore.ts';
 export const DAILY_LABELS=['Easy','Medium','Hard'] as const;
@@ -10,7 +11,7 @@ export function dailySetForDate(bundle:DiscoveryBundle|null,date:string):Discove
 export function dailySetResults(items:Discovery[],completions:Record<string,DiscoveryCompletion>):DailyResult[] {
  return [0,1,2].map(i=>{
   const item=items[i],done=item && completions[item.id];
-  return done && done.revision===item.revision && done.puzzleDate===item.publicationDate ? done.outcome || (done.mode==='revealed' ? 'revealed':done.optionId===item.correctOptionId ? 'correct':'incorrect'):null;
+  return done && done.revision===item.revision && (done.puzzleDate===item.publicationDate || done.puzzleDate===item.sourcePublicationDate) ? done.outcome || (done.mode==='revealed' ? 'revealed':done.optionId===item.correctOptionId ? 'correct':'incorrect'):null;
  });
 }
 export function dailyResultLabel(result:DailyResult) {
@@ -22,7 +23,7 @@ export function dailySetShareText(date:string,results:DailyResult[]) {
  return `Sanctuary Trivia · ${formatTriviaDate(date)}\n${row}\nEasy · Medium · Hard\n${correct}/3 correct${played<3 ? ` · ${played}/3 played`:''}\nhttps://sanctuaryapp.us/trivia`;
 }
 // A win means all three correct that day. A partial set cannot earn a win.
-export function dailySetStreak(completions:DiscoveryCompletion[],today:string) {
+export function dailySetPerfectStreak(completions:DiscoveryCompletion[],today:string) {
  const days=new Map<string,Map<number,DiscoveryCompletion>>();
  for(const result of completions) {
   if(!result.setPosition || !result.puzzleDate || result.puzzleDate!==result.localDate || result.puzzleDate>today)continue;
@@ -36,3 +37,5 @@ export function dailySetStreak(completions:DiscoveryCompletion[],today:string) {
  while(cursor && wins(cursor)){current++;cursor=shift(cursor,-1);}
  return current;
 }
+
+export const dailySetStreak = participationStreak;

@@ -18,9 +18,9 @@ export const discoveryStore = createDiscoveryStore({
 export async function discoverySessionId() {
   return (await supabase.auth.getSession()).data.session?.user.id || null;
 }
-async function request(path: string, options: RequestInit = {}, account?: string) {
+async function request(path: string, options: RequestInit = {}, account?: string|null) {
   const session = (await supabase.auth.getSession()).data.session;
-  if (account && session?.user.id !== account) throw new Error('Your account changed. Please try again.');
+  if (account !== undefined && (session?.user.id || null) !== account) throw new Error('Your account changed. Please try again.');
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(),10000);
   try {
@@ -61,7 +61,18 @@ export async function reportDiscovery(item: Discovery, reason: string) {
   const response = await request(`/${item.id}/reports`,{method:'POST',body:JSON.stringify({revision:item.revision,reason})});
   if (!response.ok) throw new Error('Your report could not be sent. Please try again when connected.');
 }
-export function discoveryMetric(item: Discovery, event: string) {
-  // Aggregate first-party events only. No user/device ID or answer is transmitted.
-  void request('/metrics',{method:'POST',body:JSON.stringify({eventId:Crypto.randomUUID(),discoveryId:item.id,event,platform:'mobile'})}).catch(() => undefined);
+export type TriviaEntrySource='home'|'games'|'shared_link'|'push'|'direct';
+export function triviaEntrySource(value:unknown):TriviaEntrySource {
+ return ['home','games','shared_link','push'].includes(String(value)) ? value as TriviaEntrySource:'direct';
+}
+let metricSession:string|undefined;
+export function discoveryMetric(item:Discovery,event:string,context:{source?:TriviaEntrySource;date?:string}={}) {
+ // No answers or raw account IDs. The API hashes the existing installation
+ // identity with a server-only analytics salt; sessions last for this process.
+ metricSession ||= Crypto.randomUUID();
+ void (async()=>{
+  const account=await discoverySessionId();
+  const installationId=await discoveryStore.installationId();
+  await request('/metrics',{method:'POST',body:JSON.stringify({eventId:Crypto.randomUUID(),discoveryId:item.id,event,platform:'mobile',entrySource:context.source||'direct',setDate:context.date||item.publicationDate,sessionId:metricSession,installationId})},account);
+ })().catch(()=>undefined);
 }

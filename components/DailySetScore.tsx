@@ -5,14 +5,14 @@ import {DAILY_LABELS,dailyResultLabel,type DailyResult} from '@/lib/discoveryDai
 import Colors from '@/constants/Colors';
 import {Typography} from '@/constants/Layout';
 import {useColorScheme} from './useColorScheme';
-export default function DailySetScore({results}:{results:DailyResult[]}) {
+export default function DailySetScore({results,compact=false}:{results:DailyResult[];compact?:boolean}) {
  const theme=Colors[useColorScheme() ?? 'light'];
- return <View style={{flexDirection:'row',gap:12}}>{DAILY_LABELS.map((label,index)=>{
+ return <View style={{flexDirection:'row',gap:compact ? 8:12}}>{DAILY_LABELS.map((label,index)=>{
   const result=results[index],color=result==='correct' ? theme.success:result ? theme.error:theme.mutedForeground;
   const Icon=result==='correct' ? Check:result ? X:Minus;
   return <View key={label} accessible accessibilityLabel={`${label}: ${dailyResultLabel(result)}`} style={{flex:1,alignItems:'center',gap:8}}>
-   <View style={{width:'100%',minHeight:58,borderRadius:14,backgroundColor:result==='correct' ? theme.successSurface:theme.muted,borderWidth:result ? 2:1,borderColor:result ? color:theme.border,alignItems:'center',justifyContent:'center'}}><Icon size={25} color={color} strokeWidth={2.5} accessible={false}/></View>
-   <Text style={{...Typography.metadata,color:theme.mutedForeground}}>{label}</Text>
+   <View style={{width:'100%',minHeight:compact ? 32:58,borderRadius:14,backgroundColor:result==='correct' ? theme.successSurface:theme.muted,borderWidth:result ? 2:1,borderColor:result ? color:theme.border,alignItems:'center',justifyContent:'center'}}><Icon size={compact ? 18:25} color={color} strokeWidth={2.5} accessible={false}/></View>
+   {!compact ? <Text style={{...Typography.metadata,color:theme.mutedForeground}}>{label}</Text>:null}
   </View>;
  })}</View>;
 }

@@ -2,6 +2,7 @@ export type DiscoverySource = { id: string; type: 'scripture' | 'primary' | 'sch
 export type Discovery = {
   id: string; revision: number; publicationDate: string | null; kind: 'biblical_text' | 'historical' | 'tradition';
   setPosition?: 1|2|3; setDifficulty?: 'easy'|'medium'|'hard';
+  sourcePublicationDate?: string;
   category: string; prompt: string; heading: string; scopeNote: string; traditionLabel?: string;
   choices: { id: string; text: string }[]; correctOptionId: string; explanation: string;
   sources: DiscoverySource[]; claims: { id: string; text: string; sourceIds: string[] }[];
@@ -10,9 +11,9 @@ export type Discovery = {
   difficulty?: {rubricVersion: 'discovery-difficulty-v1'|'discovery-difficulty-v2';level:'easy'|'moderate'|'challenging';score:number};
 };
 export type DiscoveryBundle = { schemaVersion: 1; enabled: boolean; items: Discovery[]; evergreen: Discovery[]; withdrawnIds: string[]; bundleRevision: string; serverTime: string };
-export type DiscoveryCompletion = { eventId: string; discoveryId: string; revision: number; mode: 'answered' | 'revealed'; optionId: string | null; occurredAt: string; localDate: string; timeZone: string; elapsedMs?:number; outcome?:'correct'|'incorrect'|'timeout'|'revealed'; puzzleDate?:string|null; timedOut?:boolean; setPosition?:1|2|3 };
+export type DiscoveryCompletion = { eventId: string; discoveryId: string; revision: number; mode: 'answered' | 'revealed'; optionId: string | null; occurredAt: string; localDate: string; timeZone: string; elapsedMs?:number; outcome?:'correct'|'incorrect'|'timeout'|'revealed'; puzzleDate?:string|null; timedOut?:boolean; originalPuzzleDate?:string|null; dailyPlayDate?:string|null; setPosition?:1|2|3 };
 export type DiscoveryProgress = { total: number; completions: Record<string, DiscoveryCompletion>; pending: Record<string, DiscoveryCompletion> };
-export type SyncResult = { eventId: string; status: 'accepted' | 'unavailable'; completion?: { discovery_id: string; revision: number; mode: 'answered' | 'revealed'; option_id: string | null; event_id: string; occurred_at: string; local_date: string; time_zone: string; elapsed_ms?:number|null; outcome?:DiscoveryCompletion['outcome']|null; puzzle_date?:string|null; set_position?:1|2|3|null } };
+export type SyncResult = { eventId: string; status: 'accepted' | 'unavailable'; completion?: { discovery_id: string; revision: number; mode: 'answered' | 'revealed'; option_id: string | null; event_id: string; occurred_at: string; local_date: string; time_zone: string; elapsed_ms?:number|null; outcome?:DiscoveryCompletion['outcome']|null; puzzle_date?:string|null; original_puzzle_date?:string|null; daily_play_date?:string|null; set_position?:1|2|3|null } };
 
 export function discoveryLocalDate(now = new Date(), timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC') {
   const parts = new Intl.DateTimeFormat('en-US', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now);

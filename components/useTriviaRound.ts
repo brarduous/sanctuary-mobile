@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { discoveryStore } from '@/lib/discoveries';
-import { TRIVIA_DURATION_MS, triviaElapsed, type TriviaRound } from '@/lib/discoveryGame';
+import { triviaClock, triviaElapsed, type TriviaRound } from '@/lib/discoveryGame';
 
 export default function useTriviaRound(id?:string,revision?:number,finished=false) {
   const {user,loading}=useAuth();
@@ -39,14 +39,15 @@ export default function useTriviaRound(id?:string,revision?:number,finished=fals
     return()=>{clearInterval(timer);listener.remove();};
   },[round,finished,readElapsed,account,id,revision]);
   const start=useCallback(async()=>{
-    if(!id || !revision || starting || loading || error==='This round could not be restored.' || finished)return;
+    if(!id || !revision || starting || loading || error==='This round could not be restored.' || finished)return false;
     setStarting(true);setError(null);
     try {
       const saved=await discoveryStore.beginRound(account,id,revision);
-      if(active.current!==identity)return;
+      if(active.current!==identity)return false;
       if(saved){const elapsed=triviaElapsed(saved,Date.now());clock.current={identity,base:elapsed,monotonic:performance.now()};setSnapshot({identity,round:saved,ready:true});setElapsed(elapsed);}
-    } catch {if(active.current===identity)setError('Your round could not start. Try again.');}
+      return Boolean(saved);
+    } catch {if(active.current===identity)setError('Your round could not start. Try again.');return false;}
     finally {if(active.current===identity)setStarting(false);}
   },[id,revision,starting,loading,error,finished,account,identity]);
-  return {identity,owner:account,started:Boolean(round),ready:!loading && snapshot.identity===identity && snapshot.ready,starting,start,retryRestore:()=>setRestoreAttempt(value=>value+1),error,elapsed,readElapsed,remaining:Math.max(0,Math.ceil((TRIVIA_DURATION_MS-elapsed)/1000)),expired:Boolean(round) && elapsed>=TRIVIA_DURATION_MS};
+  return {identity,owner:account,started:Boolean(round),ready:!loading && snapshot.identity===identity && snapshot.ready,starting,start,retryRestore:()=>setRestoreAttempt(value=>value+1),error,elapsed,readElapsed,...triviaClock(elapsed,round?.durationMs),expired:round!==null && elapsed>=round.durationMs,durationMs:round?.durationMs};
 }

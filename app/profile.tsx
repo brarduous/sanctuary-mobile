@@ -1,6 +1,7 @@
 import { isSameArtist, toggleArtistPreference } from '@/lib/artistPreferences';
 import ArtistPreferenceChip from '@/components/ArtistPreferenceChip';
 import ArtistPreferenceRow from '@/components/ArtistPreferenceRow';
+import { requestTriviaReminderAccess } from '@/lib/triviaReminders';
 import { nextImprovementCheckInAt } from '@/lib/improvementCheckIn';
 import { useColorScheme } from '@/components/useColorScheme';
 import Colors from '@/constants/Colors';
@@ -21,7 +22,7 @@ import {
     updatePersonalGrowth,
     updateUserProfile
 } from '@/lib/api';
-import { Stack, useRouter } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import {
     AlertTriangle,
     Ban,
@@ -45,7 +46,7 @@ import {
     User,
     Video
 } from 'lucide-react-native';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -81,6 +82,19 @@ export default function ProfileScreen() {
     const colorScheme = useColorScheme();
     const theme = Colors[colorScheme ?? 'light'];
     const router = useRouter();
+    const { section } = useLocalSearchParams<{ section?: string }>();
+    const scrollRef = useRef<ScrollView>(null);
+    const notificationSection = useRef<View>(null);
+    const profileContent = useRef<View>(null);
+    const notificationScrolled = useRef(false);
+    const wantsNotifications = section === 'notifications';
+    const scrollToNotifications = () => {
+        const content = profileContent.current;
+        if (wantsNotifications && !notificationScrolled.current && content) notificationSection.current?.measureLayout(content, (_x, y) => {
+            notificationScrolled.current = true;
+            scrollRef.current?.scrollTo({ y, animated: false });
+        }, () => undefined);
+    };
 
     // --- STATE ---
     const [activeSection, setActiveSection] = useState<'library' | 'settings'>('settings');
@@ -540,7 +554,8 @@ export default function ProfileScreen() {
                 </View>
             </View>
 
-            <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
+            <ScrollView ref={scrollRef} onContentSizeChange={scrollToNotifications} contentContainerStyle={{ padding: 20, paddingBottom: 100 }}>
+                <View ref={profileContent}>
 
                 {/* --- LIBRARY TAB --- */}
                 {activeSection === 'library' && (
@@ -663,12 +678,12 @@ export default function ProfileScreen() {
 
                         {/* App Settings */}
                         <SettingsSection>
-                        <View>
+                        <View ref={notificationSection}>
                             <Text className="text-sm font-bold uppercase tracking-widest text-slate-400 mb-3 ml-1">Daily Faith Notifications</Text>
                             <View className="mb-6 rounded-xl border border-slate-200 dark:border-slate-800" style={{backgroundColor:theme.card}}>
                                 {[
                                     ['Daily devotional','A quiet invitation to read and reflect',devotionalNotifications,setDevotionalNotifications],
-                                    ['Trivia','An evening reminder when your three questions aren’t finished',triviaNotifications,setTriviaNotifications],
+                                    ['Trivia','An optional 7 p.m. local reminder when your three questions aren’t finished',triviaNotifications,(value:boolean)=>{if(!value){setTriviaNotifications(false);return;}if(!user?.id)return;void requestTriviaReminderAccess(user.id).then(()=>setTriviaNotifications(true)).catch(failure=>Alert.alert('Trivia reminders',failure instanceof Error?failure.message:'Please try again.'));}],
                                     ['Wisdom check-in','An occasional invitation to seek guidance',adviceNotifications,setAdviceNotifications],
                                     ['Important news','High-impact stories through Scripture',newsNotifications,setNewsNotifications],
                                 ].map(([label,description,value,setter],index)=><View key={String(label)} className={`flex-row items-center gap-3 p-4 ${index ? 'border-t border-slate-200 dark:border-slate-800':''}`}>
@@ -1091,6 +1106,7 @@ export default function ProfileScreen() {
 
                     </View>
                 )}
+                </View>
             </ScrollView>
 
             {/* Floating Save Button */}

@@ -5,7 +5,7 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 import 'react-native-reanimated';
 import '../global.css';
 
@@ -78,12 +78,16 @@ function RootLayoutNav() {
 
   useEffect(() => {
     if (!userId) return;
-    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    if (timeZone) {
-      void updateNotificationTimeZone(timeZone).catch(error => {
-        console.warn('Notification timezone update failed:', (error as { response?: { status?: number } })?.response?.status ?? 'unavailable');
-      });
-    }
+    let savedZone='';
+    const syncZone=()=>{
+      const zone=Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if(!zone||zone===savedZone)return;
+      void updateNotificationTimeZone(zone).then(()=>{savedZone=zone;}).catch(()=>undefined);
+    };
+    syncZone();
+    const listener=AppState.addEventListener('change',state=>{if(state==='active')syncZone();});
+    const timer=setInterval(()=>{if(AppState.currentState==='active')syncZone();},60000);
+    return()=>{listener.remove();clearInterval(timer);};
   }, [userId]);
 
   useEffect(() => {
@@ -94,7 +98,7 @@ function RootLayoutNav() {
     const inOnboarding = currentSegment === 'onboarding';
     const inJoin = currentSegment === 'join';
     const inLogin = currentSegment === 'login';
-    const inDiscovery = currentSegment === 'discoveries';
+    const inDiscovery = currentSegment === 'discoveries' || currentSegment === 'trivia';
 
     // 1. Guest Logic: If not logged in, they CAN stay in (tabs), but not onboarding
     if (!user) {

@@ -1,8 +1,17 @@
-export const TRIVIA_DURATION_MS=20_000;
-export const ELIMINATION_AT_MS=[7_000,14_000] as const;
+export const TRIVIA_READING_MS=20_000;
+export const TRIVIA_COUNTDOWN_MS=20_000;
+export const TRIVIA_DURATION_MS=40_000;
+export const ELIMINATION_AT_MS=[27_000,34_000] as const;
+// Keep already-started rounds on their original schedule when a client updates.
+export type TriviaDuration=20_000|40_000;
+export function triviaClock(elapsedMs:number,durationMs:TriviaDuration=TRIVIA_DURATION_MS) {
+  const readingMs=durationMs===TRIVIA_DURATION_MS ? TRIVIA_READING_MS:0;
+  const reading=elapsedMs<readingMs;
+  return {reading,readingRemaining:Math.max(0,Math.ceil((readingMs-elapsedMs)/1000)),remaining:Math.max(0,Math.ceil((durationMs-Math.max(readingMs,elapsedMs))/1000)),expired:elapsedMs>=durationMs};
+}
 export type TriviaOutcome='correct'|'incorrect'|'timeout'|'revealed';
 export type TriviaTiming={elapsedMs:number;timedOut?:boolean};
-export type TriviaRound={startedAt:number;lastElapsedMs:number;durationMs:typeof TRIVIA_DURATION_MS};
+export type TriviaRound={startedAt:number;lastElapsedMs:number;durationMs:TriviaDuration};
 export type TriviaResult={elapsedMs?:number;outcome?:TriviaOutcome;puzzleDate?:string|null;localDate:string};
 export type StreakMode='correct'|'played';
 const datePattern=/^\d{4}-\d{2}-\d{2}$/;
@@ -15,14 +24,15 @@ export function shiftTriviaDate(date:string,days:number) {
   const value=new Date(`${date}T12:00:00Z`);value.setUTCDate(value.getUTCDate()+days);return value.toISOString().slice(0,10);
 }
 export function triviaElapsed(round:TriviaRound,now:number,monotonicElapsed=0) {
-  return Math.min(TRIVIA_DURATION_MS,Math.max(0,round.lastElapsedMs,now-round.startedAt,monotonicElapsed));
+  return Math.min(round.durationMs,Math.max(0,round.lastElapsedMs,now-round.startedAt,monotonicElapsed));
 }
 export function isTriviaRound(value:unknown):value is TriviaRound {
   const x=value as TriviaRound;
-  return Boolean(x && Number.isFinite(x.startedAt) && x.startedAt>0 && x.durationMs===TRIVIA_DURATION_MS && Number.isFinite(x.lastElapsedMs) && x.lastElapsedMs>=0 && x.lastElapsedMs<=TRIVIA_DURATION_MS);
+  return Boolean(x && Number.isFinite(x.startedAt) && x.startedAt>0 && (x.durationMs===20_000 || x.durationMs===TRIVIA_DURATION_MS) && Number.isFinite(x.lastElapsedMs) && x.lastElapsedMs>=0 && x.lastElapsedMs<=x.durationMs);
 }
-export function eliminatedChoices(item:{id:string;revision:number;correctOptionId:string;choices:{id:string}[]},elapsedMs:number) {
-  const count=ELIMINATION_AT_MS.filter(at=>elapsedMs>=at).length;
+export function eliminatedChoices(item:{id:string;revision:number;correctOptionId:string;choices:{id:string}[]},elapsedMs:number,durationMs:TriviaDuration=TRIVIA_DURATION_MS) {
+  const thresholds=durationMs===20_000 ? [7_000,14_000]:ELIMINATION_AT_MS;
+  const count=thresholds.filter(at=>elapsedMs>=at).length;
   const hash=(text:string)=>{let value=2166136261;for(const letter of text)value=Math.imul(value^letter.charCodeAt(0),16777619);return value>>>0;};
   return item.choices.filter(choice=>choice.id!==item.correctOptionId)
     .sort((a,b)=>hash(`${item.id}:${item.revision}:${a.id}`)-hash(`${item.id}:${item.revision}:${b.id}`))

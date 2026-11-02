@@ -1,5 +1,7 @@
 # Sanctuary mobile: design excellence and release checklist
 
+Current product priorities: [mobile roadmap](MOBILE_ROADMAP.md). Current distribution evidence: [November 2 production audit](docs/releases/PRODUCTION_STATUS_2026_11_02.md). The dated checklist below retains historical verification and outstanding QA details.
+
 Updated: October 12, 2026. Autonomous refinement and store release pass. Physical-device, owner-account Apple sign-in and participant studies removed at the user’s request on October 12; none is marked passed.
 
 This plan turns the goal of a 10/10 experience into concrete work and observable acceptance criteria. Scores are internal design judgments, not external certification. Existing fixes stay in place while the experience is refined.
