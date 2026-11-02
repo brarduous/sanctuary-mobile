@@ -1,6 +1,6 @@
 # Sanctuary mobile roadmap
 
-Updated November 2, 2026. Implementation roadmap for product alignment. Release candidate 1.2.13 now implements Home Trivia, More, Videos, the Home/feed News redesign, shared participation streaks, explicit reminder consent, and attributed daily-loop measurement. Store publication is in progress; evening delivery stays paused pending an eligible internal cohort. See the [implementation and QA record](docs/qa/2026-11-02-mobile-roadmap/README.md) for evidence and remaining acceptance work.
+Updated November 2, 2026. Implementation roadmap for product alignment. Release candidate 1.2.13 now implements Home Trivia, More, Videos, the Home/feed News redesign, shared participation streaks, explicit reminder consent, and attributed daily-loop measurement. Version 1.2.13 is submitted to both stores for automatic release after approval; evening delivery stays paused pending an eligible internal cohort. See the [implementation and QA record](docs/qa/2026-11-02-mobile-roadmap/README.md) for evidence and remaining acceptance work.
 
 Make Sanctuary's daily rhythm easy to find: Scripture and reflection, a short Bible game, and an optional evening invitation to return. Give secondary features a permanent home without crowding the tab bar.
 
@@ -8,10 +8,10 @@ Make Sanctuary's daily rhythm easy to find: Scripture and reflection, a short Bi
 
 | Surface | Verified November 2 | Next action |
 | --- | --- | --- |
-| iOS, US App Store | **1.2.12 is public**, released October 31 at 8:30 p.m. Eastern. Existing artifact evidence maps it to build 69. | No publication action needed for this version. |
-| Android, Google Play | **1.2.11 (139) is available**. **1.2.12 (140) is approved, Ready to publish**; managed publishing is on. | Publication is now authorized; publish through managed publishing and verify availability. |
+| iOS, US App Store | **1.2.12 (69) is public**. **1.2.13 (70) is Waiting for Review**, automatic release after approval. | Apple review is pending. |
+| Android, Google Play | **1.2.12 (140) is Available on Google Play**, published November 2 at 5:35 p.m. Eastern, 100% rollout. **1.2.13 (141) is in review**, including its corrected Data safety form. | Automatic full rollout after Google approval; managed publishing off. |
 | Production Trivia API | Enabled; returns today's three questions in positions 1–3 for America/New_York. | Preserve free daily access and Pro archive enforcement. |
-| Mobile source | Local and remote `main` match at `c3d32b5`. Submitted 1.2.12 runtime source is `dc17c7a`; subsequent commits merge it and record release evidence. | Review existing uncommitted reading-time, haptic, and news changes before the next native release. They are not in those artifacts. |
+| Mobile source | **1.2.13 runtime `701b150`**, iOS build 70 / Android 141; subsequent commits record release evidence and submission configuration. 1.2.12 runtime remains `dc17c7a`. | See [1.2.13 release record](docs/releases/MOBILE_1_2_13.md) for artifacts, checks and limitations. |
 
 See [production audit](docs/releases/PRODUCTION_STATUS_2026_11_02.md) for evidence, checks, and limits. Old submission records describe their capture date, not current store status.
 
@@ -28,9 +28,9 @@ The user requested exploration of higher Home priority, evening streak reminders
 
 ### M01 — Reconcile shipped versions · P0 · Release
 
-- [ ] Publish approved Android 1.2.12 (140) through managed publishing when release is authorized; verify the production track and public install/update availability.
-- [ ] Keep one current status record linking runtime source, version/build, publication state, and outstanding acceptance evidence. EAS uses remote versioning; local `app.json` build numbers are not authoritative.
-- [ ] Review and preserve existing uncommitted work: 20-second reading period plus 20-second countdown, legacy-round restoration, haptics, and news TL;DR/Christian assessment. Verify mobile/API timing compatibility before release. Do not silently include it in a documentation commit.
+- [x] Publish approved Android 1.2.12 (140) through managed publishing; production track confirms Available on Google Play at 100%. Physical install propagation remains deferred.
+- [x] Keep one current status record linking runtime source, version/build, publication state, and outstanding acceptance evidence. EAS uses remote versioning; local `app.json` build numbers are not authoritative.
+- [x] Review and preserve existing uncommitted work: 20-second reading period plus 20-second countdown, legacy-round restoration, haptics, and news TL;DR/Christian assessment. Verify mobile/API timing compatibility before release. Do not silently include it in a documentation commit.
 
 **Done when:** public versions are recorded accurately and the next candidate has an explicit source/artifact and QA record.
 
@@ -111,10 +111,10 @@ Candidate 1.2.13 uses **daily-participation-v1** across mobile, web and server: 
 
 Treat these as proposed copy. Avoid guilt, fabricated counts, answer spoilers, or promises that a reminder guarantees a streak. Use generic copy if M05 is deferred.
 
-- [ ] Reuse the existing `discovery` category, 15-minute dispatcher, token capabilities, deduplication, and `notifications.trivia` preference. No second scheduler.
-- [ ] **Correct eligibility before activation:** the prior backend read legacy `discovery_schedule`, selected one question, suppressed after its completion, and linked to its detail. The release implementation uses complete daily sets. Use today's published three-question set, suppress after all three are complete, and open `/discoveries` to resume remaining questions.
+- [x] Reuse the existing `discovery` category, 15-minute dispatcher, token capabilities, deduplication, and `notifications.trivia` preference. No second scheduler.
+- [x] **Correct eligibility before activation:** the prior backend read legacy `discovery_schedule`, selected one question, suppressed after its completion, and linked to its detail. The release implementation uses complete daily sets. Use today's published three-question set, suppress after all three are complete, and open `/discoveries` to resume remaining questions.
 - [ ] Recheck explicit opt-in, supported client, content/withdrawals, synced completion, quiet hours, spacing, and one-send-per-user/local-day at dispatch. Skip when the complete daily set is unavailable.
-- [ ] Keep separate Trivia consent off by default. After a completed set offer **Remind me in the evening**, with a clear decline. Request OS permission only after user intent; expose the setting in Profile/More and do not repeatedly prompt after decline.
+- [x] Keep separate Trivia consent off by default. After a completed set offer **Remind me in the evening**, with a clear decline. Request OS permission only after user intent; expose the setting in Profile/More and do not repeatedly prompt after decline.
 - [ ] Suppress using server-known completion; offline unsynced play may still receive a reminder until reconnect. Start with supported signed-in users. Guest reminders need a separate consent/identity/deduplication design.
 - [ ] Verify denied permissions, token changes, sign-out, local-time changes, overlapping dispatch, suppression, and routing. Record real native receipt and terminated-app tap evidence when physical-device QA resumes.
 - [ ] Inspect live runtime settings/delivery history before claiming reminders are already enabled. Dry-run → internal cohort → 10% → 50% → 100% of eligible opted-in users after reviewing failures and opt-outs. Retain a category pause control.

@@ -1,0 +1,18 @@
+{
+  "id": "6ed62208-53d4-4296-8149-b84ac073ab19",
+  "status": "FINISHED",
+  "platform": "ANDROID",
+  "appVersion": "1.2.13",
+  "appBuildVersion": "141",
+  "gitCommitHash": "701b15065a728d4d50ee42192e08bcf72ddaa835",
+  "createdAt": "2026-11-02T22:22:40.157Z",
+  "completedAt": "2026-11-02T22:43:55.342Z",
+  "easSubmission": {
+    "id": "ba76534c-e166-4372-95bb-2633506153ce",
+    "status": "FINISHED",
+    "track": "production"
+  },
+  "storeStatus": "Changes in review",
+  "release": "Full rollout automatically after approval; managed publishing off",
+  "dataSafety": "Corrected form submitted with release"
+}

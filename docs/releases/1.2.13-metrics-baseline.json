@@ -1,0 +1,76 @@
+{
+  "capturedAt": "2026-11-02",
+  "semantics": "Historical mount impressions; not directly comparable with new viewport impressions. Includes historical QA activity.",
+  "aggregateEvents": [
+    {
+      "event": "answer_committed",
+      "events": 17,
+      "first_seen": "2026-10-30 13:39:37.222532+00",
+      "last_seen": "2026-11-01 13:45:49.25215+00",
+      "platform": "mobile"
+    },
+    {
+      "event": "answer_committed",
+      "events": 10,
+      "first_seen": "2026-10-30 15:19:18.289128+00",
+      "last_seen": "2026-11-02 18:11:27.521843+00",
+      "platform": "web"
+    },
+    {
+      "event": "card_viewed",
+      "events": 160,
+      "first_seen": "2026-10-30 19:05:29.544482+00",
+      "last_seen": "2026-11-01 22:04:34.949673+00",
+      "platform": "mobile"
+    },
+    {
+      "event": "direct_reveal",
+      "events": 1,
+      "first_seen": "2026-10-31 02:18:39.432345+00",
+      "last_seen": "2026-10-31 02:18:39.432345+00",
+      "platform": "mobile"
+    },
+    {
+      "event": "direct_reveal",
+      "events": 1,
+      "first_seen": "2026-10-30 18:58:33.986096+00",
+      "last_seen": "2026-10-30 18:58:33.986096+00",
+      "platform": "web"
+    },
+    {
+      "event": "explanation_viewed",
+      "events": 18,
+      "first_seen": "2026-10-30 13:39:37.431278+00",
+      "last_seen": "2026-11-01 13:45:49.257729+00",
+      "platform": "mobile"
+    },
+    {
+      "event": "explanation_viewed",
+      "events": 11,
+      "first_seen": "2026-10-30 15:19:18.306378+00",
+      "last_seen": "2026-11-02 18:11:27.470141+00",
+      "platform": "web"
+    },
+    {
+      "event": "question_opened",
+      "events": 17,
+      "first_seen": "2026-10-30 13:38:40.756829+00",
+      "last_seen": "2026-11-01 13:45:39.672141+00",
+      "platform": "mobile"
+    },
+    {
+      "event": "share_initiated",
+      "events": 3,
+      "first_seen": "2026-10-30 13:40:16.361794+00",
+      "last_seen": "2026-10-31 15:53:32.885908+00",
+      "platform": "mobile"
+    },
+    {
+      "event": "share_initiated",
+      "events": 1,
+      "first_seen": "2026-10-31 16:21:28.434146+00",
+      "last_seen": "2026-10-31 16:21:28.434146+00",
+      "platform": "web"
+    }
+  ]
+}
