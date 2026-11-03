@@ -4,7 +4,7 @@ Prepared in draft PR #11, paired with the live web funnel in sanctuary-layperson
 
 ## Behavior
 
-Android Play Install Referrer preserves the website click ID plus original/latest campaign labels. A persisted first-open observation retries failures using the same event ID. The private website report attributes Android first opens only when they match a non-test store click in the preceding 30 days. Existing installations predating `EXPO_PUBLIC_ATTRIBUTION_RELEASE_AT` record `app_open`. Missing or invalid cutoffs also record `app_open`; configure the real first-enabled-binary publication instant before release.
+Android Play Install Referrer preserves the website click ID plus original/latest campaign labels. A persisted first-open observation retries failures using the same event ID. The private website report attributes Android first opens only when they match a non-test store click in the preceding 30 days. Production fetches the actual per-platform store publication dates from `GET /api/attribution`. Until a date is configured, initialization retries without persisting an install classification. Existing installations predating that date record `app_open`. This avoids guessing a future review/publication date inside a prebuilt binary. `EXPO_PUBLIC_ATTRIBUTION_RELEASE_AT` remains an optional controlled-QA override.
 
 Meta SDK `react-native-fbsdk-next` 13.4.3 uses Sanctuary app `1153789907089705`, published and linked to dataset `1100842532594240` with the owner's approval. Native auto-initialization is disabled. Physical iOS devices initialize only after ATT is granted; foreground checks observe permission revocation without repeatedly prompting. Android honors a removed/limited advertising ID. Development and internal QA builds disable Meta events; internal first-party observations explicitly carry `is_test=true`.
 
@@ -14,7 +14,7 @@ Native app ID/client-token configuration lives in ignored local `.env.local` and
 
 ## Validation
 
-- Ten acquisition tests pass: referrer preservation, concurrent startup, offline idempotent replay, existing-install classification, missing cutoff, internal release-mode test labels, consent, no foreground re-prompting, permission revocation and opt-out/feature/device guards.
+- Eleven acquisition tests pass: referrer preservation, concurrent startup, offline idempotent replay, existing-install classification, pending and remote publication cutoffs, internal release-mode test labels, consent, no foreground re-prompting, permission revocation and opt-out/feature/device guards.
 - TypeScript passes; local EAS app-config evaluation works with Expo dotenv loading disabled.
 - Android native arm64 debug assembly passes, including FBSDK and Expo Tracking Transparency modules. This development artifact does not prove Play referrer or production SDK delivery.
 - Both iOS and Android production-mode Hermes exports pass.
@@ -24,7 +24,7 @@ Native app ID/client-token configuration lives in ignored local `.env.local` and
 
 1. Keep the current review submission in place. Complete a signed iOS candidate build with sufficient local storage or EAS, using the next available app version/build; remote EAS versioning is authoritative.
 2. Reconcile Apple App Privacy and Google Play Data safety/advertising-ID declarations with the enabled Meta SDK. Device identifiers and app interactions used for advertising measurement must be represented alongside existing data categories. Do not label prayer/advice content as sent to Meta; it is not sent by this integration. Existing 1.2.13 labels describe the binary already under review and have not been changed for unshipped SDK code.
-3. Configure `EXPO_PUBLIC_ATTRIBUTION_RELEASE_AT` to the first tracking-enabled binary's actual publication instant in UTC. EAS production has Meta configuration and `EXPO_PUBLIC_META_APP_EVENTS_ENABLED=true`; native build changes require a new binary, not an OTA-only update.
+3. On actual publication, set the website production `ATTRIBUTION_IOS_RELEASE_AT` / `ATTRIBUTION_ANDROID_RELEASE_AT` to each platform's first tracking-enabled release instant in UTC and redeploy the website. EAS production has Meta configuration and `EXPO_PUBLIC_META_APP_EVENTS_ENABLED=true`; native build changes require a new binary, not an OTA-only update.
 4. Install the candidate through Google Play testing, follow the campaign-aware website store link, and verify one first open matches the website click. An APK sideload does not establish Play Install Referrer attribution. Internal observations stay excluded from business totals.
 5. On a physical iPhone test ATT denial/grant and revocation, confirm no Meta startup when denied, then verify granted installation/activation in Meta Events Manager with an appropriately configured test candidate. The default internal profile disables Meta; enable it deliberately only for controlled vendor verification.
 6. Verify vendor events before release, then confirm real store-install/first-open reporting after publication. iOS downloads use Apple's verified campaign link and aggregate App Store Connect campaign reporting; individual web-to-iPhone installs cannot be reconstructed from it. Apple campaign visibility requires five individual Apple Accounts.
