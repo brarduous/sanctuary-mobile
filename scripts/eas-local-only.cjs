@@ -25,6 +25,12 @@ function localBuildEnvironment(args, inherited = process.env, root = path.resolv
   fs.mkdirSync(artifacts, {recursive: true, mode: 0o700});
   env.EAS_LOCAL_BUILD_WORKINGDIR ||= path.join(folder, `${platform}-work`);
   env.EAS_LOCAL_BUILD_ARTIFACTS_DIR ||= artifacts;
+  if (platform === 'ios') {
+    // Fastlane's 3-second default can expire while Xcode loads a large Pods
+    // workspace from an external drive, before compilation even starts.
+    env.FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT ||= '120';
+    env.FASTLANE_XCODEBUILD_SETTINGS_RETRIES ||= '2';
+  }
   return env;
 }
 
