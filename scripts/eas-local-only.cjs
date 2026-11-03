@@ -5,7 +5,7 @@ function validateEasArgs(args) {
   const [command] = args;
   if (!command) return 'Choose a command. Signed local builds: npm run build:ios or npm run build:android.';
   if (command === 'build') {
-    if (!args.includes('--local') || args.some(arg => arg === '--no-local' || arg.startsWith('--local='))) {
+    if (!args.includes('--local') || args.some(arg => arg === '--' || arg.startsWith('--no-local') || arg.startsWith('--local='))) {
       return 'EAS cloud builds are disabled by repository policy. Use npm run build:ios or npm run build:android (both force --local).';
     }
     return null;
