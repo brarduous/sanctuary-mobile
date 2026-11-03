@@ -8,9 +8,9 @@ function buildStatus(root,platform){
   const folder=path.join(root,'.local-builds');
   const file=path.join(folder,'logs',`${platform}-production.log`);
   if(!fs.existsSync(file))return {platform,phase:'preparing local build workspace'};
-  const text=fs.readFileSync(file,'utf8'),lines=text.split('\n');
+  const raw=fs.readFileSync(file,'utf8'),text=raw.replace(/\u001b\[[0-9;]*m/g,''),lines=text.split('\n');
   const phases=lines.map(line=>line.match(/^\[([A-Z_]+)\]/)?.[1]).filter(Boolean);
-  const result={platform,phase:phases.at(-1)||'EAS local preparation',logBytes:Buffer.byteLength(text),compilerErrorLines:lines.filter(line=>/\b(?:fatal )?error:\s/.test(line)).length,succeeded:/^Build succeeded/m.test(text),failed:/^Build failed/m.test(text)};
+  const result={platform,phase:phases.at(-1)||'EAS local preparation',logBytes:Buffer.byteLength(raw),compilerErrorLines:lines.filter(line=>/\b(?:fatal )?error:\s/.test(line)).length,succeeded:/\bBuild (?:succeeded|successful)\b/.test(text),failed:/\bBuild failed\b/.test(text)};
   const jobs=text.match(/xcodebuild[^\n]*-jobs\s+(\d+)/)?.[1];
   if(jobs)result.xcodeJobs=Number(jobs);
   const retries=[...text.matchAll(/Command timed out after (\d+) seconds/g)].map(m=>Number(m[1]));
