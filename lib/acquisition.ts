@@ -7,7 +7,7 @@ import {campaignFromParams,cleanCampaign,UUID,type Campaign,type FunnelRecord} f
 const KEY='sanctuary:acquisition:v1';
 // Existing installations record app_open, rather than being relabeled installs.
 const RELEASE_AT=Date.parse(process.env.EXPO_PUBLIC_ATTRIBUTION_RELEASE_AT || '2026-11-03T15:30:00Z');
-const ENDPOINT=(process.env.EXPO_PUBLIC_ATTRIBUTION_URL||'https://sanctuaryapp.us')+'/api/attribution';
+const ENDPOINT=(process.env.EXPO_PUBLIC_ATTRIBUTION_URL||'https://www.sanctuaryapp.us')+'/api/attribution';
 type State={id:string;first:Campaign;last:Campaign;clickId?:string;pending?:FunnelRecord;firstSent:boolean};
 let ready:Promise<State>|undefined,flushing:Promise<void>|undefined;
 async function initialize():Promise<State> {
