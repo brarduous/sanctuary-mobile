@@ -4,7 +4,7 @@ const {validateEasArgs} = require('./eas-local-only.cjs');
 const {scripts} = require('../package.json');
 
 test('cloud builds and boolean overrides are rejected before invoking EAS', () => {
-  for (const args of [[], ['--platform','ios'], ['--platform','all'], ['--local=false'], ['--no-local'], ['--local','--no-local'], ['--local','--local=false']]) {
+  for (const args of [[], ['--platform','ios'], ['--platform','all'], ['--local=false'], ['--no-local'], ['--local','--no-local'], ['--local','--no-local=true'], ['--local','--local=false'], ['--','--local']]) {
     assert.ok(validateEasArgs(['build', ...args]));
   }
 });
