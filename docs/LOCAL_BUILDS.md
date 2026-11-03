@@ -26,3 +26,5 @@ Account, environment, credential, existing-build status/cancellation and store s
 `AGENTS.md` also prohibits direct global-CLI, npx, CI or workflow bypasses. This repository policy and wrapper govern the supplied commands; they are not an Expo account billing cap. Do not enable an external build integration or invoke a cloud worker separately.
 
 Store upload/review and physical-device verification remain separate from compiling a local binary. Do not commit build artifacts, private signing files or local configuration.
+
+Monitor progress with `npm run build:status -- ios` (or `android`). It emits structured phases, compiler-error counts and native target progress without forwarding raw logs or signing payloads. Do not inspect full process arguments to monitor EAS local jobs.
