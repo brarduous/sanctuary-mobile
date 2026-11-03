@@ -18,11 +18,11 @@ Native app ID/client-token configuration lives in ignored local `.env.local` and
 - TypeScript passes; local EAS app-config evaluation works with Expo dotenv loading disabled.
 - Android native arm64 debug assembly passes, including FBSDK and Expo Tracking Transparency modules. This development artifact does not prove Play referrer or production SDK delivery.
 - Both iOS and Android production-mode Hermes exports pass.
-- iOS prebuild passes. Generated configuration has the correct Meta app ID, disabled auto-init, ATT purpose string and Meta SKAdNetwork IDs. Dependency/build status is recorded in `attribution-build-verification.json`.
+- iOS prebuild and dependency installation (140 pods) pass. Generated configuration has the correct Meta app ID, disabled auto-init, ATT purpose string and Meta SKAdNetwork IDs. Full simulator assembly was interrupted while local storage was nearly exhausted (311 MiB free observed); no completed iOS native binary is claimed. Its generated build output was removed to recover space. Dependency/build status is recorded in `attribution-build-verification.json`.
 
 ## Next distributed binary
 
-1. Keep the current review submission in place. Use the next available app version/build; remote EAS versioning is authoritative.
+1. Keep the current review submission in place. Complete a signed iOS candidate build with sufficient local storage or EAS, using the next available app version/build; remote EAS versioning is authoritative.
 2. Reconcile Apple App Privacy and Google Play Data safety/advertising-ID declarations with the enabled Meta SDK. Device identifiers and app interactions used for advertising measurement must be represented alongside existing data categories. Do not label prayer/advice content as sent to Meta; it is not sent by this integration. Existing 1.2.13 labels describe the binary already under review and have not been changed for unshipped SDK code.
 3. Configure `EXPO_PUBLIC_ATTRIBUTION_RELEASE_AT` to the first tracking-enabled binary's actual publication instant in UTC. EAS production has Meta configuration and `EXPO_PUBLIC_META_APP_EVENTS_ENABLED=true`; native build changes require a new binary, not an OTA-only update.
 4. Install the candidate through Google Play testing, follow the campaign-aware website store link, and verify one first open matches the website click. An APK sideload does not establish Play Install Referrer attribution. Internal observations stay excluded from business totals.
