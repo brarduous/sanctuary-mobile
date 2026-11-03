@@ -1,0 +1,15 @@
+{
+  "platform": "android",
+  "version": "1.2.14",
+  "build": "143",
+  "artifact_sha256": "72c3b13aae2fcd5d13d83395fd03fab2a2a83df1a814a80bef8bf8b25cdfe3ac",
+  "submission_id": "3063d3cc-5584-425b-8143-5fe44ba37146",
+  "cli_exit_code": 0,
+  "cli_confirmed_submitted": true,
+  "track": "internal",
+  "release_status_requested": "completed",
+  "changes_not_sent_for_review": true,
+  "play_console_verification_pending": true,
+  "public_release_submitted": false,
+  "checked_at": "2026-11-03T22:54:47.248152+00:00"
+}

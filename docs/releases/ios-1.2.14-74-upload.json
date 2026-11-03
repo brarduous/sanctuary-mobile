@@ -1,0 +1,13 @@
+{
+  "platform": "ios",
+  "version": "1.2.14",
+  "build": "74",
+  "artifact_sha256": "8389a3dae5758925e7e7032d0258c353af113766f4f2e40bf4179953adfbcca2",
+  "submission_id": "d488035b-bee5-446d-a048-b9ed5725ed30",
+  "cli_exit_code": 0,
+  "existing_app_store_connect_key_used": true,
+  "cli_confirmed_successfully_uploaded": true,
+  "apple_processing_pending": true,
+  "public_release_submitted": false,
+  "checked_at": "2026-11-03T22:42:32.386120+00:00"
+}

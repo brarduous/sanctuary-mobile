@@ -1,6 +1,6 @@
 {
-  "checked_at": "2026-11-03T20:00:32.043633+00:00",
-  "native_release_status": "1.2.14 prepared, not distributed; cloud builds canceled at owner request, local builds only",
+  "checked_at": "2026-11-03T22:50:02.823334+00:00",
+  "native_release_status": "1.2.14 signed local iOS 74 and Android 143 artifact verification passed; not publicly distributed",
   "tests": {
     "acquisition": 12,
     "typecheck": "passed",
@@ -9,7 +9,7 @@
     "eas_device_qa_config": "passed: Meta events disabled, first-party test flag true",
     "tracked_source_token_scan": "passed: bundled client token absent from tracked source",
     "eas_remote_environment": "EAS CLI confirmed loading META_APP_ID, META_APP_CLIENT_TOKEN and EXPO_PUBLIC_META_APP_EVENTS_ENABLED from production",
-    "local_build_policy": 4
+    "local_build_policy": 8
   },
   "android": {
     "assembly": "passed",
@@ -34,13 +34,13 @@
       "n38lu8286q.skadnetwork"
     ],
     "pods": "passed: 140 pods installed",
-    "native_assembly": "incomplete: local simulator build was interrupted while storage was nearly exhausted; no iOS binary produced",
-    "native_assembly_log": "/tmp/sanctuary-meta-ios-build.log",
+    "native_assembly": "Signed local release archive and IPA export passed; strict/deep signature and App Store distribution profile verified",
+    "native_assembly_log": ".local-builds/logs/ios-attempt74.log",
     "compiler_errors_observed_before_interruption": 0,
     "minimum_observed_free_internal_disk": "311 MiB"
   },
   "physical_install_verification": "Android phone available for owner-led verification once a signed local candidate is uploaded; no physical iPhone available",
-  "store_disclosures_for_new_sdk": "pending next binary; existing review labels preserved",
+  "store_disclosures_for_new_sdk": "pending; iOS browser requires renewed two-factor verification",
   "cloud_builds": [
     {
       "platform": "android",
@@ -62,7 +62,12 @@
     "defaultBranchPullRequests": [
       12,
       13,
-      14
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
     ],
     "easCreditUseProhibited": true
   },
@@ -73,5 +78,19 @@
     "iosReleaseAt": null,
     "androidReleaseAt": null
   },
-  "local_signing_credentials": "Existing Android and iOS signing files downloaded for local builds, permissions restricted and paths excluded from Git/EAS archives"
+  "local_signing_credentials": "Existing Android and iOS signing files downloaded for local builds, permissions restricted and paths excluded from Git/EAS archives",
+  "signed_local_candidates": {
+    "ios": {
+      "build": "74",
+      "verification": "ios-1.2.14-74-verification.json",
+      "upload": "ios-1.2.14-74-upload.json",
+      "status": "uploaded to App Store Connect; Apple processing pending"
+    },
+    "android": {
+      "build": "143",
+      "verification": "android-1.2.14-143-verification.json",
+      "status": "Submitted to Play internal testing; console availability verification pending",
+      "upload": "android-1.2.14-143-upload.json"
+    }
+  }
 }
