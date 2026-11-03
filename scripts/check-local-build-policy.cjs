@@ -34,6 +34,9 @@ test('local builds import public app configuration without server secrets or ove
     assert.equal(inherited.META_APP_CLIENT_TOKEN,undefined);
     assert.equal(env.EAS_LOCAL_BUILD_WORKINGDIR,path.join(root,'.local-builds','ios-work'));
     assert.equal(env.EAS_LOCAL_BUILD_ARTIFACTS_DIR,path.join(root,'.local-builds','artifacts'));
+    assert.equal(env.FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT,'120');
+    assert.equal(env.FASTLANE_XCODEBUILD_SETTINGS_RETRIES,'2');
+    assert.equal(localBuildEnvironment(['build','--local','--platform','ios'],{FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT:'45'},root).FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT,'45');
   } finally {fs.rmSync(root,{recursive:true,force:true});}
 });
 test('missing required local app configuration stops before an external build can start', () => {
