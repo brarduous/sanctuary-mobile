@@ -9,7 +9,11 @@
   "track": "internal",
   "release_status_requested": "completed",
   "changes_not_sent_for_review": true,
-  "play_console_verification_pending": true,
+  "play_console_verification_pending": false,
   "public_release_submitted": false,
-  "checked_at": "2026-11-03T22:54:47.248152+00:00"
+  "checked_at": "2026-11-03T22:54:47.248152+00:00",
+  "console_release_visible": "1.2.14",
+  "track_paused": true,
+  "selected_testers": "existing owner-only Me list",
+  "opt_in_url": "https://play.google.com/apps/internaltest/4700633327130767024"
 }

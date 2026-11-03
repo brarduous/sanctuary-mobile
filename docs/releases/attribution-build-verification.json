@@ -1,5 +1,5 @@
 {
-  "checked_at": "2026-11-03T22:50:02.823334+00:00",
+  "checked_at": "2026-11-03T23:54:49.973364+00:00",
   "native_release_status": "1.2.14 signed local iOS 74 and Android 143 artifact verification passed; not publicly distributed",
   "tests": {
     "acquisition": 12,
@@ -40,7 +40,7 @@
     "minimum_observed_free_internal_disk": "311 MiB"
   },
   "physical_install_verification": "Android phone available for owner-led verification once a signed local candidate is uploaded; no physical iPhone available",
-  "store_disclosures_for_new_sdk": "pending; iOS browser requires renewed two-factor verification",
+  "store_disclosures_for_new_sdk": "Google Data safety and Advertising ID updates saved, pending review; Apple additional categories await setup and tracking-purpose answers",
   "cloud_builds": [
     {
       "platform": "android",
@@ -84,13 +84,14 @@
       "build": "74",
       "verification": "ios-1.2.14-74-verification.json",
       "upload": "ios-1.2.14-74-upload.json",
-      "status": "uploaded to App Store Connect; Apple processing pending"
+      "status": "Processed and attached to1.2.14; release/reviewer notes saved; manual release"
     },
     "android": {
       "build": "143",
       "verification": "android-1.2.14-143-verification.json",
-      "status": "Submitted to Play internal testing; console availability verification pending",
+      "status": "Play Console confirms internal1.2.14; track paused; existing owner-only Me list selected",
       "upload": "android-1.2.14-143-upload.json"
     }
-  }
+  },
+  "store_disclosure_evidence": "store-disclosures-2026-11-03.json"
 }

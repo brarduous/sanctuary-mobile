@@ -1,0 +1,89 @@
+{
+  "checked_at": "2026-11-03T23:54:49.973364+00:00",
+  "public_release_status": "1.2.14 candidates uploaded; not publicly released",
+  "google_play": {
+    "data_safety": "saved, pending submission for review",
+    "advertising_id": "Yes; Analytics and Advertising or marketing; saved, pending review",
+    "release_error_checks_enabled": true,
+    "shared_data_types": [
+      "Device or other IDs",
+      "App interactions",
+      "Crash logs",
+      "Diagnostics"
+    ],
+    "shared_purposes": {
+      "Device or other IDs": [
+        "Analytics",
+        "Advertising or marketing"
+      ],
+      "App interactions": [
+        "Analytics",
+        "Advertising or marketing"
+      ],
+      "Crash logs": [
+        "Analytics"
+      ],
+      "Diagnostics": [
+        "Analytics"
+      ]
+    },
+    "new_diagnostics_collection": "non-ephemeral, optional through SDK initialization/advertising-ID controls",
+    "preserved_private_content_categories": [
+      "Name",
+      "Email address",
+      "User IDs",
+      "Political or religious beliefs",
+      "Purchase history",
+      "In-app search history",
+      "Other user-generated content"
+    ],
+    "private_content_added_to_advertising_sharing": false,
+    "internal_track": "paused; 1.2.14 release visible",
+    "selected_tester_list": "existing owner-only Me list",
+    "opt_in_url": "https://play.google.com/apps/internaltest/4700633327130767024"
+  },
+  "apple": {
+    "app_version": "1.2.14",
+    "build": "74",
+    "build_processed_and_attached": true,
+    "release_mode": "manual",
+    "release_and_reviewer_notes": "saved",
+    "privacy_status": "new Crash Data and Other Data categories selected; Additional Setup Required dialog remains; no new Apple labels published",
+    "remaining_privacy_setup": {
+      "Crash Data": {
+        "purposes": [
+          "App Functionality"
+        ],
+        "linked": false,
+        "tracking": false
+      },
+      "Other Data": {
+        "purposes": [
+          "Analytics"
+        ],
+        "linked": false,
+        "tracking": false
+      },
+      "Device ID": {
+        "preserve_existing_purposes": true,
+        "add_advertising_measurement": true,
+        "linked": true,
+        "tracking": true
+      },
+      "Product Interaction": {
+        "preserve_existing_purposes": true,
+        "add_advertising_measurement": true,
+        "linked": true,
+        "tracking": true
+      }
+    }
+  },
+  "privacy_policy_source_reviewed": "Web privacy policy already describes mobile Meta campaign measurement, iOS ATT, Android advertising-ID opt-out and excluded private content",
+  "physical_android_install_verified": false,
+  "physical_ios_tracking_verified": false,
+  "references": [
+    "https://developer.apple.com/app-store/app-privacy-details/",
+    "https://support.google.com/googleplay/android-developer/answer/10787469",
+    "https://github.com/meta/facebook-android-sdk/blob/main/facebook-core/src/main/java/com/facebook/internal/instrument/InstrumentManager.kt"
+  ]
+}
