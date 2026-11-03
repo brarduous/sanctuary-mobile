@@ -36,7 +36,12 @@ test('local builds import public app configuration without server secrets or ove
     assert.equal(env.EAS_LOCAL_BUILD_ARTIFACTS_DIR,path.join(root,'.local-builds','artifacts'));
     assert.equal(env.FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT,'120');
     assert.equal(env.FASTLANE_XCODEBUILD_SETTINGS_RETRIES,'2');
+    assert.equal(env.GYM_XCARGS,'-jobs 2');
     assert.equal(localBuildEnvironment(['build','--local','--platform','ios'],{FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT:'45'},root).FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT,'45');
+    assert.equal(localBuildEnvironment(['build','--local','--platform','ios'],{GYM_XCARGS:'-jobs 4'},root).GYM_XCARGS,'-jobs 4');
+    const android=localBuildEnvironment(['build','--local','--platform','android'],{},root);
+    assert.equal(android.GRADLE_OPTS,'-Dorg.gradle.workers.max=2');
+    assert.equal(android.CMAKE_BUILD_PARALLEL_LEVEL,'2');
   } finally {fs.rmSync(root,{recursive:true,force:true});}
 });
 test('missing required local app configuration stops before an external build can start', () => {
