@@ -9,6 +9,8 @@ npm run build:android
 
 Both invoke the repository EAS guard with `build --local`, one platform at a time, using the production profile. Local builds use this Mac's CPU and disk; they do not run on EAS cloud workers. They still need the normal native toolchain and signing credentials. iOS builds require macOS/Xcode; Android requires the JDK and Android SDK. Keep enough free disk space for dependencies and native build outputs before starting.
 
+Put local bundled configuration in ignored `.env.local`. The guard imports only `EXPO_PUBLIC_*`, `META_APP_ID` and `META_APP_CLIENT_TOKEN`, preserving explicit shell values. It never imports server credential variables from that file. Supabase's public URL/key are required before a build can start; EAS variables with Secret visibility are unavailable to local workers. Working directories and artifacts default to ignored `.local-builds/` on the project drive, and can be overridden with Expo's `EAS_LOCAL_BUILD_WORKINGDIR` / `EAS_LOCAL_BUILD_ARTIFACTS_DIR` variables. Keep detailed build logs private because signing tools may include credential payloads.
+
 For another existing profile, use:
 
 ```sh
