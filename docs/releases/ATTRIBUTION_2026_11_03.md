@@ -1,6 +1,6 @@
 # Mobile acquisition integration — November 3, 2026
 
-Prepared in draft PR #11, paired with the live web funnel in sanctuary-layperson-web PR #8. This is source/build validation, not a shipped mobile release. The existing iOS 1.2.13 review submission remains unchanged.
+Version 1.2.14 is prepared in draft PR #11, paired with the live web funnel in sanctuary-layperson-web PR #8. This is source/build validation, not a shipped mobile release. App Store Connect now shows 1.2.13 Ready for Distribution, observed November 3. No existing submission was canceled.
 
 ## Behavior
 
@@ -14,18 +14,22 @@ Native app ID/client-token configuration lives in ignored local `.env.local` and
 
 ## Validation
 
-- Eleven acquisition tests pass: referrer preservation, concurrent startup, offline idempotent replay, existing-install classification, pending and remote publication cutoffs, internal release-mode test labels, consent, no foreground re-prompting, permission revocation and opt-out/feature/device guards.
+- Twelve acquisition tests pass: referrer preservation, concurrent startup, offline idempotent replay, existing-install classification, pending and remote publication cutoffs, internal release-mode test labels, consent, no foreground re-prompting, permission revocation and opt-out/feature/device guards.
 - TypeScript passes; local EAS app-config evaluation works with Expo dotenv loading disabled.
 - Android native arm64 debug assembly passes, including FBSDK and Expo Tracking Transparency modules. This development artifact does not prove Play referrer or production SDK delivery.
 - Both iOS and Android production-mode Hermes exports pass.
 - iOS prebuild and dependency installation (140 pods) pass. Generated configuration has the correct Meta app ID, disabled auto-init, ATT purpose string and Meta SKAdNetwork IDs. Full simulator assembly was interrupted while local storage was nearly exhausted (311 MiB free observed); no completed iOS native binary is claimed. Its generated build output was removed to recover space. Dependency/build status is recorded in `attribution-build-verification.json`.
 
+## Local-only build policy
+
+At the owner's request, both queued 1.2.14 EAS builds (Android 142 and iOS 71) were canceled and their CANCELED status verified. No further EAS credits may be consumed. Default-branch PRs #12, #13 and #14 add AGENTS.md instructions and a tested local-only command guard. Use `npm run build:ios` / `npm run build:android`; account/environment/credential/status/submission access remains available without starting cloud builds. Signed local builds await sufficient free disk space. See `docs/LOCAL_BUILDS.md`.
+
 ## Next distributed binary
 
-1. Keep the current review submission in place. Complete a signed iOS candidate build with sufficient local storage or EAS, using the next available app version/build; remote EAS versioning is authoritative.
+1. Keep the current review submission in place. Complete a signed iOS candidate build with sufficient local storage, using the next available app version/build; remote EAS versioning is authoritative.
 2. Reconcile Apple App Privacy and Google Play Data safety/advertising-ID declarations with the enabled Meta SDK. Device identifiers and app interactions used for advertising measurement must be represented alongside existing data categories. Do not label prayer/advice content as sent to Meta; it is not sent by this integration. Existing 1.2.13 labels describe the binary already under review and have not been changed for unshipped SDK code.
 3. On actual publication, set the website production `ATTRIBUTION_IOS_RELEASE_AT` / `ATTRIBUTION_ANDROID_RELEASE_AT` to each platform's first tracking-enabled release instant in UTC and redeploy the website. EAS production has Meta configuration and `EXPO_PUBLIC_META_APP_EVENTS_ENABLED=true`; native build changes require a new binary, not an OTA-only update.
-4. Install the candidate through Google Play testing, follow the campaign-aware website store link, and verify one first open matches the website click. An APK sideload does not establish Play Install Referrer attribution. Internal observations stay excluded from business totals.
+4. Install the candidate through Google Play testing, follow the campaign-aware website store link, and verify one first open matches the website click. An APK sideload does not establish Play Install Referrer attribution. Use the website link with `tracking_test=1`: its Play referrer carries `sanctuary_test=1`, allowing the first-open path to be verified before publication while marking both sides as tests. Internal observations stay excluded from business totals.
 5. On a physical iPhone test ATT denial/grant and revocation, confirm no Meta startup when denied, then verify granted installation/activation in Meta Events Manager with an appropriately configured test candidate. The default internal profile disables Meta; enable it deliberately only for controlled vendor verification.
 6. Verify vendor events before release, then confirm real store-install/first-open reporting after publication. iOS downloads use Apple's verified campaign link and aggregate App Store Connect campaign reporting; individual web-to-iPhone installs cannot be reconstructed from it. Apple campaign visibility requires five individual Apple Accounts.
 

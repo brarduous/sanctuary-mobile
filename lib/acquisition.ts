@@ -28,8 +28,7 @@ async function publicationTime():Promise<number> {
 }
 async function initialize():Promise<State> {
  const saved=await AsyncStorage.getItem(KEY);if(saved){try{const state=JSON.parse(saved);if(UUID.test(state.id))return state;}catch{}}
- const releaseAt=await publicationTime();
- const id=Crypto.randomUUID();let first:Campaign={},last:Campaign={},clickId:string|undefined;
+ const id=Crypto.randomUUID();let first:Campaign={},last:Campaign={},clickId:string|undefined,referrerTest=false;
  if(Platform.OS==='android') {
   // Failure must be retried; don't permanently classify a temporarily
   // unavailable Play referrer as organic.
@@ -37,10 +36,14 @@ async function initialize():Promise<State> {
   const params=new URLSearchParams(referrer);last=campaignFromParams(params);first=last;
   try{const original=cleanCampaign(JSON.parse(params.get('sanctuary_first_touch')||'null'));if(Object.keys(original).length)first=original;}catch{}
   const click=params.get('sanctuary_click_id');if(click&&UUID.test(click))clickId=click;
+  referrerTest=params.get('sanctuary_test')==='1';
  }
+ // A marked store test can validate the complete referrer/first-open path
+ // before public release, while remaining excluded from campaign totals.
+ const releaseAt=referrerTest?0:await publicationTime();
  const installed=await Application.getInstallationTimeAsync();
  const state:State={id,first,last,clickId,firstSent:false};
- state.pending={event_id:Crypto.randomUUID(),event:installed.getTime()>=releaseAt?'app_first_open':'app_open',platform:Platform.OS as 'ios'|'android',visitor_id:id,session_id:Crypto.randomUUID(),first_touch:first,last_touch:last,is_test:__DEV__||process.env.EXPO_PUBLIC_ATTRIBUTION_TEST==='true',...(clickId?{click_id:clickId}:{})};
+ state.pending={event_id:Crypto.randomUUID(),event:installed.getTime()>=releaseAt?'app_first_open':'app_open',platform:Platform.OS as 'ios'|'android',visitor_id:id,session_id:Crypto.randomUUID(),first_touch:first,last_touch:last,is_test:__DEV__||referrerTest||process.env.EXPO_PUBLIC_ATTRIBUTION_TEST==='true',...(clickId?{click_id:clickId}:{})};
  await AsyncStorage.setItem(KEY,JSON.stringify(state));return state;
 }
 async function state(){try{return await (ready ||= initialize());}catch(error){ready=undefined;throw error;}}

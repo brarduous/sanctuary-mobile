@@ -41,12 +41,13 @@ export function parseFunnelRecord(value: unknown): FunnelRecord | null {
  if (['app_first_open','app_open'].includes(String(b.event)) ? b.platform === 'web' : b.platform !== 'web') return null;
  return {event_id:String(b.event_id),event:b.event as FunnelEvent,platform:b.platform as FunnelRecord['platform'],visitor_id:String(b.visitor_id),session_id:String(b.session_id),...(b.click_id ? {click_id:String(b.click_id)}:{}),...(b.store_platform ? {store_platform:b.store_platform as 'ios'|'android'}:{}),...(b.quiz_run_id ? {quiz_run_id:String(b.quiz_run_id),quiz_date:String(b.quiz_date)}:{}),first_touch:cleanCampaign(b.first_touch),last_touch:cleanCampaign(b.last_touch),is_test:b.is_test===true};
 }
-export function storeDestination(platform: 'ios'|'android', campaign: Campaign, clickId: string, providerToken?: string, firstCampaign?: Campaign) {
+export function storeDestination(platform: 'ios'|'android', campaign: Campaign, clickId: string, providerToken?: string, firstCampaign?: Campaign, isTest=false) {
  const url = new URL(platform === 'ios' ? 'https://apps.apple.com/us/app/sanctuary-daily-faith-focus/id6757966099' : 'https://play.google.com/store/apps/details?id=us.sanctuaryapp.app');
  if (platform === 'android') {
   const referrer=new URLSearchParams(cleanCampaign(campaign));
   if (UUID.test(clickId)) referrer.set('sanctuary_click_id',clickId);
   if(firstCampaign && Object.keys(firstCampaign).length)referrer.set('sanctuary_first_touch',JSON.stringify(cleanCampaign(firstCampaign)));
+  if(isTest)referrer.set('sanctuary_test','1');
   url.searchParams.set('referrer',referrer.toString());
  } else if (providerToken && /^\d+$/.test(providerToken)) {
   url.searchParams.set('pt',providerToken);url.searchParams.set('ct',campaignToken(campaign));url.searchParams.set('mt','8');

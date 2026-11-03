@@ -2,10 +2,10 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const root=path.resolve(__dirname,'..');
 function load(file,mocks,extra={}){const module={exports:{}};const code=ts.transpileModule(fs.readFileSync(path.join(root,file),'utf8'),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,esModuleInterop:true}}).outputText;vm.runInNewContext(code,{module,exports:module.exports,require:n=>mocks[n]||require(n),URL,URLSearchParams,Date,AbortController,console,process,setTimeout,clearTimeout,setInterval,clearInterval,__DEV__:false,...extra});return module.exports;}
 const core=load('lib/attributionCore.ts',{});
-function native({old=false,offline=false,releaseAt='2026-11-03T15:30:00Z',isTest=false,remoteReleaseAt=null}={}){
+function native({old=false,offline=false,releaseAt='2026-11-03T15:30:00Z',isTest=false,remoteReleaseAt=null,referrerTest=false}={}){
  const storage=new Map(),requests=[];let failures=offline?1:0;
  const click=crypto.randomUUID(),first={utm_source:'instagram',utm_campaign:'first'},last={utm_source:'meta',utm_campaign:'trivia_first20',utm_content:'quiz_v2'};
- const ref=new URLSearchParams({...last,sanctuary_click_id:click,sanctuary_first_touch:JSON.stringify(first)}).toString();
+ const ref=new URLSearchParams({...last,sanctuary_click_id:click,sanctuary_first_touch:JSON.stringify(first),...(referrerTest?{sanctuary_test:'1'}:{})}).toString();
  const mocks={'@react-native-async-storage/async-storage':{getItem:async k=>storage.get(k)||null,setItem:async(k,v)=>storage.set(k,v)},'expo-application':{getInstallReferrerAsync:async()=>ref,getInstallationTimeAsync:async()=>new Date(old?'2026-10-01T12:00:00Z':'2026-11-04T12:00:00Z')},'expo-crypto':{randomUUID:()=>crypto.randomUUID()},'expo-linking':{},'react-native':{Platform:{OS:'android'}},'./attributionCore':core};
  const fetch=async(_url,opts)=>{if(!opts.body)return {ok:true,json:async()=>({androidReleaseAt:remoteReleaseAt,iosReleaseAt:remoteReleaseAt})};requests.push(JSON.parse(opts.body));return {ok:failures-->0?false:true};};
  return {api:load('lib/acquisition.ts',mocks,{fetch,process:{env:{EXPO_PUBLIC_ATTRIBUTION_RELEASE_AT:releaseAt,EXPO_PUBLIC_ATTRIBUTION_TEST:String(isTest)}}}),requests,storage,click,first,last};
@@ -29,6 +29,9 @@ test('remote store publication dates distinguish a new install from an existing 
 });
 test('internal release-mode builds mark native observations as test traffic',async()=>{
  const n=native({isTest:true});await n.api.flushAcquisition();assert.equal(n.requests[0].is_test,true);
+});
+test('marked Play test installs verify first-open attribution before publication without entering real totals',async()=>{
+ const n=native({referrerTest:true,releaseAt:'',remoteReleaseAt:null});await n.api.flushAcquisition();assert.equal(n.requests[0].event,'app_first_open');assert.equal(n.requests[0].is_test,true);assert.equal(n.requests[0].click_id,n.click);assert.equal(n.requests[0].last_touch.utm_campaign,'trivia_first20');
 });
 function metaNative({platform='ios',status='granted',requestResult='granted',identifier='advertising-id',enabled=true,active=true,physical=true}={}){
  const calls=[],os={OS:platform},appState={currentState:active?'active':'background'};let permission=status;
