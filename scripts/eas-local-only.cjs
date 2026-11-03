@@ -12,7 +12,8 @@ function validateEasArgs(args) {
   }
   const account = new Set(['whoami', 'login', 'logout', 'credentials', 'credentials:configure-build', '--help', '--version']);
   const buildSupport = new Set(['build:list', 'build:view', 'build:cancel', 'build:download', 'build:run', 'build:inspect', 'build:configure', 'build:version:get', 'build:version:set', 'build:version:sync']);
-  if (account.has(command) || buildSupport.has(command) || command.startsWith('env:') || command === 'submit' || command === 'submission:view' || command === 'submission:list') return null;
+  const envSupport = new Set(['env:list', 'env:get', 'env:pull', 'env:push', 'env:create', 'env:update', 'env:delete']);
+  if (account.has(command) || buildSupport.has(command) || envSupport.has(command) || command === 'submit' || command === 'submission:view' || command === 'submission:list') return null;
   return `EAS command "${command}" is not permitted by the no-credit repository policy. Use local Xcode/Gradle for builds; do not start cloud execution or publication.`;
 }
 
