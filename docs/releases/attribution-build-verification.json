@@ -1,0 +1,36 @@
+{
+  "checked_at": "2026-11-03T17:52:40.013630+00:00",
+  "native_release_status": "Not distributed; current 1.2.13 review unchanged",
+  "tests": {
+    "acquisition": 10,
+    "typecheck": "passed",
+    "local_config_bootstrap": "passed with Expo dotenv loading disabled"
+  },
+  "android": {
+    "assembly": "passed",
+    "command": ":app:assembleDebug --no-daemon -Djava.net.preferIPv4Stack=true -PreactNativeArchitectures=arm64-v8a",
+    "variant": "debug arm64",
+    "apk_sha256": "8bb02184ac9b021fe0a15956e4db57da31a90f4df49ade6c8b1a37a23d1cccbf",
+    "apk_bytes": 87646451,
+    "log": "/tmp/sanctuary-meta-android-build-resumed.log"
+  },
+  "javascript_exports": {
+    "ios": "passed",
+    "android": "passed",
+    "log": "/tmp/sanctuary-meta-export.log"
+  },
+  "ios": {
+    "prebuild": "passed",
+    "meta_app_id": "1153789907089705",
+    "native_auto_init": false,
+    "tracking_permission_purpose": "configured",
+    "skadnetwork_ids": [
+      "v9wttpbfk9.skadnetwork",
+      "n38lu8286q.skadnetwork"
+    ],
+    "pods": "in progress",
+    "native_assembly": "pending"
+  },
+  "physical_install_verification": "pending",
+  "store_disclosures_for_new_sdk": "pending next binary; existing review labels preserved"
+}

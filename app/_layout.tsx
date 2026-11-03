@@ -30,6 +30,7 @@ import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 import { updateNotificationTimeZone } from '@/lib/api';
 import { DiscoveryProvider } from '@/context/DiscoveryContext';
 import {startAcquisitionTracking,flushAcquisition} from '@/lib/acquisition';
+import {syncMetaAttribution} from '@/lib/metaAttribution';
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -70,6 +71,13 @@ function RootLayoutNav() {
   const theme = Colors[colorScheme ?? 'light'];
   const { expoPushToken } = usePushNotifications();
   const userId = user?.id;
+
+  useEffect(()=>{
+    if(loading)return;
+    void syncMetaAttribution({requestPermission:true}).catch(()=>undefined);
+    const listener=AppState.addEventListener('change',state=>{if(state==='active')void syncMetaAttribution().catch(()=>undefined);});
+    return()=>listener.remove();
+  },[loading]);
 
   useEffect(()=>{const stop=startAcquisitionTracking();const listener=AppState.addEventListener('change',state=>{if(state==='active')void flushAcquisition().catch(()=>undefined);});return()=>{stop();listener.remove();};},[]);
 

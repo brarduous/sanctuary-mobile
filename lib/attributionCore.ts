@@ -21,21 +21,25 @@ export function campaignToken(campaign: Campaign) {
  let hash=2166136261;for(const char of token)hash=Math.imul(hash^char.charCodeAt(0),16777619);
  return token.slice(0,21)+'_'+(hash>>>0).toString(16).padStart(8,'0');
 }
-export const FUNNEL_EVENTS = ['trivia_landing_view','trivia_set_opened','trivia_round_started','trivia_round_completed','trivia_set_completed','trivia_share_initiated','app_download_cta','store_click','app_first_open','app_open'] as const;
+export const FUNNEL_EVENTS = ['trivia_landing_view','trivia_quiz_started','trivia_set_opened','trivia_round_started','trivia_round_completed','trivia_set_completed','trivia_share_initiated','app_download_cta','store_click','app_first_open','app_open'] as const;
 export type FunnelEvent = typeof FUNNEL_EVENTS[number];
 export type FunnelRecord = {
  event_id: string; event: FunnelEvent; platform: 'web'|'ios'|'android';
  visitor_id: string; session_id: string; click_id?: string; store_platform?: 'ios'|'android';
+ quiz_run_id?: string; quiz_date?: string;
  first_touch: Campaign; last_touch: Campaign; is_test: boolean;
 };
+export type QuizContext = {quiz_run_id:string;quiz_date:string};
+export function isQuizDate(value:unknown):value is string {return typeof value==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(value)&&!Number.isNaN(Date.parse(value))&&new Date(value).toISOString().slice(0,10)===value;}
 export function parseFunnelRecord(value: unknown): FunnelRecord | null {
  if (!value || typeof value !== 'object') return null;
  const b=value as Record<string,unknown>;
  if (!UUID.test(String(b.event_id)) || !UUID.test(String(b.visitor_id)) || !UUID.test(String(b.session_id)) || !FUNNEL_EVENTS.includes(b.event as FunnelEvent) || !['web','ios','android'].includes(String(b.platform))) return null;
+ if(b.quiz_run_id!=null||b.quiz_date!=null||b.event==='trivia_quiz_started'){if(!String(b.event).startsWith('trivia_')||!UUID.test(String(b.quiz_run_id))||!isQuizDate(b.quiz_date))return null;}
  if (b.click_id != null && !UUID.test(String(b.click_id))) return null;
  if (b.store_platform != null && (b.event!=='store_click'||!['ios','android'].includes(String(b.store_platform)))) return null;
  if (['app_first_open','app_open'].includes(String(b.event)) ? b.platform === 'web' : b.platform !== 'web') return null;
- return {event_id:String(b.event_id),event:b.event as FunnelEvent,platform:b.platform as FunnelRecord['platform'],visitor_id:String(b.visitor_id),session_id:String(b.session_id),...(b.click_id ? {click_id:String(b.click_id)}:{}),...(b.store_platform ? {store_platform:b.store_platform as 'ios'|'android'}:{}),first_touch:cleanCampaign(b.first_touch),last_touch:cleanCampaign(b.last_touch),is_test:b.is_test===true};
+ return {event_id:String(b.event_id),event:b.event as FunnelEvent,platform:b.platform as FunnelRecord['platform'],visitor_id:String(b.visitor_id),session_id:String(b.session_id),...(b.click_id ? {click_id:String(b.click_id)}:{}),...(b.store_platform ? {store_platform:b.store_platform as 'ios'|'android'}:{}),...(b.quiz_run_id ? {quiz_run_id:String(b.quiz_run_id),quiz_date:String(b.quiz_date)}:{}),first_touch:cleanCampaign(b.first_touch),last_touch:cleanCampaign(b.last_touch),is_test:b.is_test===true};
 }
 export function storeDestination(platform: 'ios'|'android', campaign: Campaign, clickId: string, providerToken?: string, firstCampaign?: Campaign) {
  const url = new URL(platform === 'ios' ? 'https://apps.apple.com/us/app/sanctuary-daily-faith-focus/id6757966099' : 'https://play.google.com/store/apps/details?id=us.sanctuaryapp.app');

@@ -6,7 +6,8 @@ import {Platform} from 'react-native';
 import {campaignFromParams,cleanCampaign,UUID,type Campaign,type FunnelRecord} from './attributionCore';
 const KEY='sanctuary:acquisition:v1';
 // Existing installations record app_open, rather than being relabeled installs.
-const RELEASE_AT=Date.parse(process.env.EXPO_PUBLIC_ATTRIBUTION_RELEASE_AT || '2026-11-03T15:30:00Z');
+// An unset publication cutoff must never turn existing users into new installs.
+const RELEASE_AT=Date.parse(process.env.EXPO_PUBLIC_ATTRIBUTION_RELEASE_AT || '');
 const ENDPOINT=(process.env.EXPO_PUBLIC_ATTRIBUTION_URL||'https://www.sanctuaryapp.us')+'/api/attribution';
 type State={id:string;first:Campaign;last:Campaign;clickId?:string;pending?:FunnelRecord;firstSent:boolean};
 let ready:Promise<State>|undefined,flushing:Promise<void>|undefined;
@@ -23,7 +24,7 @@ async function initialize():Promise<State> {
  }
  const installed=await Application.getInstallationTimeAsync();
  const state:State={id,first,last,clickId,firstSent:false};
- state.pending={event_id:Crypto.randomUUID(),event:installed.getTime()>=RELEASE_AT?'app_first_open':'app_open',platform:Platform.OS as 'ios'|'android',visitor_id:id,session_id:Crypto.randomUUID(),first_touch:first,last_touch:last,is_test:__DEV__,...(clickId?{click_id:clickId}:{})};
+ state.pending={event_id:Crypto.randomUUID(),event:installed.getTime()>=RELEASE_AT?'app_first_open':'app_open',platform:Platform.OS as 'ios'|'android',visitor_id:id,session_id:Crypto.randomUUID(),first_touch:first,last_touch:last,is_test:__DEV__||process.env.EXPO_PUBLIC_ATTRIBUTION_TEST==='true',...(clickId?{click_id:clickId}:{})};
  await AsyncStorage.setItem(KEY,JSON.stringify(state));return state;
 }
 async function state(){try{return await (ready ||= initialize());}catch(error){ready=undefined;throw error;}}
