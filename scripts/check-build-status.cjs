@@ -11,6 +11,8 @@ test('build status reports progress without forwarding credential payloads or ra
     const status=buildStatus(root,'ios'),output=JSON.stringify(status);
     assert.equal(status.phase,'RUN_FASTLANE');assert.equal(status.xcodeJobs,2);assert.equal(status.nativeLogs[0].currentTarget,'RevenueCat');assert.equal(status.nativeLogs[0].recentCompilerErrorLines,1);
     for(const value of ['FAKE_PRIVATE_SIGNING_VALUE',Buffer.from('FAKE_PRIVATE_SIGNING_VALUE').toString('base64'),'FAKE_CLIENT_TOKEN','FAKE_PRIVATE_ERROR_DETAIL'])assert.equal(output.includes(value),false);
+    fs.appendFileSync(path.join(logs,'ios-production.log'),'\u001b[32mBuild successful\u001b[0m\n');
+    assert.equal(buildStatus(root,'ios').succeeded,true);
   }finally{fs.rmSync(root,{recursive:true,force:true});}
 });
 test('status handles the gap while a local build workspace is being recreated',()=>{
