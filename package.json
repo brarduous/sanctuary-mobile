@@ -3,6 +3,10 @@
   "main": "expo-router/entry",
   "version": "1.2.13",
   "scripts": {
+    "eas": "node scripts/eas-local-only.cjs",
+    "build:ios": "node scripts/eas-local-only.cjs build --local --platform ios --profile production",
+    "build:android": "node scripts/eas-local-only.cjs build --local --platform android --profile production",
+    "test:build-policy": "node --test scripts/check-local-build-policy.cjs",
     "start": "expo start",
     "dev": "expo start --dev-client",
     "android": "expo run:android",
