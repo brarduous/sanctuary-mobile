@@ -29,6 +29,7 @@ import { savePushTokenToProfile, usePushNotifications } from '@/lib/pushNotifica
 import { ActionSheetProvider } from '@expo/react-native-action-sheet';
 import { updateNotificationTimeZone } from '@/lib/api';
 import { DiscoveryProvider } from '@/context/DiscoveryContext';
+import {startAcquisitionTracking,flushAcquisition} from '@/lib/acquisition';
 
 export default function RootLayout() {
   const [loaded, error] = useFonts({
@@ -69,6 +70,8 @@ function RootLayoutNav() {
   const theme = Colors[colorScheme ?? 'light'];
   const { expoPushToken } = usePushNotifications();
   const userId = user?.id;
+
+  useEffect(()=>{const stop=startAcquisitionTracking();const listener=AppState.addEventListener('change',state=>{if(state==='active')void flushAcquisition().catch(()=>undefined);});return()=>{stop();listener.remove();};},[]);
 
   useEffect(() => {
     if (user && expoPushToken) {
