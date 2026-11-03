@@ -15,7 +15,7 @@ test('explicit local builds and repository defaults are accepted', () => {
   }
 });
 test('alternate cloud execution paths and unknown commands fail closed', () => {
-  for (const command of ['build:dev','build:resign','workflow:run','update','deploy','unknown-command']) assert.ok(validateEasArgs([command]));
+  for (const command of ['build:dev','build:resign','workflow:run','env:exec','update','deploy','unknown-command']) assert.ok(validateEasArgs([command]));
 });
 test('build status, cancellation, credentials and store submission remain available', () => {
   for (const command of ['whoami','build:list','build:view','build:cancel','credentials','env:list','submit']) assert.equal(validateEasArgs([command]), null);
