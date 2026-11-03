@@ -11,6 +11,8 @@ Both invoke the repository EAS guard with `build --local`, one platform at a tim
 
 Put local bundled configuration in ignored `.env.local`. The guard imports only `EXPO_PUBLIC_*`, `META_APP_ID` and `META_APP_CLIENT_TOKEN`, preserving explicit shell values. It never imports server credential variables from that file. Supabase's public URL/key are required before a build can start; EAS variables with Secret visibility are unavailable to local workers. Working directories and artifacts default to ignored `.local-builds/` on the project drive, and can be overridden with Expo's `EAS_LOCAL_BUILD_WORKINGDIR` / `EAS_LOCAL_BUILD_ARTIFACTS_DIR` variables. Keep detailed build logs private because signing tools may include credential payloads.
 
+iOS builds allow 120 seconds for Fastlane's Xcode build-settings query, with two attempts, so loading the native workspace from an external drive can finish. Explicit `FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT` / `FASTLANE_XCODEBUILD_SETTINGS_RETRIES` values override these defaults.
+
 For another existing profile, use:
 
 ```sh
