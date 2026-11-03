@@ -30,6 +30,10 @@ function localBuildEnvironment(args, inherited = process.env, root = path.resolv
     // workspace from an external drive, before compilation even starts.
     env.FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT ||= '120';
     env.FASTLANE_XCODEBUILD_SETTINGS_RETRIES ||= '2';
+    env.GYM_XCARGS ||= '-jobs 2';
+  } else if (platform === 'android') {
+    env.GRADLE_OPTS ||= '-Dorg.gradle.workers.max=2';
+    env.CMAKE_BUILD_PARALLEL_LEVEL ||= '2';
   }
   return env;
 }

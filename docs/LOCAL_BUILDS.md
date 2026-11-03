@@ -13,6 +13,8 @@ Put local bundled configuration in ignored `.env.local`. The guard imports only 
 
 iOS builds allow 120 seconds for Fastlane's Xcode build-settings query, with two attempts, so loading the native workspace from an external drive can finish. Explicit `FASTLANE_XCODEBUILD_SETTINGS_TIMEOUT` / `FASTLANE_XCODEBUILD_SETTINGS_RETRIES` values override these defaults.
 
+To keep local builds usable on the owner's 8 GB Mac, iOS defaults to two Xcode jobs; Android defaults to two Gradle workers and a CMake parallel level of two. Explicit `GYM_XCARGS`, `GRADLE_OPTS` and `CMAKE_BUILD_PARALLEL_LEVEL` shell values override those defaults.
+
 For another existing profile, use:
 
 ```sh
