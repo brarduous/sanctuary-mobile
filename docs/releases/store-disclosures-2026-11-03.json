@@ -91,8 +91,9 @@
   ],
   "android_test_plan": {
     "device": "Samsung Galaxy S24+",
-    "existing_install_preserved": false,
+    "existing_install_preserved": null,
     "method": "Owner approved disrupting normal installation and reports app opened; test-link fresh install and installed version not yet confirmed. No matching QA campaign or mobile event observed.",
-    "qa_campaign": "qa_s24plus_20261103"
+    "qa_campaign": "qa_s24plus_20261103",
+    "owner_approved_disrupting_normal_installation": true
   }
 }
