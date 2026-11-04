@@ -1,9 +1,9 @@
 {
-  "checked_at": "2026-11-03T23:54:49.973364+00:00",
+  "checked_at": "2026-11-04T00:36:20.803248+00:00",
   "public_release_status": "1.2.14 candidates uploaded; not publicly released",
   "google_play": {
-    "data_safety": "saved, pending submission for review",
-    "advertising_id": "Yes; Analytics and Advertising or marketing; saved, pending review",
+    "data_safety": "submitted; Changes in review (automated checks running at submission)",
+    "advertising_id": "Yes; Analytics and Advertising or marketing; saved and included in review context",
     "release_error_checks_enabled": true,
     "shared_data_types": [
       "Device or other IDs",
@@ -38,9 +38,10 @@
       "Other user-generated content"
     ],
     "private_content_added_to_advertising_sharing": false,
-    "internal_track": "paused; 1.2.14 release visible",
-    "selected_tester_list": "existing owner-only Me list",
-    "opt_in_url": "https://play.google.com/apps/internaltest/4700633327130767024"
+    "internal_track": "active; 1.2.14 version code 143 available to internal testers",
+    "selected_tester_list": "existing owner-only Me list (1); Testers list deselected; saved",
+    "opt_in_url": "https://play.google.com/apps/internaltest/4700633327130767024",
+    "version_code": 143
   },
   "apple": {
     "app_version": "1.2.14",
@@ -48,8 +49,8 @@
     "build_processed_and_attached": true,
     "release_mode": "manual",
     "release_and_reviewer_notes": "saved",
-    "privacy_status": "new Crash Data and Other Data categories selected; Additional Setup Required dialog remains; no new Apple labels published",
-    "remaining_privacy_setup": {
+    "privacy_status": "published; Device ID and Product Interaction advertising purposes and tracking declared; Crash Data and Other Data setup complete",
+    "privacy_setup": {
       "Crash Data": {
         "purposes": [
           "App Functionality"
@@ -76,7 +77,9 @@
         "linked": true,
         "tracking": true
       }
-    }
+    },
+    "review_status": "Waiting for Review",
+    "review_submission_id": "03d0d18d-b288-4531-8553-185dc2f49e64"
   },
   "privacy_policy_source_reviewed": "Web privacy policy already describes mobile Meta campaign measurement, iOS ATT, Android advertising-ID opt-out and excluded private content",
   "physical_android_install_verified": false,
@@ -85,5 +88,11 @@
     "https://developer.apple.com/app-store/app-privacy-details/",
     "https://support.google.com/googleplay/android-developer/answer/10787469",
     "https://github.com/meta/facebook-android-sdk/blob/main/facebook-core/src/main/java/com/facebook/internal/instrument/InstrumentManager.kt"
-  ]
+  ],
+  "android_test_plan": {
+    "device": "Samsung Galaxy S24+",
+    "existing_install_preserved": true,
+    "method": "Fresh Google Play install inside Secure Folder using owner test account and marked website campaign link; pending owner action",
+    "qa_campaign": "qa_s24plus_20261103"
+  }
 }
