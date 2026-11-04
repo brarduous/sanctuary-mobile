@@ -91,8 +91,8 @@
   ],
   "android_test_plan": {
     "device": "Samsung Galaxy S24+",
-    "existing_install_preserved": true,
-    "method": "Fresh Google Play install inside Secure Folder using owner test account and marked website campaign link; pending owner action",
+    "existing_install_preserved": false,
+    "method": "Owner approved disrupting normal installation and reports app opened; test-link fresh install and installed version not yet confirmed. No matching QA campaign or mobile event observed.",
     "qa_campaign": "qa_s24plus_20261103"
   }
 }
