@@ -6,12 +6,18 @@
   "build": {
     "development": {
       "developmentClient": true,
-      "distribution": "internal"
+      "distribution": "internal",
+      "env": {
+        "EXPO_PUBLIC_ATTRIBUTION_TEST": "true",
+        "EXPO_PUBLIC_META_APP_EVENTS_ENABLED": "false"
+      }
     },
     "preview": {
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://api.sanctuaryapp.us"
+        "EXPO_PUBLIC_BACKEND_URL": "https://api.sanctuaryapp.us",
+        "EXPO_PUBLIC_ATTRIBUTION_TEST": "true",
+        "EXPO_PUBLIC_META_APP_EVENTS_ENABLED": "false"
       }
     },
     "device-qa": {
@@ -19,7 +25,9 @@
       "distribution": "internal",
       "autoIncrement": false,
       "env": {
-        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a"
+        "ORG_GRADLE_PROJECT_reactNativeArchitectures": "arm64-v8a",
+        "EXPO_PUBLIC_ATTRIBUTION_TEST": "true",
+        "EXPO_PUBLIC_META_APP_EVENTS_ENABLED": "false"
       },
       "android": {
         "buildType": "apk"
@@ -31,7 +39,8 @@
         "buildType": "app-bundle"
       },
       "env": {
-        "EXPO_PUBLIC_BACKEND_URL": "https://api.sanctuaryapp.us"
+        "EXPO_PUBLIC_BACKEND_URL": "https://api.sanctuaryapp.us",
+        "EXPO_PUBLIC_ATTRIBUTION_TEST": "false"
       },
       "environment": "production"
     }

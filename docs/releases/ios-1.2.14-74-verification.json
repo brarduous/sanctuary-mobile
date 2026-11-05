@@ -1,0 +1,24 @@
+{
+  "checked_at": "2026-11-03T22:26:59.452895+00:00",
+  "artifact": ".local-builds/artifacts/build-1793744770724.ipa",
+  "sha256": "8389a3dae5758925e7e7032d0258c353af113766f4f2e40bf4179953adfbcca2",
+  "bytes": 36471715,
+  "version": "1.2.14",
+  "build": "74",
+  "bundle_identifier": "us.sanctuaryapp.app",
+  "code_signature_verified": true,
+  "app_store_profile_verified": true,
+  "production_configuration_verified": true,
+  "meta_client_configuration_matches": true,
+  "meta_native_auto_init": false,
+  "tracking_permission_purpose_present": true,
+  "service_role_jwt_absent": true,
+  "physical_device_verified": false,
+  "source_commit": "4c30197",
+  "build_execution": "local Mac",
+  "eas_cloud_worker_used": false,
+  "debug_symbols": {
+    "artifact": ".local-builds/artifacts/Sanctuary-1.2.14-74.app.dSYM.zip",
+    "sha256": "0bc9b168764ac5918c40335ed4578df69526d1b3d639363c08e765e7cfac8199"
+  }
+}

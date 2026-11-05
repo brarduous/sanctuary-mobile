@@ -1,0 +1,27 @@
+{
+  "checked_at": "2026-11-03T22:50:02.823334+00:00",
+  "artifact": ".local-builds/artifacts/build-1793746181393.aab",
+  "sha256": "72c3b13aae2fcd5d13d83395fd03fab2a2a83df1a814a80bef8bf8b25cdfe3ac",
+  "bytes": 94488982,
+  "version": "1.2.14",
+  "build": "143",
+  "package": "us.sanctuaryapp.app",
+  "bundletool_validation_passed": true,
+  "signature_verified": true,
+  "existing_upload_key_matches": true,
+  "production_configuration_verified": true,
+  "meta_client_configuration_matches": true,
+  "meta_native_auto_init": false,
+  "advertising_id_permission_present": true,
+  "service_role_jwt_absent": true,
+  "abis": [
+    "arm64-v8a",
+    "armeabi-v7a",
+    "x86",
+    "x86_64"
+  ],
+  "physical_device_verified": false,
+  "source_commit": "05d7e74",
+  "build_execution": "local Mac",
+  "eas_cloud_worker_used": false
+}

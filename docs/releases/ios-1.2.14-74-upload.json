@@ -1,0 +1,22 @@
+{
+  "platform": "ios",
+  "version": "1.2.14",
+  "build": "74",
+  "artifact_sha256": "8389a3dae5758925e7e7032d0258c353af113766f4f2e40bf4179953adfbcca2",
+  "submission_id": "d488035b-bee5-446d-a048-b9ed5725ed30",
+  "cli_exit_code": 0,
+  "existing_app_store_connect_key_used": true,
+  "cli_confirmed_successfully_uploaded": true,
+  "apple_processing_pending": false,
+  "public_release_submitted": false,
+  "checked_at": "2026-11-04T00:37:04.526173+00:00",
+  "build_available_in_app_store_connect": true,
+  "attached_to_version": "1.2.14",
+  "release_mode": "manual after approval",
+  "release_notes_saved": true,
+  "reviewer_notes_saved": true,
+  "app_store_build_id": "f43af4c2-8ca3-4b94-b267-dd85da3b044b",
+  "app_review_submitted": true,
+  "app_review_status": "Waiting for Review",
+  "app_review_submission_id": "03d0d18d-b288-4531-8553-185dc2f49e64"
+}

@@ -1,0 +1,97 @@
+{
+  "checked_at": "2026-11-03T23:54:49.973364+00:00",
+  "native_release_status": "1.2.14 signed local iOS 74 and Android 143 artifact verification passed; not publicly distributed",
+  "tests": {
+    "acquisition": 12,
+    "typecheck": "passed",
+    "local_config_bootstrap": "passed with Expo dotenv loading disabled",
+    "eas_production_config": "passed: correct Meta app, disabled native auto-init, test flag false",
+    "eas_device_qa_config": "passed: Meta events disabled, first-party test flag true",
+    "tracked_source_token_scan": "passed: bundled client token absent from tracked source",
+    "eas_remote_environment": "EAS CLI confirmed loading META_APP_ID, META_APP_CLIENT_TOKEN and EXPO_PUBLIC_META_APP_EVENTS_ENABLED from production",
+    "local_build_policy": 8
+  },
+  "android": {
+    "assembly": "passed",
+    "command": ":app:assembleDebug --no-daemon -Djava.net.preferIPv4Stack=true -PreactNativeArchitectures=arm64-v8a",
+    "variant": "debug arm64",
+    "apk_sha256": "8bb02184ac9b021fe0a15956e4db57da31a90f4df49ade6c8b1a37a23d1cccbf",
+    "apk_bytes": 87646451,
+    "log": "/tmp/sanctuary-meta-android-build-resumed.log"
+  },
+  "javascript_exports": {
+    "ios": "passed",
+    "android": "passed",
+    "log": "/tmp/sanctuary-meta-export.log"
+  },
+  "ios": {
+    "prebuild": "passed",
+    "meta_app_id": "1153789907089705",
+    "native_auto_init": false,
+    "tracking_permission_purpose": "configured",
+    "skadnetwork_ids": [
+      "v9wttpbfk9.skadnetwork",
+      "n38lu8286q.skadnetwork"
+    ],
+    "pods": "passed: 140 pods installed",
+    "native_assembly": "Signed local release archive and IPA export passed; strict/deep signature and App Store distribution profile verified",
+    "native_assembly_log": ".local-builds/logs/ios-attempt74.log",
+    "compiler_errors_observed_before_interruption": 0,
+    "minimum_observed_free_internal_disk": "311 MiB"
+  },
+  "physical_install_verification": "Android phone available for owner-led verification once a signed local candidate is uploaded; no physical iPhone available",
+  "store_disclosures_for_new_sdk": "Google Data safety and Advertising ID updates saved, pending review; Apple additional categories await setup and tracking-purpose answers",
+  "cloud_builds": [
+    {
+      "platform": "android",
+      "id": "c55ed066-9ec0-4fc9-8082-3cd65b4b7a12",
+      "version": "1.2.14",
+      "build": "142",
+      "status": "CANCELED"
+    },
+    {
+      "platform": "ios",
+      "id": "47731dda-1619-4517-ad92-b5ea6dfb65bb",
+      "version": "1.2.14",
+      "build": "71",
+      "status": "CANCELED"
+    }
+  ],
+  "build_policy": {
+    "localOnly": true,
+    "defaultBranchPullRequests": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "easCreditUseProhibited": true
+  },
+  "publication_config": {
+    "endpoint": "https://www.sanctuaryapp.us/api/attribution",
+    "verified_status": 200,
+    "cache": "no-store",
+    "iosReleaseAt": null,
+    "androidReleaseAt": null
+  },
+  "local_signing_credentials": "Existing Android and iOS signing files downloaded for local builds, permissions restricted and paths excluded from Git/EAS archives",
+  "signed_local_candidates": {
+    "ios": {
+      "build": "74",
+      "verification": "ios-1.2.14-74-verification.json",
+      "upload": "ios-1.2.14-74-upload.json",
+      "status": "Processed and attached to1.2.14; release/reviewer notes saved; manual release"
+    },
+    "android": {
+      "build": "143",
+      "verification": "android-1.2.14-143-verification.json",
+      "status": "Play Console confirms internal1.2.14; track paused; existing owner-only Me list selected",
+      "upload": "android-1.2.14-143-upload.json"
+    }
+  },
+  "store_disclosure_evidence": "store-disclosures-2026-11-03.json"
+}

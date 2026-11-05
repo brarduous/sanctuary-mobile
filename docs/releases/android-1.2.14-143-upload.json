@@ -1,0 +1,21 @@
+{
+  "platform": "android",
+  "version": "1.2.14",
+  "build": "143",
+  "artifact_sha256": "72c3b13aae2fcd5d13d83395fd03fab2a2a83df1a814a80bef8bf8b25cdfe3ac",
+  "submission_id": "3063d3cc-5584-425b-8143-5fe44ba37146",
+  "cli_exit_code": 0,
+  "cli_confirmed_submitted": true,
+  "track": "internal",
+  "release_status_requested": "completed",
+  "changes_not_sent_for_review": true,
+  "play_console_verification_pending": false,
+  "public_release_submitted": false,
+  "checked_at": "2026-11-04T00:37:04.526173+00:00",
+  "console_release_visible": "1.2.14",
+  "track_paused": false,
+  "selected_testers": "existing owner-only Me list",
+  "opt_in_url": "https://play.google.com/apps/internaltest/4700633327130767024",
+  "console_version_code": 143,
+  "console_distribution_status": "Available to internal testers; track Active"
+}
